@@ -18,10 +18,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.main_activity);
 
-        viewPager = findViewById(R.id.viewPager);
-        bottomNavigation = findViewById(R.id.bottomNavigation);
+        viewPager = findViewById(R.id.view_pager);
+        bottomNavigation = findViewById(R.id.bottom_navigation);
 
         // disable viewpager swiping
         viewPager.setUserInputEnabled(false);
