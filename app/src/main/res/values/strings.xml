@@ -5,4 +5,7 @@
     <string name="profile_title">Profile</string>
 
     <string name="error_directory_not_accessible">Directory not accessible</string>
+    <string name="error_failed_to_handle">Failed to handle</string>
+    <string name="error_file_not_exist">File does not exist</string>
+    <string name="error_no_app_to_open">No app found to open this file</string>
 </resources>

@@ -1,5 +1,8 @@
 package pd.droidapp.fmgr;
 
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.LayoutInflater;
@@ -11,6 +14,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -45,8 +49,10 @@ public class BrowseFragment extends Fragment {
         fileItemAdapter.whenFileClicked(file -> {
             if (file.isDirectory()) {
                 navigateTo(file);
+            } else if (file.isFile()) {
+                openFile(file);
             } else {
-                // TODO do open file
+                Toast.makeText(requireContext(), R.string.error_failed_to_handle, Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -118,6 +124,34 @@ public class BrowseFragment extends Fragment {
         backStack.push(currentDirectory);
         forwardStack.pop();
         doChangeCurrentDirectory(target);
+    }
+
+    private void openFile(File file) {
+        if (file == null || !file.exists()) {
+            Toast.makeText(requireContext(), R.string.error_file_not_exist, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Uri uri = FileProvider.getUriForFile(
+                requireContext(),
+                requireContext().getPackageName() + ".file_provider",
+                file);
+
+        String mimeType = requireContext().getContentResolver().getType(uri);
+        if (mimeType == null) {
+            mimeType = "*/*";
+        }
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, mimeType);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(requireContext(), R.string.error_no_app_to_open, Toast.LENGTH_SHORT).show();
+        }
     }
 
     public File getParentDirectory(File directory) {
