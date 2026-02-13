@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
+import java.util.Stack;
 
 public class BrowseFragment extends Fragment {
 
@@ -23,6 +25,8 @@ public class BrowseFragment extends Fragment {
     private FileItemAdapter fileItemAdapter;
 
     private File currentDirectory;
+    private final Stack<File> backStack = new Stack<>();
+    private final Stack<File> forwardStack = new Stack<>();
 
     @Nullable
     @Override
@@ -30,15 +34,17 @@ public class BrowseFragment extends Fragment {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
         actionBar = new ActionBar(view);
+        actionBar.whenBackButtonClicked(v -> navigateBack());
+        actionBar.whenForwardButtonClicked(v -> navigateForward());
+        actionBar.whenUpButtonClicked(v -> navigateUp());
         actionBar.whenRefreshButtonClicked(v -> fileItemAdapter.invalidate(currentDirectory));
-        actionBar.whenParentButtonClicked(v -> navigateToDirectory(getParentDirectory(currentDirectory)));
 
         pathBar = new PathBar(view);
 
         fileItemAdapter = new FileItemAdapter();
         fileItemAdapter.whenFileClicked(file -> {
             if (file.isDirectory()) {
-                navigateToDirectory(file);
+                navigateTo(file);
             } else {
                 // TODO do open file
             }
@@ -48,21 +54,70 @@ public class BrowseFragment extends Fragment {
         fileListView.setLayoutManager(new LinearLayoutManager(requireContext()));
         fileListView.setAdapter(fileItemAdapter);
 
-        navigateToDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+        doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
 
         return view;
     }
 
-    private void navigateToDirectory(File directory) {
-        if (directory == null || !directory.exists() || !directory.isDirectory()) {
-            return;
-        }
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    private boolean validateDirectory(File directory) {
+        return directory != null && directory.exists();
+    }
 
+    private void doChangeCurrentDirectory(File directory) {
         currentDirectory = directory;
-
         pathBar.invalidate();
         actionBar.invalidate();
         fileItemAdapter.invalidate(directory);
+    }
+
+    private void navigateTo(File target) {
+        if (!validateDirectory(target)) {
+            Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (currentDirectory != null && !currentDirectory.equals(target)) {
+            backStack.push(currentDirectory);
+        }
+        forwardStack.clear();
+        doChangeCurrentDirectory(target);
+    }
+
+    private void navigateUp() {
+        navigateTo(getParentDirectory(currentDirectory));
+    }
+
+    private void navigateBack() {
+        if (backStack.isEmpty()) {
+            return;
+        }
+
+        File target = backStack.peek();
+        if (!validateDirectory(target)) {
+            Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        backStack.pop();
+        forwardStack.push(currentDirectory);
+        doChangeCurrentDirectory(target);
+    }
+
+    private void navigateForward() {
+        if (forwardStack.isEmpty()) {
+            return;
+        }
+
+        File target = forwardStack.peek();
+        if (!validateDirectory(target)) {
+            Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        backStack.push(currentDirectory);
+        forwardStack.pop();
+        doChangeCurrentDirectory(target);
     }
 
     public File getParentDirectory(File directory) {
@@ -77,29 +132,44 @@ public class BrowseFragment extends Fragment {
 
     public class ActionBar {
 
-        private final ImageButton parentButton;
-
+        private final ImageButton backButton;
+        private final ImageButton forwardButton;
+        private final ImageButton upButton;
         private final ImageButton refreshButton;
 
         public ActionBar(View containerView) {
-            parentButton = containerView.findViewById(R.id.action_parent);
+            backButton = containerView.findViewById(R.id.action_back);
+            forwardButton = containerView.findViewById(R.id.action_forward);
+            upButton = containerView.findViewById(R.id.action_up);
             refreshButton = containerView.findViewById(R.id.action_refresh);
 
             ImageButton moreButton = containerView.findViewById(R.id.action_more);
             moreButton.setEnabled(false);
         }
 
+        public void whenBackButtonClicked(View.OnClickListener onClickListener) {
+            backButton.setOnClickListener(onClickListener);
+        }
+
+        public void whenForwardButtonClicked(View.OnClickListener onClickListener) {
+            forwardButton.setOnClickListener(onClickListener);
+        }
+
+        public void whenUpButtonClicked(View.OnClickListener onClickListener) {
+            upButton.setOnClickListener(onClickListener);
+        }
+
         public void whenRefreshButtonClicked(View.OnClickListener onClickListener) {
             refreshButton.setOnClickListener(onClickListener);
         }
 
-        public void whenParentButtonClicked(View.OnClickListener onClickListener) {
-            parentButton.setOnClickListener(onClickListener);
-        }
-
         public void invalidate() {
             boolean hasParentDirectory = getParentDirectory(currentDirectory) != null;
-            parentButton.setEnabled(hasParentDirectory);
+            upButton.setEnabled(hasParentDirectory);
+
+            backButton.setEnabled(!backStack.isEmpty());
+
+            forwardButton.setEnabled(!forwardStack.isEmpty());
         }
     }
 

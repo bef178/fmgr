@@ -3,4 +3,6 @@
     <string name="home_title">Home</string>
     <string name="browse_title">Browse</string>
     <string name="profile_title">Profile</string>
+
+    <string name="error_directory_not_accessible">Directory not accessible</string>
 </resources>
