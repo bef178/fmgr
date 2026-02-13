@@ -88,14 +88,18 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
-        <TextView
-            android:id="@+id/current_directory"
-            android:layout_width="0dp"
+        <HorizontalScrollView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/browse_title"
-            android:textColor="?attr/colorOnBackground"
-            android:textSize="12sp" />
+            android:scrollbars="horizontal">
+
+            <LinearLayout
+                android:id="@+id/breadcrumb_layout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+
+        </HorizontalScrollView>
 
     </LinearLayout>
 

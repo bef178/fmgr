@@ -1,6 +1,7 @@
 package pd.droidapp.fmgr;
 
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -9,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -209,16 +211,46 @@ public class BrowseFragment extends Fragment {
 
     public class PathBar {
 
-        private final TextView currentDirectoryTextView;
+        private final LinearLayout breadcrumbLayout;
 
         public PathBar(View containerView) {
-            currentDirectoryTextView = containerView.findViewById(R.id.current_directory);
+            breadcrumbLayout = containerView.findViewById(R.id.breadcrumb_layout);
         }
 
-
         public void invalidate() {
-            String path = currentDirectory.getAbsolutePath();
-            currentDirectoryTextView.setText(path);
+            breadcrumbLayout.removeAllViews();
+
+            Context context = requireContext();
+            LayoutInflater inflater = LayoutInflater.from(context);
+
+            File f = currentDirectory;
+            while (f != null) {
+                if (f.getName().isEmpty()) {
+                    // the root directory deserves a breadcrumb
+                    breadcrumbLayout.addView(createBreadcrumbItemView(inflater, f), 0);
+                } else {
+                    if (breadcrumbLayout.getChildCount() > 0) {
+                        breadcrumbLayout.addView(createSeparatorTextView(context), 0);
+                    }
+                    breadcrumbLayout.addView(createBreadcrumbItemView(inflater, f), 0);
+                }
+                f = f.getParentFile();
+            }
+        }
+
+        private TextView createBreadcrumbItemView(LayoutInflater inflater, File f) {
+            TextView textView = (TextView) inflater.inflate(R.layout.breadcrumb_item, breadcrumbLayout, false);
+            textView.setText(f.getName().isEmpty() ? "/" : f.getName());
+            textView.setOnClickListener(v -> navigateTo(f));
+            return textView;
+        }
+
+        private TextView createSeparatorTextView(Context context) {
+            TextView textView = new TextView(context);
+            textView.setText("/");
+            textView.setTextSize(12);
+            textView.setTextColor(context.getColor(android.R.color.darker_gray));
+            return textView;
         }
     }
 }
