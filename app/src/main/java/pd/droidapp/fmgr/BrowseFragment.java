@@ -40,10 +40,6 @@ public class BrowseFragment extends Fragment {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
         actionBar = new ActionBar(view);
-        actionBar.whenBackButtonClicked(v -> navigateBack());
-        actionBar.whenForwardButtonClicked(v -> navigateForward());
-        actionBar.whenUpButtonClicked(v -> navigateUp());
-        actionBar.whenRefreshButtonClicked(v -> fileItemAdapter.invalidate(currentDirectory));
 
         pathBar = new PathBar(view);
 
@@ -90,10 +86,6 @@ public class BrowseFragment extends Fragment {
         }
         forwardStack.clear();
         doChangeCurrentDirectory(target);
-    }
-
-    private void navigateUp() {
-        navigateTo(getParentDirectory(currentDirectory));
     }
 
     private void navigateBack() {
@@ -171,32 +163,22 @@ public class BrowseFragment extends Fragment {
         private final ImageButton backButton;
         private final ImageButton forwardButton;
         private final ImageButton upButton;
-        private final ImageButton refreshButton;
 
         public ActionBar(View containerView) {
             backButton = containerView.findViewById(R.id.action_back);
+            backButton.setOnClickListener(v -> navigateBack());
+
             forwardButton = containerView.findViewById(R.id.action_forward);
+            forwardButton.setOnClickListener(v -> navigateForward());
+
             upButton = containerView.findViewById(R.id.action_up);
-            refreshButton = containerView.findViewById(R.id.action_refresh);
+            upButton.setOnClickListener(v -> navigateTo(getParentDirectory(currentDirectory)));
+
+            ImageButton refreshButton = containerView.findViewById(R.id.action_refresh);
+            refreshButton.setOnClickListener(v -> fileItemAdapter.invalidate(currentDirectory));
 
             ImageButton moreButton = containerView.findViewById(R.id.action_more);
             moreButton.setEnabled(false);
-        }
-
-        public void whenBackButtonClicked(View.OnClickListener onClickListener) {
-            backButton.setOnClickListener(onClickListener);
-        }
-
-        public void whenForwardButtonClicked(View.OnClickListener onClickListener) {
-            forwardButton.setOnClickListener(onClickListener);
-        }
-
-        public void whenUpButtonClicked(View.OnClickListener onClickListener) {
-            upButton.setOnClickListener(onClickListener);
-        }
-
-        public void whenRefreshButtonClicked(View.OnClickListener onClickListener) {
-            refreshButton.setOnClickListener(onClickListener);
         }
 
         public void invalidate() {
