@@ -8,17 +8,27 @@
     <!-- title bar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:background="?attr/colorSurface"
         android:elevation="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="8dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <ImageButton
+            android:id="@+id/action_home"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/baseline_arrow_back_24"
+            tools:ignore="ContentDescription" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:gravity="start"
             android:text="@string/browse_title"
@@ -34,40 +44,40 @@
 
             <ImageButton
                 android:id="@+id/action_back"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/action_back"
                 tools:ignore="ContentDescription" />
 
             <ImageButton
                 android:id="@+id/action_forward"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/action_forward"
                 tools:ignore="ContentDescription" />
 
             <ImageButton
                 android:id="@+id/action_up"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/action_up"
                 tools:ignore="ContentDescription" />
 
             <ImageButton
                 android:id="@+id/action_refresh"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/baseline_refresh_24"
                 tools:ignore="ContentDescription" />
 
             <ImageButton
                 android:id="@+id/action_more"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/action_more"
                 tools:ignore="ContentDescription" />

@@ -79,4 +79,8 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
     }
+
+    public void navigateToHome() {
+        viewPager.setCurrentItem(0);
+    }
 }

@@ -46,7 +46,7 @@ public class BrowseFragment extends Fragment {
         fileItemAdapter = new FileItemAdapter();
         fileItemAdapter.whenFileClicked(file -> {
             if (file.isDirectory()) {
-                navigateTo(file);
+                navigateToDirectory(file);
             } else if (file.isFile()) {
                 openFile(file);
             } else {
@@ -75,7 +75,7 @@ public class BrowseFragment extends Fragment {
         fileItemAdapter.invalidate(directory);
     }
 
-    private void navigateTo(File target) {
+    private void navigateToDirectory(File target) {
         if (!validateDirectory(target)) {
             Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
             return;
@@ -86,6 +86,11 @@ public class BrowseFragment extends Fragment {
         }
         forwardStack.clear();
         doChangeCurrentDirectory(target);
+    }
+
+    private void navigateToHome() {
+        MainActivity mainActivity = (MainActivity) requireActivity();
+        mainActivity.navigateToHome();
     }
 
     private void navigateBack() {
@@ -165,6 +170,9 @@ public class BrowseFragment extends Fragment {
         private final ImageButton upButton;
 
         public ActionBar(View containerView) {
+            ImageButton homeButton = containerView.findViewById(R.id.action_home);
+            homeButton.setOnClickListener(v -> navigateToHome());
+
             backButton = containerView.findViewById(R.id.action_back);
             backButton.setOnClickListener(v -> navigateBack());
 
@@ -172,7 +180,7 @@ public class BrowseFragment extends Fragment {
             forwardButton.setOnClickListener(v -> navigateForward());
 
             upButton = containerView.findViewById(R.id.action_up);
-            upButton.setOnClickListener(v -> navigateTo(getParentDirectory(currentDirectory)));
+            upButton.setOnClickListener(v -> navigateToDirectory(getParentDirectory(currentDirectory)));
 
             ImageButton refreshButton = containerView.findViewById(R.id.action_refresh);
             refreshButton.setOnClickListener(v -> fileItemAdapter.invalidate(currentDirectory));
@@ -223,7 +231,7 @@ public class BrowseFragment extends Fragment {
         private TextView createBreadcrumbItemView(LayoutInflater inflater, File f) {
             TextView textView = (TextView) inflater.inflate(R.layout.breadcrumb_item, breadcrumbLayout, false);
             textView.setText(f.getName().isEmpty() ? "/" : f.getName());
-            textView.setOnClickListener(v -> navigateTo(f));
+            textView.setOnClickListener(v -> navigateToDirectory(f));
             return textView;
         }
 
