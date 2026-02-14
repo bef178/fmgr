@@ -1,8 +1,12 @@
 <resources>
     <string name="app_name">File Manager for Android</string>
     <string name="home_title">Home</string>
+    <string name="home_favorites_title">Favorites (%d)</string>
     <string name="browse_title">Browse</string>
     <string name="profile_title">Profile</string>
+
+    <string name="added_to_favorites">Added to favorites</string>
+    <string name="removed_from_favorites">Removed from favorites</string>
 
     <string name="error_directory_not_accessible">Directory not accessible</string>
     <string name="error_failed_to_handle">Failed to handle</string>

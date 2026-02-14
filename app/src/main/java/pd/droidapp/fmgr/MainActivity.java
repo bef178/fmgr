@@ -10,10 +10,14 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import java.io.File;
+
 public class MainActivity extends AppCompatActivity {
 
     private ViewPager2 viewPager;
     private BottomNavigationView bottomNavigation;
+
+    private BrowseFragment browseFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,7 +36,8 @@ public class MainActivity extends AppCompatActivity {
             public Fragment createFragment(int position) {
                 switch (position) {
                     case 1:
-                        return new BrowseFragment();
+                        browseFragment = new BrowseFragment();
+                        return browseFragment;
                     case 2:
                         return new ProfileFragment();
                     default:
@@ -82,5 +87,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void navigateToHome() {
         viewPager.setCurrentItem(0);
+    }
+
+    public void navigateToDirectory(File directory) {
+        viewPager.setCurrentItem(1, true);
+        viewPager.post(() -> {
+            if (browseFragment != null) {
+                browseFragment.navigateToDirectory(directory);
+            }
+        });
     }
 }

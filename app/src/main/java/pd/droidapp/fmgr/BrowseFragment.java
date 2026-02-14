@@ -30,6 +30,8 @@ public class BrowseFragment extends Fragment {
     private PathBar pathBar;
     private FileItemAdapter fileItemAdapter;
 
+    private FavoritesManager favoritesManager;
+
     private File currentDirectory;
     private final Stack<File> backStack = new Stack<>();
     private final Stack<File> forwardStack = new Stack<>();
@@ -38,6 +40,8 @@ public class BrowseFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
+
+        favoritesManager = new FavoritesManager(requireContext());
 
         actionBar = new ActionBar(view);
 
@@ -63,6 +67,13 @@ public class BrowseFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        pathBar.invalidate();
+        fileItemAdapter.invalidate(currentDirectory);
+    }
+
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean validateDirectory(File directory) {
         return directory != null && directory.exists();
@@ -75,7 +86,7 @@ public class BrowseFragment extends Fragment {
         fileItemAdapter.invalidate(directory);
     }
 
-    private void navigateToDirectory(File target) {
+    public void navigateToDirectory(File target) {
         if (!validateDirectory(target)) {
             Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
             return;
@@ -163,6 +174,17 @@ public class BrowseFragment extends Fragment {
         return null;
     }
 
+    private void toggleFavorite() {
+        if (favoritesManager.isFavorite(currentDirectory)) {
+            favoritesManager.removeFavorite(currentDirectory);
+            Toast.makeText(requireContext(), R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();
+        } else {
+            favoritesManager.addFavorite(currentDirectory);
+            Toast.makeText(requireContext(), R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
+        }
+        pathBar.favIcon.setSelected(favoritesManager.isFavorite(currentDirectory));
+    }
+
     public class ActionBar {
 
         private final ImageButton backButton;
@@ -187,6 +209,9 @@ public class BrowseFragment extends Fragment {
 
             ImageButton moreButton = containerView.findViewById(R.id.action_more);
             moreButton.setEnabled(false);
+
+            homeButton = containerView.findViewById(R.id.action_home);
+            homeButton.setOnClickListener(v -> navigateToHome());
         }
 
         public void invalidate() {
@@ -202,17 +227,22 @@ public class BrowseFragment extends Fragment {
     public class PathBar {
 
         private final LinearLayout breadcrumbLayout;
+        private final ImageButton favIcon;
 
         public PathBar(View containerView) {
             breadcrumbLayout = containerView.findViewById(R.id.breadcrumb_layout);
+
+            favIcon = containerView.findViewById(R.id.fav_icon);
+            favIcon.setOnClickListener(v -> toggleFavorite());
         }
 
         public void invalidate() {
             breadcrumbLayout.removeAllViews();
 
+            favIcon.setSelected(favoritesManager.isFavorite(currentDirectory));
+
             Context context = requireContext();
             LayoutInflater inflater = LayoutInflater.from(context);
-
             File f = currentDirectory;
             while (f != null) {
                 if (f.getName().isEmpty()) {

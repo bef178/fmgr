@@ -99,8 +99,9 @@
         android:paddingEnd="16dp">
 
         <HorizontalScrollView
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:scrollbars="horizontal">
 
             <LinearLayout
@@ -110,6 +111,14 @@
                 android:orientation="horizontal" />
 
         </HorizontalScrollView>
+
+        <ImageButton
+            android:id="@+id/fav_icon"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/fav_icon"
+            tools:ignore="ContentDescription" />
 
     </LinearLayout>
 
