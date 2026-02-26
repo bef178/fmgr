@@ -26,7 +26,7 @@
 
     </LinearLayout>
 
-    <!-- favorites -->
+    <!-- favorite box -->
     <LinearLayout
         android:id="@+id/favorites_layout"
         android:layout_width="match_parent"

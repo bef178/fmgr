@@ -32,13 +32,15 @@ import java.util.Locale;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
+import pd.droidapp.fmgr.fav.FavItemStore;
+
 public class BrowseFragment extends Fragment {
 
     private ActionBar actionBar;
     private PathBar pathBar;
     private FileItemAdapter fileItemAdapter;
 
-    private FavoritesManager favoritesManager;
+    private FavItemStore favItemStore;
 
     private File currentDirectory;
     private final Stack<File> backStack = new Stack<>();
@@ -49,7 +51,7 @@ public class BrowseFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
-        favoritesManager = new FavoritesManager(requireContext());
+        favItemStore = new FavItemStore(requireContext());
 
         actionBar = new ActionBar(view);
 
@@ -174,14 +176,14 @@ public class BrowseFragment extends Fragment {
     }
 
     private void toggleFavorite() {
-        if (favoritesManager.isFavorite(currentDirectory)) {
-            favoritesManager.removeFavorite(currentDirectory);
+        if (favItemStore.contains(currentDirectory)) {
+            favItemStore.remove(currentDirectory);
             Toast.makeText(requireContext(), R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();
         } else {
-            favoritesManager.addFavorite(currentDirectory);
+            favItemStore.put(currentDirectory);
             Toast.makeText(requireContext(), R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
         }
-        pathBar.favIcon.setSelected(favoritesManager.isFavorite(currentDirectory));
+        pathBar.favIcon.setSelected(favItemStore.contains(currentDirectory));
     }
 
     public class ActionBar {
@@ -238,7 +240,7 @@ public class BrowseFragment extends Fragment {
         public void invalidate() {
             breadcrumbLayout.removeAllViews();
 
-            favIcon.setSelected(favoritesManager.isFavorite(currentDirectory));
+            favIcon.setSelected(favItemStore.contains(currentDirectory));
 
             Context context = requireContext();
             LayoutInflater inflater = LayoutInflater.from(context);
