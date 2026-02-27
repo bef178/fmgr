@@ -8,19 +8,19 @@
     android:padding="4dp">
 
     <ImageButton
-        android:id="@+id/action_new_file"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/i_file_add_24"
-        tools:ignore="ContentDescription" />
-
-    <ImageButton
         android:id="@+id/action_new_directory"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/i_directory_add_24"
+        tools:ignore="ContentDescription" />
+
+    <ImageButton
+        android:id="@+id/action_new_file"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/i_file_add_24"
         tools:ignore="ContentDescription" />
 
 </LinearLayout>

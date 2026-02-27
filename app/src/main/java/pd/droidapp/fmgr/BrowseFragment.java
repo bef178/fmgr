@@ -33,6 +33,8 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.fav.FavItemStore;
+import pd.droidapp.fmgr.util.ActionPopup;
+import pd.droidapp.fmgr.util.EditPopup;
 
 public class BrowseFragment extends Fragment {
 
@@ -186,6 +188,75 @@ public class BrowseFragment extends Fragment {
         pathBar.favIcon.setSelected(favItemStore.contains(currentDirectory));
     }
 
+    void showCreateDirectoryPopup() {
+        EditPopup editPopup = new EditPopup(requireContext(), getView());
+        editPopup.show(
+                getString(R.string.new_directory),
+                "",
+                getString(R.string.directory_name),
+                name -> {
+                    if (createItem(name, true)) {
+                        editPopup.dismiss();
+                    }
+                });
+    }
+
+    private void showCreateFilePopup() {
+        EditPopup editPopup = new EditPopup(requireContext(), getView());
+        editPopup.show(
+                getString(R.string.new_file),
+                "",
+                getString(R.string.file_name),
+                name -> {
+                    if (createItem(name, false)) {
+                        editPopup.dismiss();
+                    }
+                });
+    }
+
+    private boolean createItem(String name, boolean isDirectory) {
+        if (name.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.error_empty_name, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        if (name.contains("/") || name.contains("\\") || name.contains("\0")) {
+            Toast.makeText(requireContext(), R.string.error_invalid_name, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        File newFile = new File(currentDirectory, name);
+        if (newFile.exists()) {
+            Toast.makeText(requireContext(), R.string.error_already_exists, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        boolean success;
+        try {
+            if (isDirectory) {
+                success = newFile.mkdirs();
+                if (success) {
+                    Toast.makeText(requireContext(), R.string.directory_created, Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                success = newFile.createNewFile();
+                if (success) {
+                    Toast.makeText(requireContext(), R.string.file_created, Toast.LENGTH_SHORT).show();
+                }
+            }
+        } catch (Exception e) {
+            success = false;
+        }
+
+        if (!success) {
+            Toast.makeText(requireContext(), R.string.error_create_failed, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        fileItemAdapter.invalidate(currentDirectory);
+        return true;
+    }
+
     public class ActionBar {
 
         private final ImageButton backButton;
@@ -209,18 +280,17 @@ public class BrowseFragment extends Fragment {
             refreshButton.setOnClickListener(v -> fileItemAdapter.invalidate(currentDirectory));
 
             ImageButton moreButton = containerView.findViewById(R.id.action_more);
-            moreButton.setEnabled(false);
-
-            homeButton = containerView.findViewById(R.id.action_home);
-            homeButton.setOnClickListener(v -> navigateToHome());
+            moreButton.setOnClickListener(v -> {
+                ActionPopup actionPopup = new ActionPopup(requireContext(), v);
+                actionPopup.setOnNewDirectoryClickListener(BrowseFragment.this::showCreateDirectoryPopup);
+                actionPopup.setOnNewFileClickListener(BrowseFragment.this::showCreateFilePopup);
+            });
         }
 
         public void invalidate() {
             boolean hasParentDirectory = getParentDirectory(currentDirectory) != null;
             upButton.setEnabled(hasParentDirectory);
-
             backButton.setEnabled(!backStack.isEmpty());
-
             forwardButton.setEnabled(!forwardStack.isEmpty());
         }
     }
