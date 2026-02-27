@@ -29,4 +29,6 @@
     <string name="error_invalid_name">Invalid name</string>
     <string name="error_already_exists">Already exists</string>
     <string name="error_create_failed">Failed to create</string>
+
+    <string name="num_selected_format">%d selected</string>
 </resources>

@@ -87,41 +87,88 @@
 
     </LinearLayout>
 
-    <!-- path bar -->
-    <LinearLayout
-        android:id="@+id/path_bar"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorSurfaceVariant"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="8dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+        android:layout_height="wrap_content">
 
-        <HorizontalScrollView
-            android:layout_width="0dp"
+        <!-- path bar -->
+        <LinearLayout
+            android:id="@+id/path_bar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:scrollbars="horizontal">
+            android:background="?attr/colorSurfaceVariant"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
-            <LinearLayout
-                android:id="@+id/breadcrumb_layout"
-                android:layout_width="wrap_content"
+            <HorizontalScrollView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal" />
+                android:layout_weight="1"
+                android:scrollbars="horizontal">
 
-        </HorizontalScrollView>
+                <LinearLayout
+                    android:id="@+id/breadcrumb_layout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
 
-        <ImageButton
-            android:id="@+id/fav_icon"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/fav_icon"
-            tools:ignore="ContentDescription" />
+            </HorizontalScrollView>
 
-    </LinearLayout>
+            <ImageButton
+                android:id="@+id/fav_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/fav_icon"
+                tools:ignore="ContentDescription" />
+
+        </LinearLayout>
+
+        <!-- selection bar -->
+        <LinearLayout
+            android:id="@+id/selection_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorPrimary"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="4dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="10dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/num_selected"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="?attr/colorOnPrimary"
+                android:textSize="14sp" />
+
+            <ImageButton
+                android:id="@+id/select_all_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/i_check_all_24"
+                android:tint="?attr/colorOnPrimary" />
+
+            <ImageButton
+                android:id="@+id/select_close_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/baseline_close_24"
+                android:tint="?attr/colorOnPrimary" />
+
+        </LinearLayout>
+
+    </FrameLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/file_list"

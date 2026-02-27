@@ -41,6 +41,7 @@ public class BrowseFragment extends Fragment {
 
     private ActionBar actionBar;
     private PathBar pathBar;
+    private SelectionBar selectionBar;
     private FileItemAdapter fileItemAdapter;
 
     private final Stack<File> backStack = new Stack<>();
@@ -56,6 +57,8 @@ public class BrowseFragment extends Fragment {
         pathBar = new PathBar(requireContext(), view.findViewById(R.id.path_bar));
         pathBar.whenBreadcrumbClicked(this::navigateToDirectory);
 
+        selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
+
         fileItemAdapter = new FileItemAdapter();
 
         RecyclerView fileListView = view.findViewById(R.id.file_list);
@@ -65,6 +68,12 @@ public class BrowseFragment extends Fragment {
         doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
 
         return view;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        selectionBar.clearSelected();
     }
 
     @Override
@@ -82,6 +91,7 @@ public class BrowseFragment extends Fragment {
     private void doChangeCurrentDirectory(File directory) {
         pathBar.invalidate(directory);
         actionBar.invalidate();
+        selectionBar.clearSelected();
         fileItemAdapter.invalidate(directory);
     }
 
@@ -263,7 +273,7 @@ public class BrowseFragment extends Fragment {
             upButton.setOnClickListener(v -> navigateToDirectory(getParentDirectory(pathBar.getCurrentDirectory())));
 
             ImageButton refreshButton = containerView.findViewById(R.id.action_refresh);
-            refreshButton.setOnClickListener(v -> fileItemAdapter.invalidate(pathBar.getCurrentDirectory()));
+            refreshButton.setOnClickListener(v -> doChangeCurrentDirectory(pathBar.getCurrentDirectory()));
 
             ImageButton moreButton = containerView.findViewById(R.id.action_more);
             moreButton.setOnClickListener(v -> {
@@ -281,34 +291,81 @@ public class BrowseFragment extends Fragment {
         }
     }
 
-    private class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.FileItemViewHolder> {
+    public class SelectionBar {
 
-        private final List<FileItem> fileItems = new ArrayList<>();
         private final Set<File> selectedFiles = new HashSet<>();
 
-        @SuppressLint("NotifyDataSetChanged")
-        public void invalidate(File directory) {
-            fileItems.clear();
-            fileItems.addAll(getFileItems(directory));
-            if (!directory.equals(pathBar.getCurrentDirectory())) {
+        private final View selectionBarLayout;
+        private final TextView numSelectedTextView;
+
+        public SelectionBar(View selectionBarLayout) {
+            this.selectionBarLayout = selectionBarLayout;
+            numSelectedTextView = selectionBarLayout.findViewById(R.id.num_selected);
+            ImageButton selectAllButton = selectionBarLayout.findViewById(R.id.select_all_icon);
+            ImageButton clearSelectionButton = selectionBarLayout.findViewById(R.id.select_close_icon);
+
+            selectAllButton.setOnClickListener(v -> {
                 selectedFiles.clear();
-            }
-            notifyDataSetChanged();
+                selectedFiles.addAll(fileItemAdapter.getAllFiles());
+                fileItemAdapter.notifyDataSetChanged();
+                invalidate();
+            });
+            clearSelectionButton.setOnClickListener(v -> {
+                selectedFiles.clear();
+                fileItemAdapter.notifyDataSetChanged();
+                invalidate();
+            });
         }
 
-        private void toggleSelected(File file) {
+        public void invalidate() {
+            if (selectedFiles.isEmpty()) {
+                selectionBarLayout.setVisibility(View.GONE);
+            } else {
+                numSelectedTextView.setText(getString(R.string.num_selected_format, selectedFiles.size()));
+                selectionBarLayout.setVisibility(View.VISIBLE);
+            }
+        }
+
+        boolean isSelected(File file) {
+            return selectedFiles.contains(file);
+        }
+
+        boolean hasSelection() {
+            return !selectedFiles.isEmpty();
+        }
+
+        void toggleSelected(File file) {
             if (selectedFiles.contains(file)) {
                 selectedFiles.remove(file);
             } else {
                 selectedFiles.add(file);
             }
+            invalidate();
+        }
 
-            for (int i = 0; i < fileItems.size(); i++) {
-                if (fileItems.get(i).getFile().equals(file)) {
-                    notifyItemChanged(i);
-                    break;
-                }
+        void clearSelected() {
+            selectedFiles.clear();
+            invalidate();
+        }
+    }
+
+    private class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.FileItemViewHolder> {
+
+        private final List<FileItem> fileItems = new ArrayList<>();
+
+        public List<File> getAllFiles() {
+            List<File> files = new ArrayList<>(fileItems.size());
+            for (FileItem item : fileItems) {
+                files.add(item.getFile());
             }
+            return files;
+        }
+
+        @SuppressLint("NotifyDataSetChanged")
+        public void invalidate(File directory) {
+            fileItems.clear();
+            fileItems.addAll(getFileItems(directory));
+            notifyDataSetChanged();
         }
 
         private List<FileItem> getFileItems(File directory) {
@@ -360,14 +417,14 @@ public class BrowseFragment extends Fragment {
                 viewHolder.fileDetailsTextView.setText(sizeText);
             }
 
-            if (selectedFiles.contains(file)) {
+            if (selectionBar.isSelected(file)) {
                 viewHolder.fileSelectedImageView.setVisibility(View.VISIBLE);
             } else {
                 viewHolder.fileSelectedImageView.setVisibility(View.GONE);
             }
 
             viewHolder.itemView.setOnClickListener(v -> {
-                if (!selectedFiles.isEmpty()) {
+                if (selectionBar.hasSelection()) {
                     toggleSelected(file);
                     return;
                 }
@@ -384,6 +441,16 @@ public class BrowseFragment extends Fragment {
                 toggleSelected(file);
                 return true;
             });
+        }
+
+        private void toggleSelected(File file) {
+            selectionBar.toggleSelected(file);
+            for (int i = 0; i < fileItems.size(); i++) {
+                if (fileItems.get(i).getFile().equals(file)) {
+                    notifyItemChanged(i);
+                    break;
+                }
+            }
         }
 
         private String getDirectoryDetailsString(int numOrdinary, int numHidden) {
