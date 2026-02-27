@@ -12,7 +12,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,9 +31,9 @@ import java.util.Locale;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
-import pd.droidapp.fmgr.fav.FavItemStore;
 import pd.droidapp.fmgr.util.ActionPopup;
 import pd.droidapp.fmgr.util.EditPopup;
+import pd.droidapp.fmgr.util.PathBar;
 
 public class BrowseFragment extends Fragment {
 
@@ -42,9 +41,6 @@ public class BrowseFragment extends Fragment {
     private PathBar pathBar;
     private FileItemAdapter fileItemAdapter;
 
-    private FavItemStore favItemStore;
-
-    private File currentDirectory;
     private final Stack<File> backStack = new Stack<>();
     private final Stack<File> forwardStack = new Stack<>();
 
@@ -53,11 +49,10 @@ public class BrowseFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
-        favItemStore = new FavItemStore(requireContext());
-
         actionBar = new ActionBar(view);
 
-        pathBar = new PathBar(view);
+        pathBar = new PathBar(requireContext(), view.findViewById(R.id.path_bar));
+        pathBar.whenBreadcrumbClicked(this::navigateToDirectory);
 
         fileItemAdapter = new FileItemAdapter();
 
@@ -74,7 +69,7 @@ public class BrowseFragment extends Fragment {
     public void onResume() {
         super.onResume();
         pathBar.invalidate();
-        fileItemAdapter.invalidate(currentDirectory);
+        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -83,8 +78,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void doChangeCurrentDirectory(File directory) {
-        currentDirectory = directory;
-        pathBar.invalidate();
+        pathBar.invalidate(directory);
         actionBar.invalidate();
         fileItemAdapter.invalidate(directory);
     }
@@ -95,6 +89,7 @@ public class BrowseFragment extends Fragment {
             return;
         }
 
+        File currentDirectory = pathBar.getCurrentDirectory();
         if (currentDirectory != null && !currentDirectory.equals(target)) {
             backStack.push(currentDirectory);
         }
@@ -119,7 +114,7 @@ public class BrowseFragment extends Fragment {
         }
 
         backStack.pop();
-        forwardStack.push(currentDirectory);
+        forwardStack.push(pathBar.getCurrentDirectory());
         doChangeCurrentDirectory(target);
     }
 
@@ -134,7 +129,7 @@ public class BrowseFragment extends Fragment {
             return;
         }
 
-        backStack.push(currentDirectory);
+        backStack.push(pathBar.getCurrentDirectory());
         forwardStack.pop();
         doChangeCurrentDirectory(target);
     }
@@ -177,17 +172,6 @@ public class BrowseFragment extends Fragment {
         return null;
     }
 
-    private void toggleFavorite() {
-        if (favItemStore.contains(currentDirectory)) {
-            favItemStore.remove(currentDirectory);
-            Toast.makeText(requireContext(), R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();
-        } else {
-            favItemStore.put(currentDirectory);
-            Toast.makeText(requireContext(), R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
-        }
-        pathBar.favIcon.setSelected(favItemStore.contains(currentDirectory));
-    }
-
     void showCreateDirectoryPopup() {
         EditPopup editPopup = new EditPopup(requireContext(), getView());
         editPopup.show(
@@ -225,7 +209,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        File newFile = new File(currentDirectory, name);
+        File newFile = new File(pathBar.getCurrentDirectory(), name);
         if (newFile.exists()) {
             Toast.makeText(requireContext(), R.string.error_already_exists, Toast.LENGTH_SHORT).show();
             return false;
@@ -253,7 +237,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        fileItemAdapter.invalidate(currentDirectory);
+        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
         return true;
     }
 
@@ -274,10 +258,10 @@ public class BrowseFragment extends Fragment {
             forwardButton.setOnClickListener(v -> navigateForward());
 
             upButton = containerView.findViewById(R.id.action_up);
-            upButton.setOnClickListener(v -> navigateToDirectory(getParentDirectory(currentDirectory)));
+            upButton.setOnClickListener(v -> navigateToDirectory(getParentDirectory(pathBar.getCurrentDirectory())));
 
             ImageButton refreshButton = containerView.findViewById(R.id.action_refresh);
-            refreshButton.setOnClickListener(v -> fileItemAdapter.invalidate(currentDirectory));
+            refreshButton.setOnClickListener(v -> fileItemAdapter.invalidate(pathBar.getCurrentDirectory()));
 
             ImageButton moreButton = containerView.findViewById(R.id.action_more);
             moreButton.setOnClickListener(v -> {
@@ -288,60 +272,10 @@ public class BrowseFragment extends Fragment {
         }
 
         public void invalidate() {
-            boolean hasParentDirectory = getParentDirectory(currentDirectory) != null;
+            boolean hasParentDirectory = getParentDirectory(pathBar.getCurrentDirectory()) != null;
             upButton.setEnabled(hasParentDirectory);
             backButton.setEnabled(!backStack.isEmpty());
             forwardButton.setEnabled(!forwardStack.isEmpty());
-        }
-    }
-
-    public class PathBar {
-
-        private final LinearLayout breadcrumbLayout;
-        private final ImageButton favIcon;
-
-        public PathBar(View containerView) {
-            breadcrumbLayout = containerView.findViewById(R.id.breadcrumb_layout);
-
-            favIcon = containerView.findViewById(R.id.fav_icon);
-            favIcon.setOnClickListener(v -> toggleFavorite());
-        }
-
-        public void invalidate() {
-            breadcrumbLayout.removeAllViews();
-
-            favIcon.setSelected(favItemStore.contains(currentDirectory));
-
-            Context context = requireContext();
-            LayoutInflater inflater = LayoutInflater.from(context);
-            File f = currentDirectory;
-            while (f != null) {
-                if (f.getName().isEmpty()) {
-                    // the root directory deserves a breadcrumb
-                    breadcrumbLayout.addView(createBreadcrumbItemView(inflater, f), 0);
-                } else {
-                    if (breadcrumbLayout.getChildCount() > 0) {
-                        breadcrumbLayout.addView(createSeparatorTextView(context), 0);
-                    }
-                    breadcrumbLayout.addView(createBreadcrumbItemView(inflater, f), 0);
-                }
-                f = f.getParentFile();
-            }
-        }
-
-        private TextView createBreadcrumbItemView(LayoutInflater inflater, File f) {
-            TextView textView = (TextView) inflater.inflate(R.layout.breadcrumb_item, breadcrumbLayout, false);
-            textView.setText(f.getName().isEmpty() ? "/" : f.getName());
-            textView.setOnClickListener(v -> navigateToDirectory(f));
-            return textView;
-        }
-
-        private TextView createSeparatorTextView(Context context) {
-            TextView textView = new TextView(context);
-            textView.setText("/");
-            textView.setTextSize(12);
-            textView.setTextColor(context.getColor(android.R.color.darker_gray));
-            return textView;
         }
     }
 
