@@ -25,9 +25,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
@@ -282,12 +284,31 @@ public class BrowseFragment extends Fragment {
     private class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.FileItemViewHolder> {
 
         private final List<FileItem> fileItems = new ArrayList<>();
+        private final Set<File> selectedFiles = new HashSet<>();
 
         @SuppressLint("NotifyDataSetChanged")
         public void invalidate(File directory) {
             fileItems.clear();
             fileItems.addAll(getFileItems(directory));
+            if (!directory.equals(pathBar.getCurrentDirectory())) {
+                selectedFiles.clear();
+            }
             notifyDataSetChanged();
+        }
+
+        private void toggleSelected(File file) {
+            if (selectedFiles.contains(file)) {
+                selectedFiles.remove(file);
+            } else {
+                selectedFiles.add(file);
+            }
+
+            for (int i = 0; i < fileItems.size(); i++) {
+                if (fileItems.get(i).getFile().equals(file)) {
+                    notifyItemChanged(i);
+                    break;
+                }
+            }
         }
 
         private List<FileItem> getFileItems(File directory) {
@@ -327,8 +348,10 @@ public class BrowseFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull FileItemViewHolder viewHolder, int position) {
             FileItem item = fileItems.get(position);
-            viewHolder.fileNameTextView.setText(item.getFile().getName());
-            if (item.getFile().isDirectory()) {
+            File file = item.getFile();
+
+            viewHolder.fileNameTextView.setText(file.getName());
+            if (file.isDirectory()) {
                 viewHolder.fileIconImageView.setImageResource(R.drawable.i_directory_24);
                 viewHolder.fileDetailsTextView.setText(getDirectoryDetailsString(item.getNumOrdinaryItems(), item.getNumHiddenItems()));
             } else {
@@ -337,8 +360,17 @@ public class BrowseFragment extends Fragment {
                 viewHolder.fileDetailsTextView.setText(sizeText);
             }
 
+            if (selectedFiles.contains(file)) {
+                viewHolder.fileSelectedImageView.setVisibility(View.VISIBLE);
+            } else {
+                viewHolder.fileSelectedImageView.setVisibility(View.GONE);
+            }
+
             viewHolder.itemView.setOnClickListener(v -> {
-                File file = item.getFile();
+                if (!selectedFiles.isEmpty()) {
+                    toggleSelected(file);
+                    return;
+                }
                 if (file.isDirectory()) {
                     navigateToDirectory(file);
                 } else if (file.isFile()) {
@@ -346,6 +378,11 @@ public class BrowseFragment extends Fragment {
                 } else {
                     Toast.makeText(requireContext(), R.string.error_failed_to_handle, Toast.LENGTH_SHORT).show();
                 }
+            });
+
+            viewHolder.itemView.setOnLongClickListener(v -> {
+                toggleSelected(file);
+                return true;
             });
         }
 
@@ -396,12 +433,14 @@ public class BrowseFragment extends Fragment {
         class FileItemViewHolder extends RecyclerView.ViewHolder {
 
             private final ImageView fileIconImageView;
+            private final ImageView fileSelectedImageView;
             private final TextView fileNameTextView;
             private final TextView fileDetailsTextView;
 
             public FileItemViewHolder(@NonNull View itemView) {
                 super(itemView);
                 fileIconImageView = itemView.findViewById(R.id.file_icon);
+                fileSelectedImageView = itemView.findViewById(R.id.file_selected_icon);
                 fileNameTextView = itemView.findViewById(R.id.file_name);
                 fileDetailsTextView = itemView.findViewById(R.id.file_details);
             }
