@@ -23,4 +23,22 @@
         android:src="@drawable/i_file_add_24"
         tools:ignore="ContentDescription" />
 
+    <ImageButton
+        android:id="@+id/action_paste_from_cut"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/i_paste_go_24"
+        android:visibility="gone"
+        tools:ignore="ContentDescription" />
+
+    <ImageButton
+        android:id="@+id/action_paste_from_copy"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/i_paste_24"
+        android:visibility="gone"
+        tools:ignore="ContentDescription" />
+
 </LinearLayout>

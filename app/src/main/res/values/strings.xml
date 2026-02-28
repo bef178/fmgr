@@ -31,4 +31,23 @@
     <string name="error_create_failed">Failed to create</string>
 
     <string name="num_selected_format">%d selected</string>
+
+    <string name="delete">Delete</string>
+    <string name="about_to_delete_format">About to delete %d item(s)</string>
+    <string name="deleted_report_format">Deleted %d (%d failed)</string>
+    <string name="rename">Rename</string>
+    <string name="renamed">Renamed</string>
+    <string name="error_delete_failed">Failed to delete</string>
+    <string name="error_rename_failed">Failed to rename</string>
+
+    <string name="cut">Cut</string>
+    <string name="copy">Copy</string>
+    <string name="paste">Paste</string>
+    <string name="cut_report_format">%d cut</string>
+    <string name="copied_report_format">%d copied</string>
+    <string name="pasted_report_format">%d pasted (%d failed)</string>
+    <string name="error_cut_failed">Failed to cut</string>
+    <string name="error_copy_failed">Failed to copy</string>
+    <string name="error_paste_failed">Failed to paste</string>
+
 </resources>

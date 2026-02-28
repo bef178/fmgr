@@ -1,6 +1,7 @@
 package pd.droidapp.fmgr;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -23,8 +24,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,11 +39,13 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.util.ActionPopup;
+import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.EditPopup;
 import pd.droidapp.fmgr.util.PathBar;
 
 public class BrowseFragment extends Fragment {
 
+    private final Clipboard clipboard = new Clipboard();
     private ActionBar actionBar;
     private PathBar pathBar;
     private SelectionBar selectionBar;
@@ -253,6 +260,188 @@ public class BrowseFragment extends Fragment {
         return true;
     }
 
+    private void markSelectedItemsForCut() {
+        List<File> files = new ArrayList<>(selectionBar.selectedFiles);
+        clipboard.setCut(files);
+        Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
+        actionBar.invalidate();
+        selectionBar.clearSelected();
+        for (File file : files) {
+            int i = fileItemAdapter.indexOf(file);
+            if (i >= 0) {
+                fileItemAdapter.notifyItemChanged(i);
+            }
+        }
+    }
+
+    private void markSelectedItemsForCopy() {
+        List<File> files = new ArrayList<>(selectionBar.selectedFiles);
+        clipboard.setCopy(files);
+        Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
+        actionBar.invalidate();
+        selectionBar.clearSelected();
+        for (File file : files) {
+            int i = fileItemAdapter.indexOf(file);
+            if (i >= 0) {
+                fileItemAdapter.notifyItemChanged(i);
+            }
+        }
+    }
+
+    private void pasteItemsFromCut() {
+        File dstDirectory = pathBar.getCurrentDirectory();
+
+        int okCount = 0;
+        int failedCount = 0;
+
+        for (File src : clipboard.getCut()) {
+            File dst = new File(dstDirectory, src.getName());
+            if (src.renameTo(dst)) {
+                okCount++;
+            } else {
+                failedCount++;
+            }
+        }
+
+        Toast.makeText(requireContext(), getString(R.string.pasted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
+        clipboard.clear();
+        actionBar.invalidate();
+        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+    }
+
+    private void pasteItemsFromCopy() {
+        File dstDirectory = pathBar.getCurrentDirectory();
+
+        int okCount = 0;
+        int failedCount = 0;
+
+        for (File src : clipboard.getCopy()) {
+            File dst = new File(dstDirectory, src.getName());
+            if (copyRecursively(src, dst)) {
+                okCount++;
+            } else {
+                failedCount++;
+            }
+        }
+
+        Toast.makeText(requireContext(), getString(R.string.pasted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
+        clipboard.clear();
+        actionBar.invalidate();
+        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+    }
+
+    private boolean copyRecursively(File src, File dst) {
+        if (src.isDirectory()) {
+            if (!dst.exists() && !dst.mkdirs()) {
+                return false;
+            }
+            String[] children = src.list();
+            if (children != null) {
+                for (String child : children) {
+                    if (!copyRecursively(new File(src, child), new File(dst, child))) {
+                        return false;
+                    }
+                }
+            }
+        } else {
+            try (FileInputStream in = new FileInputStream(src); FileOutputStream out = new FileOutputStream(dst)) {
+                byte[] buffer = new byte[8192];
+                int len;
+                while ((len = in.read(buffer)) > 0) {
+                    out.write(buffer, 0, len);
+                }
+            } catch (IOException e) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void showDeleteDialog() {
+        List<File> files = new LinkedList<>(selectionBar.selectedFiles);
+        new AlertDialog.Builder(requireContext())
+                .setTitle(getString(R.string.about_to_delete_format, files.size()))
+                .setPositiveButton(R.string.ok, (dialog, which) -> deleteItems(files))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void deleteItems(List<File> files) {
+        Set<File> filesToDelete = new HashSet<>(files);
+        int okCount = 0;
+        int failedCount = 0;
+
+        for (File file : filesToDelete) {
+            if (deleteRecursively(file)) {
+                okCount++;
+            } else {
+                failedCount++;
+            }
+        }
+
+        Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
+        selectionBar.clearSelected();
+        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+    }
+
+    private boolean deleteRecursively(File file) {
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    if (!deleteRecursively(child)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return file.delete();
+    }
+
+    private void showRenamePopup(File file) {
+        String currentName = file.getName();
+        EditPopup editPopup = new EditPopup(requireContext(), getView());
+        editPopup.show(
+                getString(R.string.rename),
+                currentName,
+                currentName,
+                newName -> {
+                    if (newName.isEmpty() || newName.equals(currentName) || renameItem(file, newName)) {
+                        editPopup.dismiss();
+                        selectionBar.clearSelected();
+                    }
+                });
+    }
+
+    private boolean renameItem(File file, String newName) {
+        if (newName.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.error_empty_name, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        if (newName.contains("/") || newName.contains("\\") || newName.contains("\0")) {
+            Toast.makeText(requireContext(), R.string.error_invalid_name, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        File newFile = new File(file.getParentFile(), newName);
+        if (newFile.exists()) {
+            Toast.makeText(requireContext(), R.string.error_already_exists, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        boolean success = file.renameTo(newFile);
+        if (success) {
+            Toast.makeText(requireContext(), R.string.renamed, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(requireContext(), R.string.error_rename_failed, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+        return true;
+    }
+
     public class ActionBar {
 
         private final ImageButton backButton;
@@ -278,8 +467,18 @@ public class BrowseFragment extends Fragment {
             ImageButton moreButton = containerView.findViewById(R.id.action_more);
             moreButton.setOnClickListener(v -> {
                 ActionPopup actionPopup = new ActionPopup(requireContext(), v);
-                actionPopup.setOnNewDirectoryClickListener(BrowseFragment.this::showCreateDirectoryPopup);
-                actionPopup.setOnNewFileClickListener(BrowseFragment.this::showCreateFilePopup);
+                actionPopup.setOnNewDirectoryClickedListener(BrowseFragment.this::showCreateDirectoryPopup);
+                actionPopup.setOnNewFileClickedListener(BrowseFragment.this::showCreateFilePopup);
+                if (clipboard.isCut()) {
+                    actionPopup.setPasteFromCutButtonVisible(true);
+                    actionPopup.setOnPasteFromCutClickedListener(BrowseFragment.this::pasteItemsFromCut);
+                } else if (clipboard.isCopy()) {
+                    actionPopup.setPasteFromCopyButtonVisible(true);
+                    actionPopup.setOnPasteFromCopyClickedListener(BrowseFragment.this::pasteItemsFromCopy);
+                } else {
+                    actionPopup.setPasteFromCutButtonVisible(false);
+                    actionPopup.setPasteFromCopyButtonVisible(false);
+                }
             });
         }
 
@@ -297,16 +496,24 @@ public class BrowseFragment extends Fragment {
 
         private final View selectionBarLayout;
         private final TextView numSelectedTextView;
+        private final ImageButton deleteButton;
+        private final ImageButton renameButton;
+        private final ImageButton cutButton;
+        private final ImageButton copyButton;
 
         public SelectionBar(View selectionBarLayout) {
             this.selectionBarLayout = selectionBarLayout;
             numSelectedTextView = selectionBarLayout.findViewById(R.id.num_selected);
+            cutButton = selectionBarLayout.findViewById(R.id.action_cut);
+            copyButton = selectionBarLayout.findViewById(R.id.action_copy);
+            deleteButton = selectionBarLayout.findViewById(R.id.action_delete);
+            renameButton = selectionBarLayout.findViewById(R.id.action_rename);
             ImageButton selectAllButton = selectionBarLayout.findViewById(R.id.select_all_icon);
             ImageButton clearSelectionButton = selectionBarLayout.findViewById(R.id.select_close_icon);
 
             selectAllButton.setOnClickListener(v -> {
                 selectedFiles.clear();
-                selectedFiles.addAll(fileItemAdapter.getAllFiles());
+                selectedFiles.addAll(fileItemAdapter.getFiles());
                 fileItemAdapter.notifyDataSetChanged();
                 invalidate();
             });
@@ -315,6 +522,19 @@ public class BrowseFragment extends Fragment {
                 fileItemAdapter.notifyDataSetChanged();
                 invalidate();
             });
+
+            deleteButton.setOnClickListener(v -> showDeleteDialog());
+
+            renameButton.setOnClickListener(v -> {
+                if (selectedFiles.size() == 1) {
+                    File file = selectedFiles.iterator().next();
+                    showRenamePopup(file);
+                }
+            });
+
+            cutButton.setOnClickListener(v -> markSelectedItemsForCut());
+
+            copyButton.setOnClickListener(v -> markSelectedItemsForCopy());
         }
 
         public void invalidate() {
@@ -323,6 +543,10 @@ public class BrowseFragment extends Fragment {
             } else {
                 numSelectedTextView.setText(getString(R.string.num_selected_format, selectedFiles.size()));
                 selectionBarLayout.setVisibility(View.VISIBLE);
+                renameButton.setVisibility(selectedFiles.size() == 1 ? View.VISIBLE : View.GONE);
+                deleteButton.setVisibility(View.VISIBLE);
+                cutButton.setVisibility(View.VISIBLE);
+                copyButton.setVisibility(View.VISIBLE);
             }
         }
 
@@ -351,14 +575,29 @@ public class BrowseFragment extends Fragment {
 
     private class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.FileItemViewHolder> {
 
+        Comparator<File> fileComparator = (f1, f2) -> {
+            if (f1.isDirectory() && !f2.isDirectory()) {
+                return -1;
+            } else if (!f1.isDirectory() && f2.isDirectory()) {
+                return 1;
+            } else {
+                return f1.getName().compareTo(f2.getName());
+            }
+        };
+
         private final List<FileItem> fileItems = new ArrayList<>();
 
-        public List<File> getAllFiles() {
-            List<File> files = new ArrayList<>(fileItems.size());
-            for (FileItem item : fileItems) {
-                files.add(item.getFile());
+        public List<File> getFiles() {
+            return fileItems.stream().map(x -> x.file).collect(Collectors.toList());
+        }
+
+        public int indexOf(File file) {
+            for (int i = 0; i < fileItems.size(); i++) {
+                if (fileItems.get(i).file.equals(file)) {
+                    return i;
+                }
             }
-            return files;
+            return -1;
         }
 
         @SuppressLint("NotifyDataSetChanged")
@@ -381,15 +620,7 @@ public class BrowseFragment extends Fragment {
 
             return Arrays.stream(files)
                     .filter(f -> !f.getName().startsWith("."))
-                    .sorted((f1, f2) -> {
-                        if (f1.isDirectory() && !f2.isDirectory()) {
-                            return -1;
-                        } else if (!f1.isDirectory() && f2.isDirectory()) {
-                            return 1;
-                        } else {
-                            return f1.getName().compareToIgnoreCase(f2.getName());
-                        }
-                    })
+                    .sorted(fileComparator)
                     .map(FileItem::new)
                     .collect(Collectors.toList());
         }
