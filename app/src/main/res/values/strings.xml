@@ -50,4 +50,8 @@
     <string name="error_copy_failed">Failed to copy</string>
     <string name="error_paste_failed">Failed to paste</string>
 
+    <string name="delete_empty">Delete empty</string>
+    <string name="about_to_delete_empty">About to delete all empty files and directories</string>
+    <string name="deleted_empty_report_format">Deleted %d empty item(s)</string>
+
 </resources>

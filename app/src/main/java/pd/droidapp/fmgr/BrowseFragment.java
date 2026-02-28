@@ -442,6 +442,65 @@ public class BrowseFragment extends Fragment {
         return true;
     }
 
+    private void showDeleteEmptyDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(getString(R.string.about_to_delete_empty))
+                .setPositiveButton(R.string.ok, (dialog, which) -> deleteEmptyItems())
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void deleteEmptyItems() {
+        int numDeleted = deleteEmptyFilesAndDirectories(pathBar.getCurrentDirectory());
+        Toast.makeText(requireContext(), getString(R.string.deleted_empty_report_format, numDeleted), Toast.LENGTH_SHORT).show();
+        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+    }
+
+    private int deleteEmptyFilesAndDirectories(File directory) {
+        int n = 0;
+        Stack<File> stack = new Stack<>();
+        Set<File> visited = new HashSet<>();
+        {
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.isDirectory() || f.isFile()) {
+                        stack.push(f);
+                    }
+                }
+            }
+        }
+
+        while (!stack.isEmpty()) {
+            File f = stack.pop();
+            if (f.isFile()) {
+                if (f.length() == 0 && f.delete()) {
+                    n++;
+                }
+            } else if (f.isDirectory()) {
+                if (visited.add(f)) {
+                    // first visit
+                    stack.push(f);
+                    File[] files = f.listFiles();
+                    if (files != null) {
+                        for (File f1 : files) {
+                            if (f1.isDirectory() || f1.isFile()) {
+                                stack.push(f1);
+                            }
+                        }
+                    }
+                } else {
+                    // second visit
+                    File[] files = f.listFiles();
+                    if (files != null && files.length == 0 && f.delete()) {
+                        n++;
+                    }
+                }
+            }
+        }
+        return n;
+    }
+
     public class ActionBar {
 
         private final ImageButton backButton;
@@ -469,6 +528,7 @@ public class BrowseFragment extends Fragment {
                 ActionPopup actionPopup = new ActionPopup(requireContext(), v);
                 actionPopup.setOnNewDirectoryClickedListener(BrowseFragment.this::showCreateDirectoryPopup);
                 actionPopup.setOnNewFileClickedListener(BrowseFragment.this::showCreateFilePopup);
+                actionPopup.whenDeleteEmptyClicked(BrowseFragment.this::showDeleteEmptyDialog);
                 if (clipboard.isCut()) {
                     actionPopup.setPasteFromCutButtonVisible(true);
                     actionPopup.setOnPasteFromCutClickedListener(BrowseFragment.this::pasteItemsFromCut);
