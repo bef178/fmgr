@@ -18,6 +18,7 @@ public class ActionPopup {
     private final ImageButton pasteFromCutButton;
     private final ImageButton pasteFromCopyButton;
     private final ImageButton cleanEmptyButton;
+    private final ImageButton dedupFilesButton;
 
     public ActionPopup(Context context, View anchor) {
         View popupView = LayoutInflater.from(context).inflate(R.layout.action_popup, null);
@@ -27,6 +28,7 @@ public class ActionPopup {
         pasteFromCutButton = popupView.findViewById(R.id.action_paste_from_cut);
         pasteFromCopyButton = popupView.findViewById(R.id.action_paste_from_copy);
         cleanEmptyButton = popupView.findViewById(R.id.action_delete_empty);
+        dedupFilesButton = popupView.findViewById(R.id.action_dedup);
 
         popupWindow = new PopupWindow(popupView,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -84,6 +86,15 @@ public class ActionPopup {
 
     public void whenDeleteEmptyClicked(Runnable listener) {
         cleanEmptyButton.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.run();
+            }
+            dismiss();
+        });
+    }
+
+    public void whenDedupFilesClicked(Runnable listener) {
+        dedupFilesButton.setOnClickListener(v -> {
             if (listener != null) {
                 listener.run();
             }

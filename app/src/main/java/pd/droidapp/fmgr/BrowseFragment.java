@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.util.ActionPopup;
 import pd.droidapp.fmgr.util.Clipboard;
+import pd.droidapp.fmgr.util.DedupPopup;
 import pd.droidapp.fmgr.util.EditPopup;
 import pd.droidapp.fmgr.util.PathBar;
 
@@ -366,7 +368,7 @@ public class BrowseFragment extends Fragment {
                 .show();
     }
 
-    private void deleteItems(List<File> files) {
+    private void deleteItems(Collection<File> files) {
         Set<File> filesToDelete = new HashSet<>(files);
         int okCount = 0;
         int failedCount = 0;
@@ -529,6 +531,11 @@ public class BrowseFragment extends Fragment {
                 actionPopup.setOnNewDirectoryClickedListener(BrowseFragment.this::showCreateDirectoryPopup);
                 actionPopup.setOnNewFileClickedListener(BrowseFragment.this::showCreateFilePopup);
                 actionPopup.whenDeleteEmptyClicked(BrowseFragment.this::showDeleteEmptyDialog);
+                actionPopup.whenDedupFilesClicked(() -> {
+                    DedupPopup popup = new DedupPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
+                    popup.whenConfirmClicked(BrowseFragment.this::deleteItems);
+                    popup.show();
+                });
                 if (clipboard.isCut()) {
                     actionPopup.setPasteFromCutButtonVisible(true);
                     actionPopup.setOnPasteFromCutClickedListener(BrowseFragment.this::pasteItemsFromCut);

@@ -49,4 +49,12 @@
         android:src="@drawable/i_file_24"
         tools:ignore="ContentDescription" />
 
+    <ImageButton
+        android:id="@+id/action_dedup"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/baseline_content_copy_24"
+        tools:ignore="ContentDescription" />
+
 </LinearLayout>

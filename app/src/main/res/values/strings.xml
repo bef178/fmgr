@@ -54,4 +54,11 @@
     <string name="about_to_delete_empty">About to delete all empty files and directories</string>
     <string name="deleted_empty_report_format">Deleted %d empty item(s)</string>
 
+    <string name="delete_duplicate_files">Delete duplicate files</string>
+    <string name="scanning">Scanning…</string>
+    <string name="scanned_x_found_y">Scanned %d, found %d dup group(s)</string>
+    <string name="x_files_y_each">%d files - %s each</string>
+    <string name="delete_selected">Delete Selected</string>
+    <string name="delete_selected_x">Delete Selected (%d)</string>
+
 </resources>
