@@ -14,7 +14,6 @@ import java.io.File;
 import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.fav.FavItemStore;
 
 public class PathBar {
 

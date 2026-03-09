@@ -1,4 +1,6 @@
-package pd.droidapp.fmgr.fav;
+package pd.droidapp.fmgr.util;
+
+import static pd.droidapp.fmgr.util.FavBox.FavItem;
 
 import android.content.Context;
 import android.content.SharedPreferences;

@@ -9,8 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import pd.droidapp.fmgr.fav.FavBox;
-import pd.droidapp.fmgr.fav.FavItemStore;
+import pd.droidapp.fmgr.util.FavBox;
 
 public class HomeFragment extends Fragment {
 
@@ -22,7 +21,7 @@ public class HomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.home_fragment, container, false);
 
         favBox = new FavBox(requireContext(), view);
-        favBox.whenClickedFavItem(file -> {
+        favBox.whenFavDirectoryClicked(file -> {
             if (file.exists() && file.isDirectory()) {
                 MainActivity mainActivity = (MainActivity) requireActivity();
                 mainActivity.navigateToDirectory(file);

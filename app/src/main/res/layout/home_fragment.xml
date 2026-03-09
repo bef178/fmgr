@@ -18,6 +18,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
             android:layout_weight="1"
             android:gravity="start"
             android:text="@string/home_title"
@@ -31,7 +32,8 @@
         android:id="@+id/favorites_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:orientation="vertical">
 
         <LinearLayout
@@ -43,10 +45,12 @@
             android:orientation="horizontal">
 
             <ImageView
-                android:id="@+id/favorites_trangle"
+                android:id="@+id/favorites_triangle"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/i_rt_triangle_down_24" />
+                android:layout_marginEnd="4dp"
+                android:src="@drawable/i_rt_triangle_down_24"
+                tools:ignore="ContentDescription" />
 
             <TextView
                 android:id="@+id/favorites_title"
@@ -62,8 +66,7 @@
             android:id="@+id/favorites_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            tools:listitem="@layout/favorite_item" />
+            tools:listitem="@layout/fav_item" />
 
     </LinearLayout>
 
