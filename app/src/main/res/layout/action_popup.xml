@@ -8,6 +8,14 @@
     android:padding="4dp">
 
     <ImageButton
+        android:id="@+id/action_search"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/baseline_search_24"
+        tools:ignore="ContentDescription" />
+
+    <ImageButton
         android:id="@+id/action_new_directory"
         android:layout_width="40dp"
         android:layout_height="40dp"

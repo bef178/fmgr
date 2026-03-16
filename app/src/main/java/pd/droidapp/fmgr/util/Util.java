@@ -68,4 +68,10 @@ public class Util {
             return dst.getAbsolutePath();
         }
     }
+
+    public static float getGaussianValue(double mu, double sigma, float amplitude, float fraction) {
+        // f(x) = A * exp(-(x-μ)² / (2σ²))
+        double exponent = -Math.pow(fraction - mu, 2) / (2 * sigma * sigma);
+        return (float) (amplitude * Math.exp(exponent));
+    }
 }

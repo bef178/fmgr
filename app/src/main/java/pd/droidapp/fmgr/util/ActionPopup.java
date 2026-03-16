@@ -13,6 +13,7 @@ import pd.droidapp.fmgr.R;
 public class ActionPopup {
 
     private final PopupWindow popupWindow;
+    private final ImageButton searchButton;
     private final ImageButton newDirectoryButton;
     private final ImageButton newFileButton;
     private final ImageButton pasteFromCutButton;
@@ -23,6 +24,7 @@ public class ActionPopup {
     public ActionPopup(Context context, View anchor) {
         View popupView = LayoutInflater.from(context).inflate(R.layout.action_popup, null);
 
+        searchButton = popupView.findViewById(R.id.action_search);
         newDirectoryButton = popupView.findViewById(R.id.action_new_directory);
         newFileButton = popupView.findViewById(R.id.action_new_file);
         pasteFromCutButton = popupView.findViewById(R.id.action_paste_from_cut);
@@ -38,6 +40,15 @@ public class ActionPopup {
         popupWindow.setOutsideTouchable(true);
         popupWindow.setElevation(16);
         popupWindow.showAsDropDown(anchor, 0, 0, Gravity.END);
+    }
+
+    public void whenSearchClicked(Runnable listener) {
+        searchButton.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.run();
+            }
+            dismiss();
+        });
     }
 
     public void setOnNewDirectoryClickedListener(Runnable listener) {

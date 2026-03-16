@@ -5,17 +5,18 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
@@ -44,6 +45,8 @@ import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.DedupPopup;
 import pd.droidapp.fmgr.util.EditPopup;
 import pd.droidapp.fmgr.util.PathBar;
+import pd.droidapp.fmgr.util.Progressor;
+import pd.droidapp.fmgr.util.SearchPopup;
 
 public class BrowseFragment extends Fragment {
 
@@ -51,6 +54,7 @@ public class BrowseFragment extends Fragment {
     private ActionBar actionBar;
     private PathBar pathBar;
     private SelectionBar selectionBar;
+    private RecyclerView filesView;
     private FileItemAdapter fileItemAdapter;
 
     private final Stack<File> backStack = new Stack<>();
@@ -70,9 +74,9 @@ public class BrowseFragment extends Fragment {
 
         fileItemAdapter = new FileItemAdapter();
 
-        RecyclerView fileListView = view.findViewById(R.id.file_list);
-        fileListView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        fileListView.setAdapter(fileItemAdapter);
+        filesView = view.findViewById(R.id.file_list);
+        filesView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        filesView.setAdapter(fileItemAdapter);
 
         doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
 
@@ -191,6 +195,42 @@ public class BrowseFragment extends Fragment {
             }
         }
         return null;
+    }
+
+    private void showSearchPopup() {
+        SearchPopup searchPopup = new SearchPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
+        searchPopup.whenSearchResultFileClicked(this::jumpToFile);
+        searchPopup.show();
+    }
+
+    private void jumpToFile(File file) {
+        if (file == null || !file.exists()) {
+            Toast.makeText(requireContext(), R.string.error_file_not_exist, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        File parent = file.getParentFile();
+        if (parent == null || !parent.exists()) {
+            Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // navigate to parent directory
+        File currentDirectory = pathBar.getCurrentDirectory();
+        if (currentDirectory != null && !currentDirectory.equals(parent)) {
+            backStack.push(currentDirectory);
+        }
+        forwardStack.clear();
+        doChangeCurrentDirectory(parent);
+
+        // scroll to and highlight the file
+        filesView.post(() -> {
+            int position = fileItemAdapter.indexOf(file);
+            if (position >= 0) {
+                filesView.scrollToPosition(position);
+                filesView.postDelayed(() -> fileItemAdapter.highlightFile(file), 400);
+            }
+        });
     }
 
     void showCreateDirectoryPopup() {
@@ -528,6 +568,7 @@ public class BrowseFragment extends Fragment {
             ImageButton moreButton = containerView.findViewById(R.id.action_more);
             moreButton.setOnClickListener(v -> {
                 ActionPopup actionPopup = new ActionPopup(requireContext(), v);
+                actionPopup.whenSearchClicked(BrowseFragment.this::showSearchPopup);
                 actionPopup.setOnNewDirectoryClickedListener(BrowseFragment.this::showCreateDirectoryPopup);
                 actionPopup.setOnNewFileClickedListener(BrowseFragment.this::showCreateFilePopup);
                 actionPopup.whenDeleteEmptyClicked(BrowseFragment.this::showDeleteEmptyDialog);
@@ -642,7 +683,7 @@ public class BrowseFragment extends Fragment {
 
     private class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.FileItemViewHolder> {
 
-        Comparator<File> fileComparator = (f1, f2) -> {
+        private final Comparator<File> fileComparator = (f1, f2) -> {
             if (f1.isDirectory() && !f2.isDirectory()) {
                 return -1;
             } else if (!f1.isDirectory() && f2.isDirectory()) {
@@ -653,6 +694,7 @@ public class BrowseFragment extends Fragment {
         };
 
         private final List<FileItem> fileItems = new ArrayList<>();
+        private final Progressor<File> progressor = new Progressor<>();
 
         public List<File> getFiles() {
             return fileItems.stream().map(x -> x.file).collect(Collectors.toList());
@@ -665,6 +707,49 @@ public class BrowseFragment extends Fragment {
                 }
             }
             return -1;
+        }
+
+        public void highlightFile(final File file) {
+            progressor.start(file, 1500, new AccelerateDecelerateInterpolator(), (distance, velocity) -> {
+                int position = indexOf(file);
+                if (position >= 0) {
+                    RecyclerView.ViewHolder viewHolder = filesView.findViewHolderForAdapterPosition(position);
+                    if (viewHolder != null) {
+                        FileItem item = fileItems.get(position);
+                        if (item.getFile().equals(file)) {
+                            applyHighlightEffect(viewHolder.itemView, velocity);
+                        }
+                    }
+                }
+            });
+        }
+
+        private void applyHighlightEffect(View view, Float velocity) {
+            final int startColor = getContext().getColor(R.color.purple_200);
+            final int endColor = 0;
+
+            if (velocity == null) {
+                velocity = 0f;
+            }
+
+            int startA = Color.alpha(startColor);
+            int startR = Color.red(startColor);
+            int startG = Color.green(startColor);
+            int startB = Color.blue(startColor);
+
+            int endA = Color.alpha(endColor);
+            int endR = Color.red(endColor);
+            int endG = Color.green(endColor);
+            int endB = Color.blue(endColor);
+
+            float alpha = (float) (velocity / (Math.PI / 2));
+            int a = (int) (startA * alpha + endA * (1 - alpha));
+            int r = (int) (startR * alpha + endR * (1 - alpha));
+            int g = (int) (startG * alpha + endG * (1 - alpha));
+            int b = (int) (startB * alpha + endB * (1 - alpha));
+            int color = Color.argb(a, r, g, b);
+
+            view.setBackgroundColor(color);
         }
 
         @SuppressLint("NotifyDataSetChanged")
@@ -720,6 +805,8 @@ public class BrowseFragment extends Fragment {
             } else {
                 viewHolder.fileSelectedImageView.setVisibility(View.GONE);
             }
+
+            applyHighlightEffect(viewHolder.itemView, progressor.getVelocity(file));
 
             viewHolder.itemView.setOnClickListener(v -> {
                 if (selectionBar.hasSelection()) {
