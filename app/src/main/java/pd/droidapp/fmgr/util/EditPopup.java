@@ -42,7 +42,7 @@ public class EditPopup {
 
         View popupArea = popupView.findViewById(R.id.popup_area);
         titleTextView = popupView.findViewById(R.id.popup_title);
-        textEditView = popupView.findViewById(R.id.popup_text);
+        textEditView = popupView.findViewById(R.id.popup_edit);
         okButton = popupView.findViewById(R.id.button_ok);
         Button cancelButton = popupView.findViewById(R.id.button_cancel);
 
@@ -99,9 +99,8 @@ public class EditPopup {
         textEditView.setHint(hintText);
 
         okButton.setOnClickListener(v -> {
-            String name = textEditView.getText().toString().trim();
             if (onConfirm != null) {
-                onConfirm.accept(name);
+                onConfirm.accept(textEditView.getText().toString());
             }
         });
 

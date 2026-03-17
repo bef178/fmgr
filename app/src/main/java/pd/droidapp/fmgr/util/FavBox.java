@@ -67,6 +67,7 @@ public class FavBox {
                 favItem.getDisplayName(),
                 favItem.getDefaultName(),
                 newName -> {
+                    newName = newName.trim();
                     if (!newName.equals(favItem.getDisplayName())) {
                         favItem.setDisplayName(newName);
                         favItemStore.put(favItem);

@@ -240,7 +240,7 @@ public class BrowseFragment extends Fragment {
                 "",
                 getString(R.string.directory_name),
                 name -> {
-                    if (createItem(name, true)) {
+                    if (createItem(name.trim(), true)) {
                         editPopup.dismiss();
                     }
                 });
@@ -253,7 +253,7 @@ public class BrowseFragment extends Fragment {
                 "",
                 getString(R.string.file_name),
                 name -> {
-                    if (createItem(name, false)) {
+                    if (createItem(name.trim(), false)) {
                         editPopup.dismiss();
                     }
                 });
@@ -448,6 +448,7 @@ public class BrowseFragment extends Fragment {
                 currentName,
                 currentName,
                 newName -> {
+                    newName = newName.trim();
                     if (newName.isEmpty() || newName.equals(currentName) || renameItem(file, newName)) {
                         editPopup.dismiss();
                         selectionBar.clearSelected();
