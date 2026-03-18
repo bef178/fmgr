@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
@@ -18,7 +19,7 @@
             android:layout_height="16dp"
             android:layout_marginEnd="4dp"
             android:src="@drawable/i_rt_triangle_down_24"
-            android:tint="#666" />
+            app:tint="#666" />
 
         <TextView
             android:id="@+id/group_title"
