@@ -2,42 +2,42 @@ package pd.droidapp.fmgr.util;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 
 public class Clipboard {
 
-    private final List<File> filesToCopy = new LinkedList<>();
-    private final List<File> filesToCut = new LinkedList<>();
+    private List<File> filesToCopy = Collections.emptyList();
+    private List<File> filesToCut = Collections.emptyList();
 
-    public List<File> getCopy() {
+    public synchronized List<File> getCopy() {
         return new ArrayList<>(filesToCopy);
     }
 
-    public void setCopy(List<File> files) {
-        clear();
-        filesToCopy.addAll(files);
+    public synchronized void setCopy(List<File> files) {
+        filesToCut = Collections.emptyList();
+        filesToCopy = new ArrayList<>(files);
     }
 
-    public boolean isCopy() {
+    public synchronized boolean isCopy() {
         return !filesToCopy.isEmpty();
     }
 
-    public List<File> getCut() {
+    public synchronized List<File> getCut() {
         return new ArrayList<>(filesToCut);
     }
 
-    public void setCut(List<File> files) {
-        clear();
-        filesToCut.addAll(files);
+    public synchronized void setCut(List<File> files) {
+        filesToCopy = Collections.emptyList();
+        filesToCut = new ArrayList<>(files);
     }
 
-    public boolean isCut() {
+    public synchronized boolean isCut() {
         return !filesToCut.isEmpty();
     }
 
-    public void clear() {
-        filesToCut.clear();
-        filesToCopy.clear();
+    public synchronized void clear() {
+        filesToCut = Collections.emptyList();
+        filesToCopy = Collections.emptyList();
     }
 }
