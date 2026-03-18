@@ -260,13 +260,9 @@ public class BrowseFragment extends Fragment {
     }
 
     private boolean createItem(String name, boolean isDirectory) {
-        if (name.isEmpty()) {
-            Toast.makeText(requireContext(), R.string.error_empty_name, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        if (name.contains("/") || name.contains("\\") || name.contains("\0")) {
-            Toast.makeText(requireContext(), R.string.error_invalid_name, Toast.LENGTH_SHORT).show();
+        Integer errResId = checkBasename(name);
+        if (errResId != null) {
+            Toast.makeText(requireContext(), errResId, Toast.LENGTH_SHORT).show();
             return false;
         }
 
@@ -300,6 +296,38 @@ public class BrowseFragment extends Fragment {
 
         fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
         return true;
+    }
+
+    /**
+     * return `null` or error string resource id
+     */
+    private Integer checkBasename(String name) {
+        if (name == null || name.isEmpty()) {
+            return R.string.error_empty_name;
+        }
+
+        if (name.equals(".") || name.equals("..")) {
+            return R.string.error_invalid_name;
+        }
+
+        if (name.contains("/") || name.contains("\\") || name.contains("\0")) {
+            return R.string.error_invalid_name;
+        }
+
+        // check for control characters (ASCII 0-31)
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c < 32) {
+                return R.string.error_invalid_name;
+            }
+        }
+
+        // Check for leading/trailing dots or spaces (can cause issues on some systems)
+        if (name.startsWith(".") || name.endsWith(".") || name.startsWith(" ") || name.endsWith(" ")) {
+            return R.string.error_invalid_name;
+        }
+
+        return null;
     }
 
     private void markSelectedItemsForCut() {
@@ -457,13 +485,9 @@ public class BrowseFragment extends Fragment {
     }
 
     private boolean renameItem(File file, String newName) {
-        if (newName.isEmpty()) {
-            Toast.makeText(requireContext(), R.string.error_empty_name, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        if (newName.contains("/") || newName.contains("\\") || newName.contains("\0")) {
-            Toast.makeText(requireContext(), R.string.error_invalid_name, Toast.LENGTH_SHORT).show();
+        Integer errResId = checkBasename(newName);
+        if (errResId != null) {
+            Toast.makeText(requireContext(), errResId, Toast.LENGTH_SHORT).show();
             return false;
         }
 
