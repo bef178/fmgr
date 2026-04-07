@@ -49,7 +49,7 @@
                     tools:ignore="contentDescription" />
 
                 <ImageButton
-                    android:id="@+id/button_close"
+                    android:id="@+id/action_close"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:background="?attr/selectableItemBackgroundBorderless"

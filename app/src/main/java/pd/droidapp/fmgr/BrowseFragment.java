@@ -25,9 +25,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,9 +41,12 @@ import pd.droidapp.fmgr.util.ActionPopup;
 import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.DedupPopup;
 import pd.droidapp.fmgr.util.EditPopup;
+import pd.droidapp.fmgr.util.PastePopup;
 import pd.droidapp.fmgr.util.PathBar;
 import pd.droidapp.fmgr.util.Progressor;
 import pd.droidapp.fmgr.util.SearchPopup;
+
+import static pd.droidapp.fmgr.util.Util.removeRecursively;
 
 public class BrowseFragment extends Fragment {
 
@@ -358,73 +358,26 @@ public class BrowseFragment extends Fragment {
         }
     }
 
-    private void pasteItemsFromCut() {
-        File dstDirectory = pathBar.getCurrentDirectory();
-
-        int okCount = 0;
-        int failedCount = 0;
-
-        for (File src : clipboard.getCut()) {
-            File dst = new File(dstDirectory, src.getName());
-            if (src.renameTo(dst)) {
-                okCount++;
-            } else {
-                failedCount++;
-            }
-        }
-
-        Toast.makeText(requireContext(), getString(R.string.pasted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
-        clipboard.clear();
-        actionBar.invalidate();
-        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
-    }
-
-    private void pasteItemsFromCopy() {
-        File dstDirectory = pathBar.getCurrentDirectory();
-
-        int okCount = 0;
-        int failedCount = 0;
-
-        for (File src : clipboard.getCopy()) {
-            File dst = new File(dstDirectory, src.getName());
-            if (copyRecursively(src, dst)) {
-                okCount++;
-            } else {
-                failedCount++;
-            }
-        }
-
-        Toast.makeText(requireContext(), getString(R.string.pasted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
-        clipboard.clear();
-        actionBar.invalidate();
-        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
-    }
-
-    private boolean copyRecursively(File src, File dst) {
-        if (src.isDirectory()) {
-            if (!dst.exists() && !dst.mkdirs()) {
-                return false;
-            }
-            String[] children = src.list();
-            if (children != null) {
-                for (String child : children) {
-                    if (!copyRecursively(new File(src, child), new File(dst, child))) {
-                        return false;
-                    }
-                }
-            }
+    private void showPastePopup() {
+        String op;
+        List<File> srcFiles;
+        if (clipboard.isCut()) {
+            op = "move";
+            srcFiles = clipboard.getCut();
+        } else if (clipboard.isCopy()) {
+            op = "copy";
+            srcFiles = clipboard.getCopy();
         } else {
-            try (FileInputStream in = new FileInputStream(src); FileOutputStream out = new FileOutputStream(dst)) {
-                byte[] buffer = new byte[8192];
-                int len;
-                while ((len = in.read(buffer)) > 0) {
-                    out.write(buffer, 0, len);
-                }
-            } catch (IOException e) {
-                return false;
-            }
+            return;
         }
-        return true;
+
+        PastePopup pastePopup = new PastePopup(requireContext(), getView(), op, srcFiles, pathBar.getCurrentDirectory());
+        pastePopup.whenCompleted(() -> {
+            clipboard.clear();
+            actionBar.invalidate();
+            fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+        });
+        pastePopup.show();
     }
 
     private void showDeleteDialog() {
@@ -442,7 +395,7 @@ public class BrowseFragment extends Fragment {
         int failedCount = 0;
 
         for (File file : filesToDelete) {
-            if (deleteRecursively(file)) {
+            if (removeRecursively(file, null)) {
                 okCount++;
             } else {
                 failedCount++;
@@ -452,20 +405,6 @@ public class BrowseFragment extends Fragment {
         Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
         selectionBar.clearSelected();
         fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
-    }
-
-    private boolean deleteRecursively(File file) {
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    if (!deleteRecursively(child)) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return file.delete();
     }
 
     private void showRenamePopup(File file) {
@@ -604,10 +543,10 @@ public class BrowseFragment extends Fragment {
                 });
                 if (clipboard.isCut()) {
                     actionPopup.setPasteFromCutButtonVisible(true);
-                    actionPopup.setOnPasteFromCutClickedListener(BrowseFragment.this::pasteItemsFromCut);
+                    actionPopup.whenPasteFromCutClicked(BrowseFragment.this::showPastePopup);
                 } else if (clipboard.isCopy()) {
                     actionPopup.setPasteFromCopyButtonVisible(true);
-                    actionPopup.setOnPasteFromCopyClickedListener(BrowseFragment.this::pasteItemsFromCopy);
+                    actionPopup.whenPasteFromCopyClicked(BrowseFragment.this::showPastePopup);
                 } else {
                     actionPopup.setPasteFromCutButtonVisible(false);
                     actionPopup.setPasteFromCopyButtonVisible(false);

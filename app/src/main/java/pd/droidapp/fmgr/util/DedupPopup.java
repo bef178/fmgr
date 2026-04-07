@@ -82,7 +82,7 @@ public class DedupPopup {
                 false);
 
         View popupArea = popupView.findViewById(R.id.popup_area);
-        ImageButton closeButton = popupView.findViewById(R.id.button_close);
+        ImageButton closeButton = popupView.findViewById(R.id.action_close);
         smartSelectButton = popupView.findViewById(R.id.smart_select);
 
         RecyclerView groupsListView = popupView.findViewById(R.id.groups_list);

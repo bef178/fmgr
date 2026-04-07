@@ -73,7 +73,7 @@ public class ActionPopup {
         pasteFromCutButton.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
-    public void setOnPasteFromCutClickedListener(Runnable listener) {
+    public void whenPasteFromCutClicked(Runnable listener) {
         pasteFromCutButton.setOnClickListener(v -> {
             if (listener != null) {
                 listener.run();
@@ -86,7 +86,7 @@ public class ActionPopup {
         pasteFromCopyButton.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
-    public void setOnPasteFromCopyClickedListener(Runnable listener) {
+    public void whenPasteFromCopyClicked(Runnable listener) {
         pasteFromCopyButton.setOnClickListener(v -> {
             if (listener != null) {
                 listener.run();

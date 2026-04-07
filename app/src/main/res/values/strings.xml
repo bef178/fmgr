@@ -11,6 +11,9 @@
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="start">Start</string>
+    <string name="abort">Abort</string>
+    <string name="close">Close</string>
 
     <string name="error_directory_not_accessible">Directory not accessible</string>
     <string name="error_failed_to_handle">Failed to handle</string>
@@ -50,10 +53,18 @@
     <string name="error_copy_failed">Failed to copy</string>
     <string name="error_paste_failed">Failed to paste</string>
 
+    <!-- search popup -->
+    <string name="search_hint">Enter keyword to search</string>
+    <string name="search_status_searching">Searching…</string>
+    <string name="search_status_no_results">No results found</string>
+    <string name="search_status_results">Found %d result(s)</string>
+
+    <!-- delete empty popup -->
     <string name="delete_empty">Delete empty</string>
     <string name="about_to_delete_empty">About to delete all empty files and directories</string>
     <string name="deleted_empty_report_format">Deleted %d empty item(s)</string>
 
+    <!-- dedup popup -->
     <string name="delete_duplicate_files">Delete duplicate files</string>
     <string name="scanning">Scanning…</string>
     <string name="scanned_x_found_y">Scanned %d, found %d dup group(s)</string>
@@ -61,9 +72,18 @@
     <string name="delete_selected">Delete Selected</string>
     <string name="delete_selected_x">Delete Selected (%d)</string>
 
-    <string name="search_hint">Enter keyword to search</string>
-    <string name="search_status_searching">Searching…</string>
-    <string name="search_status_no_results">No results found</string>
-    <string name="search_status_results">Found %d result(s)</string>
+    <!-- paste popup -->
+    <string name="paste_from_copy">Paste from copy</string>
+    <string name="paste_from_cut">Paste from cut</string>
+    <string name="files_detected">%d item(s) to paste and %d conflict(s) detected. The number may change in the future.</string>
+    <string name="select_conflict_resolution">Select conflict resolution:</string>
+    <string name="resolution_option_overwrite">Overwrite existing</string>
+    <string name="resolution_option_skip">Keep existing, skip incoming</string>
+    <string name="resolution_option_rename_incoming">Keep existing, rename incoming</string>
+    <string name="paste_progress_count">%d / %d</string>
+    <string name="paste_progress_pending">Pending</string>
+    <string name="paste_progress_completed">Completed</string>
+    <string name="paste_progress_aborted">Aborted</string>
+    <string name="paste_progress_summary">%d added, %d overwritten, %d skipped, %d failed</string>
 
 </resources>

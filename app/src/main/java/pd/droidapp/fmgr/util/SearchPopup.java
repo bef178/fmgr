@@ -75,7 +75,7 @@ public class SearchPopup {
         LinearLayout popupArea = popupView.findViewById(R.id.popup_area);
         searchEdit = popupView.findViewById(R.id.search_edit);
         searchEditClearButton = popupView.findViewById(R.id.search_edit_clear);
-        closeButton = popupView.findViewById(R.id.button_close);
+        closeButton = popupView.findViewById(R.id.action_close);
         searchStatusIcon = popupView.findViewById(R.id.status_icon);
         searchStatusText = popupView.findViewById(R.id.status_text);
         RecyclerView searchResultItemsList = popupView.findViewById(R.id.result_list);
