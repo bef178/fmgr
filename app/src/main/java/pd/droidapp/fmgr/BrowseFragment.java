@@ -46,7 +46,7 @@ import pd.droidapp.fmgr.util.PathBar;
 import pd.droidapp.fmgr.util.Progressor;
 import pd.droidapp.fmgr.util.SearchPopup;
 
-import static pd.droidapp.fmgr.util.Util.removeRecursively;
+import static pd.util.FileExtension.removeRecursively;
 
 public class BrowseFragment extends Fragment {
 

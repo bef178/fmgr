@@ -1,6 +1,5 @@
 package pd.droidapp.fmgr.util;
 
-import static pd.droidapp.fmgr.util.Util.basename;
 import static pd.droidapp.fmgr.util.Util.getFileMd5;
 import static pd.droidapp.fmgr.util.Util.getRelativePath;
 import static pd.droidapp.fmgr.util.Util.getSizeString;
@@ -72,9 +71,7 @@ public class DedupPopup {
         this.startDirectory = startDirectory;
 
         dupGroupAdapter = new DupGroupAdapter(context, startDirectory);
-        dupGroupAdapter.whenDupGroupFileClicked((position, file, isChecked) -> {
-            containerView.post(this::updateButtons);
-        });
+        dupGroupAdapter.whenDupGroupFileClicked((position, file, isChecked) -> containerView.post(this::updateButtons));
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.dedup_popup,
@@ -223,10 +220,10 @@ public class DedupPopup {
             return -Long.compare(f1Time, f2Time);
         }
 
-        String f1Basename = basename(f1);
-        String f2Basename = basename(f2);
+        String f1Basename = f1.getName();
+        String f2Basename = f2.getName();
         if (!f1Basename.equals(f2Basename)) {
-            return f1Basename.length() - f2Basename.length();
+            return Integer.compare(f1Basename.length(), f2Basename.length());
         }
 
         return f1.getAbsolutePath().length() - f2.getAbsolutePath().length();
