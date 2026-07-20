@@ -1,7 +1,5 @@
 package pd.droidapp.fmgr.util;
 
-import static pd.droidapp.fmgr.util.Util.getRelativePath;
-
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -15,7 +13,6 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.core.util.Consumer;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -36,6 +33,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import pd.droidapp.fmgr.R;
+
+import static pd.droidapp.fmgr.util.Util.getRelativePath;
 
 public class DeleteEmptyPopup {
 
@@ -349,7 +348,7 @@ public class DeleteEmptyPopup {
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.empty_item, parent, false);
+                    .inflate(R.layout.popup_file, parent, false);
             return new ViewHolder(view);
         }
 
@@ -373,7 +372,10 @@ public class DeleteEmptyPopup {
             holder.selectedIcon.setVisibility(selected ? View.VISIBLE : View.GONE);
 
             holder.itemView.setOnClickListener(v -> {
-                toggleSelected(item.file, position);
+                // selecting only starts once something is selected (e.g. via long-press)
+                if (!selectedFiles.isEmpty()) {
+                    toggleSelected(item.file, position);
+                }
             });
 
             holder.itemView.setOnLongClickListener(v -> {
@@ -407,9 +409,9 @@ public class DeleteEmptyPopup {
 
             ViewHolder(View itemView) {
                 super(itemView);
-                icon = itemView.findViewById(R.id.empty_item_icon);
-                selectedIcon = itemView.findViewById(R.id.empty_item_selected);
-                nameText = itemView.findViewById(R.id.empty_item_name);
+                icon = itemView.findViewById(R.id.popup_file_icon);
+                selectedIcon = itemView.findViewById(R.id.popup_file_selected);
+                nameText = itemView.findViewById(R.id.popup_file_name);
             }
         }
     }

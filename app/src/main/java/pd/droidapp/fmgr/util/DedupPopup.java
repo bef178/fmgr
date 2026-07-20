@@ -1,9 +1,5 @@
 package pd.droidapp.fmgr.util;
 
-import static pd.droidapp.fmgr.util.Util.getFileMd5;
-import static pd.droidapp.fmgr.util.Util.getRelativePath;
-import static pd.droidapp.fmgr.util.Util.getSizeString;
-
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Color;
@@ -14,14 +10,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
-import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.core.util.Consumer;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -32,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -42,11 +34,16 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
+
+import static pd.droidapp.fmgr.util.Util.getFileMd5;
+import static pd.droidapp.fmgr.util.Util.getRelativePath;
+import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 public class DedupPopup {
 
@@ -56,12 +53,14 @@ public class DedupPopup {
     private Consumer<Collection<File>> onConfirm;
 
     private final PopupWindow popupWindow;
+    private final View selectionBar;
+    private final TextView numSelectedTextView;
     private final ImageButton smartSelectButton;
+    private final ImageButton deleteButton;
     private final ImageView statusIcon;
     private final TextView statusText;
-    private final Button okButton;
 
-    private final DupGroupAdapter dupGroupAdapter;
+    private final DedupGroupAdapter dedupGroupAdapter;
 
     private Scanner scanner;
 
@@ -70,8 +69,8 @@ public class DedupPopup {
         this.containerView = containerView;
         this.startDirectory = startDirectory;
 
-        dupGroupAdapter = new DupGroupAdapter(context, startDirectory);
-        dupGroupAdapter.whenDupGroupFileClicked((position, file, isChecked) -> containerView.post(this::updateButtons));
+        dedupGroupAdapter = new DedupGroupAdapter(context, startDirectory);
+        dedupGroupAdapter.whenFileClicked((position, file, isChecked) -> containerView.post(this::updateButtons));
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.dedup_popup,
@@ -80,39 +79,37 @@ public class DedupPopup {
 
         View popupArea = popupView.findViewById(R.id.popup_area);
         ImageButton closeButton = popupView.findViewById(R.id.action_close);
-        smartSelectButton = popupView.findViewById(R.id.smart_select);
 
-        RecyclerView groupsListView = popupView.findViewById(R.id.groups_list);
+        RecyclerView groupsListView = popupView.findViewById(R.id.files_list);
 
         statusIcon = popupView.findViewById(R.id.status_icon);
         statusText = popupView.findViewById(R.id.status_text);
 
-        okButton = popupView.findViewById(R.id.button_ok);
-        Button cancelButton = popupView.findViewById(R.id.button_cancel);
+        selectionBar = popupView.findViewById(R.id.selection_bar);
+        numSelectedTextView = popupView.findViewById(R.id.num_selected);
+        smartSelectButton = popupView.findViewById(R.id.smart_select);
+        deleteButton = popupView.findViewById(R.id.action_delete);
 
         closeButton.setOnClickListener(v -> dismiss());
 
         smartSelectButton.setOnClickListener(v -> {
-            dupGroupAdapter.selectedFiles.clear();
-            for (FileGroup group : dupGroupAdapter.dupFileGroups) {
-                dupGroupAdapter.selectedFiles.addAll(filesToRemove(group));
-            }
+            List<File> newlySelected = suggestToSelect(dedupGroupAdapter.selectedFiles);
+            dedupGroupAdapter.selectedFiles.addAll(newlySelected);
             containerView.post(() -> {
-                updateDupFileGroups();
+                dedupGroupAdapter.notifyDataSetChanged();
                 updateButtons();
             });
         });
 
         groupsListView.setLayoutManager(new LinearLayoutManager(context));
-        groupsListView.setAdapter(dupGroupAdapter);
+        groupsListView.setAdapter(dedupGroupAdapter);
 
-        okButton.setOnClickListener(v -> {
+        deleteButton.setOnClickListener(v -> {
             if (onConfirm != null) {
-                onConfirm.accept(dupGroupAdapter.selectedFiles);
+                onConfirm.accept(dedupGroupAdapter.selectedFiles);
             }
             dismiss();
         });
-        cancelButton.setOnClickListener(v -> dismiss());
 
         popupView.setOnClickListener(v -> dismiss());
         popupArea.setOnClickListener(v -> {
@@ -156,61 +153,65 @@ public class DedupPopup {
             updateButtons();
         }));
         scanner.whenScanUpdated((numFilesScanned) -> containerView.post(() -> {
-            updateDupFileGroups();
+            updateDedupGroups();
             updateButtons();
             if (scanner.isCompleted()) {
                 statusIcon.clearAnimation();
                 statusIcon.setImageResource(R.drawable.baseline_done_24);
             }
-            statusText.setText(context.getString(R.string.scanned_x_found_y, numFilesScanned, dupGroupAdapter.dupFileGroups.size()));
+            statusText.setText(context.getString(R.string.scanned_x_found_y, numFilesScanned, dedupGroupAdapter.fileGroups.size()));
         }));
 
         scanner.start(startDirectory);
     }
 
     void updateButtons() {
-        if (dupGroupAdapter.dupFileGroups.isEmpty()) {
-            smartSelectButton.setVisibility(View.GONE);
-            okButton.setVisibility(View.GONE);
+        int numSelected = dedupGroupAdapter.selectedFiles.size();
+        if (numSelected > 0) {
+            numSelectedTextView.setText(context.getString(R.string.num_selected_format, numSelected));
+            selectionBar.setVisibility(View.VISIBLE);
         } else {
-            smartSelectButton.setVisibility(View.VISIBLE);
-            okButton.setVisibility(View.VISIBLE);
-
-            int numSelected = dupGroupAdapter.selectedFiles.size();
-            if (numSelected > 0) {
-                okButton.setEnabled(true);
-                okButton.setText(context.getString(R.string.delete_selected_x, numSelected));
-            } else {
-                okButton.setEnabled(false);
-                okButton.setText(context.getString(R.string.delete_selected));
-            }
+            selectionBar.setVisibility(View.GONE);
         }
     }
 
-    void updateDupFileGroups() {
-        List<FileGroup> dupFileGroups = scanner.copyFileGroups().stream()
+    void updateDedupGroups() {
+        List<FileGroup> groups = scanner.copyFileGroups().stream()
                 .filter(group -> group.numFiles() > 1)
                 .collect(Collectors.toList());
-        dupGroupAdapter.invalidate(dupFileGroups);
+        dedupGroupAdapter.invalidate(groups);
     }
 
-    private List<File> filesToRemove(FileGroup fileGroup) {
-        List<File> dupFiles = fileGroup.copyFiles();
-        List<File> filesToRemove = new ArrayList<>(dupFiles.size() - 1);
-        File fileToKeep = null;
-        for (File f : dupFiles) {
-            if (fileToKeep == null) {
-                fileToKeep = f;
+    /**
+     * Returns files to newly select, leaving already-selected ones untouched.
+     * Keeps at most one file per group unselected.
+     */
+    private List<File> suggestToSelect(Set<File> alreadySelectedFiles) {
+        List<File> newlySelectedFiles = new LinkedList<>();
+        for (FileGroup group : dedupGroupAdapter.fileGroups) {
+            List<File> files = group.copyFiles();
+            List<File> unselected = new ArrayList<>();
+            for (File f : files) {
+                if (!alreadySelectedFiles.contains(f)) {
+                    unselected.add(f);
+                }
+            }
+            if (unselected.size() <= 1) {
+                // 0: group fully selected; 1: keep it, nothing else to select
                 continue;
             }
-            if (smartCompare(f, fileToKeep) < 0) {
-                filesToRemove.add(fileToKeep);
-                fileToKeep = f;
-            } else {
-                filesToRemove.add(f);
+            File fileToKeep = unselected.get(0);
+            for (int i = 1; i < unselected.size(); i++) {
+                File f = unselected.get(i);
+                if (smartCompare(f, fileToKeep) < 0) {
+                    newlySelectedFiles.add(fileToKeep);
+                    fileToKeep = f;
+                } else {
+                    newlySelectedFiles.add(f);
+                }
             }
         }
-        return filesToRemove;
+        return newlySelectedFiles;
     }
 
     private int smartCompare(File f1, File f2) {
@@ -397,50 +398,50 @@ public class DedupPopup {
         }
     }
 
-    static class DupGroupAdapter extends RecyclerView.Adapter<DupGroupAdapter.DupGroupViewHolder> {
+    static class DedupGroupAdapter extends RecyclerView.Adapter<DedupGroupAdapter.DedupGroupViewHolder> {
 
         private final Context context;
         private final File startDirectory;
         private final Set<File> selectedFiles = new HashSet<>();
-        final List<FileGroup> dupFileGroups = new LinkedList<>();
-        private OnDupFileClicked onDupGroupFileClicked;
+        final List<FileGroup> fileGroups = new LinkedList<>();
+        private OnFileClicked onFileClicked;
 
-        DupGroupAdapter(Context context, File startDirectory) {
+        DedupGroupAdapter(Context context, File startDirectory) {
             this.context = context;
             this.startDirectory = startDirectory;
         }
 
-        void whenDupGroupFileClicked(OnDupFileClicked onDupGroupFileClicked) {
-            this.onDupGroupFileClicked = onDupGroupFileClicked;
+        void whenFileClicked(OnFileClicked onFileClicked) {
+            this.onFileClicked = onFileClicked;
         }
 
-        void invalidate(List<FileGroup> dupFileGroups) {
-            this.dupFileGroups.clear();
-            this.dupFileGroups.addAll(dupFileGroups);
+        void invalidate(List<FileGroup> fileGroups) {
+            this.fileGroups.clear();
+            this.fileGroups.addAll(fileGroups);
             notifyDataSetChanged();
         }
 
         @NonNull
         @Override
-        public DupGroupViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        public DedupGroupViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View groupView = LayoutInflater.from(context)
-                    .inflate(R.layout.dup_group, parent, false);
-            return new DupGroupViewHolder(groupView);
+                    .inflate(R.layout.dedup_group, parent, false);
+            return new DedupGroupViewHolder(groupView);
         }
 
         @Override
-        public void onBindViewHolder(@NonNull DupGroupViewHolder viewHolder, int position) {
-            FileGroup group = dupFileGroups.get(position);
+        public void onBindViewHolder(@NonNull DedupGroupViewHolder viewHolder, int position) {
+            FileGroup group = fileGroups.get(position);
             List<File> files = group.copyFiles();
 
             viewHolder.groupTitleText.setText(context.getString(R.string.x_files_y_each, files.size(), getSizeString(files.get(0).length())));
 
-            viewHolder.groupItemsView.setVisibility(group.isCollapsed ? View.GONE : View.VISIBLE);
+            viewHolder.groupFilesView.setVisibility(group.isCollapsed ? View.GONE : View.VISIBLE);
 
             viewHolder.groupTriangle.setRotation(group.isCollapsed ? -90f : 0f);
-            viewHolder.groupTriangle.setOnClickListener(v -> {
+            viewHolder.groupHeader.setOnClickListener(v -> {
                 group.isCollapsed = !group.isCollapsed;
-                viewHolder.groupItemsView.setVisibility(group.isCollapsed ? View.GONE : View.VISIBLE);
+                viewHolder.groupFilesView.setVisibility(group.isCollapsed ? View.GONE : View.VISIBLE);
 
                 float targetRotation = group.isCollapsed ? -90f : 0f;
                 float currentRotation = viewHolder.groupTriangle.getRotation();
@@ -453,60 +454,82 @@ public class DedupPopup {
                 animator.start();
             });
 
-            int nowCount = viewHolder.groupItemsView.getChildCount();
+            int nowCount = viewHolder.groupFilesView.getChildCount();
             int requiredCount = files.size();
 
             LayoutInflater layoutInflater = LayoutInflater.from(context);
             for (int i = 0; i < requiredCount; i++) {
                 File file = files.get(i);
-                CheckBox checkBox;
+                View fileView;
 
                 if (i < nowCount) {
-                    checkBox = (CheckBox) viewHolder.groupItemsView.getChildAt(i);
+                    fileView = viewHolder.groupFilesView.getChildAt(i);
                 } else {
-                    checkBox = (CheckBox) layoutInflater.inflate(R.layout.dup_group_item, viewHolder.groupItemsView, false);
-                    viewHolder.groupItemsView.addView(checkBox);
+                    fileView = layoutInflater.inflate(R.layout.popup_file, viewHolder.groupFilesView, false);
+                    viewHolder.groupFilesView.addView(fileView);
                 }
 
-                checkBox.setOnCheckedChangeListener(null);
-                checkBox.setChecked(selectedFiles.contains(file));
-                checkBox.setText(getRelativePath(startDirectory, file));
-                checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                    if (isChecked) {
-                        selectedFiles.add(file);
-                    } else {
-                        selectedFiles.remove(file);
+                ImageView icon = fileView.findViewById(R.id.popup_file_icon);
+                ImageView selectedIcon = fileView.findViewById(R.id.popup_file_selected);
+                TextView nameText = fileView.findViewById(R.id.popup_file_name);
+
+                icon.setImageResource(R.drawable.i_file_24);
+                nameText.setText(getRelativePath(startDirectory, file));
+                selectedIcon.setVisibility(selectedFiles.contains(file) ? View.VISIBLE : View.GONE);
+
+                fileView.setOnClickListener(v -> {
+                    // selecting only starts once something is selected (e.g. via long-press)
+                    if (!selectedFiles.isEmpty()) {
+                        toggleSelected(file, position);
                     }
-                    if (onDupGroupFileClicked != null) {
-                        onDupGroupFileClicked.accept(position, file, isChecked);
-                    }
+                });
+                fileView.setOnLongClickListener(v -> {
+                    toggleSelected(file, position);
+                    return true;
                 });
             }
             if (nowCount > requiredCount) {
-                viewHolder.groupItemsView.removeViews(requiredCount, nowCount - requiredCount);
+                viewHolder.groupFilesView.removeViews(requiredCount, nowCount - requiredCount);
+            }
+        }
+
+        private void toggleSelected(File file, int position) {
+            boolean isChecked;
+            if (selectedFiles.contains(file)) {
+                selectedFiles.remove(file);
+                isChecked = false;
+            } else {
+                selectedFiles.add(file);
+                isChecked = true;
+            }
+            notifyItemChanged(position);
+            if (onFileClicked != null) {
+                onFileClicked.accept(position, file, isChecked);
             }
         }
 
         @Override
         public int getItemCount() {
-            return dupFileGroups.size();
+            return fileGroups.size();
         }
 
-        interface OnDupFileClicked {
+        interface OnFileClicked {
             void accept(int position, File file, boolean isChecked);
         }
 
-        static class DupGroupViewHolder extends RecyclerView.ViewHolder {
+        static class DedupGroupViewHolder extends RecyclerView.ViewHolder {
 
+            final View groupHeader;
             final ImageView groupTriangle;
             final TextView groupTitleText;
-            final LinearLayout groupItemsView;
+            final LinearLayout groupFilesView;
 
-            DupGroupViewHolder(View groupView) {
+            DedupGroupViewHolder(View groupView) {
                 super(groupView);
+                groupHeader = groupView.findViewById(R.id.group_header);
                 groupTriangle = groupView.findViewById(R.id.group_triangle);
                 groupTitleText = groupView.findViewById(R.id.group_title);
-                groupItemsView = groupView.findViewById(R.id.group_items);
+                groupFilesView = groupView.findViewById(R.id.group_files);
             }
         }
     }

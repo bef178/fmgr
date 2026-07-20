@@ -4,20 +4,25 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
-    android:background="?attr/colorSurface"
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/group_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:paddingStart="2dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="4dp">
 
         <ImageView
             android:id="@+id/group_triangle"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_marginEnd="4dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/i_rt_triangle_down_24"
             app:tint="#666" />
 
@@ -25,15 +30,16 @@
             android:id="@+id/group_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:textColor="#333"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/group_items"
+        android:id="@+id/group_files"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
         android:orientation="vertical" />
 
 </LinearLayout>

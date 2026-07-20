@@ -73,8 +73,6 @@
     <string name="scanning">Scanning…</string>
     <string name="scanned_x_found_y">Scanned %d, found %d dup group(s)</string>
     <string name="x_files_y_each">%d files - %s each</string>
-    <string name="delete_selected">Delete Selected</string>
-    <string name="delete_selected_x">Delete Selected (%d)</string>
 
     <!-- paste popup -->
     <string name="paste_from_copy">Paste from copy</string>
