@@ -198,7 +198,7 @@
                 app:tint="?attr/colorOnPrimary" />
 
             <ImageButton
-                android:id="@+id/select_all_icon"
+                android:id="@+id/select_all"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_marginStart="8dp"

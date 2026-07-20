@@ -25,10 +25,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,6 +42,7 @@ import java.util.stream.Collectors;
 import pd.droidapp.fmgr.util.ActionPopup;
 import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.DedupPopup;
+import pd.droidapp.fmgr.util.DeleteEmptyPopup;
 import pd.droidapp.fmgr.util.EditPopup;
 import pd.droidapp.fmgr.util.PastePopup;
 import pd.droidapp.fmgr.util.PathBar;
@@ -449,62 +452,50 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeleteEmptyDialog() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle(getString(R.string.about_to_delete_empty))
-                .setPositiveButton(R.string.ok, (dialog, which) -> deleteEmptyItems())
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        DeleteEmptyPopup popup = new DeleteEmptyPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
+        popup.whenConfirmClicked(this::deleteEmptyItems);
+        popup.show();
     }
 
-    private void deleteEmptyItems() {
-        int numDeleted = deleteEmptyFilesAndDirectories(pathBar.getCurrentDirectory());
-        Toast.makeText(requireContext(), getString(R.string.deleted_empty_report_format, numDeleted), Toast.LENGTH_SHORT).show();
+    private void deleteEmptyItems(Collection<File> files, boolean parents) {
+        File root = pathBar.getCurrentDirectory();
+        Deque<File> candidateFiles = new ArrayDeque<>(files);
+        int okCount = 0;
+        int failedCount = 0;
+
+        while (!candidateFiles.isEmpty()) {
+            File file = candidateFiles.poll();
+            // never delete the browsed root; every other entry is a descendant of it
+            if (file == null || file.equals(root) || !isEmpty(file)) {
+                continue;
+            }
+            if (file.delete()) {
+                okCount++;
+                if (parents) {
+                    File parent = file.getParentFile();
+                    // cascade into newly-empty parents, but never the current directory
+                    if (parent != null && !parent.equals(root)) {
+                        candidateFiles.add(parent);
+                    }
+                }
+            } else {
+                failedCount++;
+            }
+        }
+
+        Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
         fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
     }
 
-    private int deleteEmptyFilesAndDirectories(File directory) {
-        int n = 0;
-        Stack<File> stack = new Stack<>();
-        Set<File> visited = new HashSet<>();
-        {
-            File[] files = directory.listFiles();
-            if (files != null) {
-                for (File f : files) {
-                    if (f.isDirectory() || f.isFile()) {
-                        stack.push(f);
-                    }
-                }
-            }
+    private static boolean isEmpty(File file) {
+        if (file.isFile()) {
+            return file.length() == 0;
         }
-
-        while (!stack.isEmpty()) {
-            File f = stack.pop();
-            if (f.isFile()) {
-                if (f.length() == 0 && f.delete()) {
-                    n++;
-                }
-            } else if (f.isDirectory()) {
-                if (visited.add(f)) {
-                    // first visit
-                    stack.push(f);
-                    File[] files = f.listFiles();
-                    if (files != null) {
-                        for (File f1 : files) {
-                            if (f1.isDirectory() || f1.isFile()) {
-                                stack.push(f1);
-                            }
-                        }
-                    }
-                } else {
-                    // second visit
-                    File[] files = f.listFiles();
-                    if (files != null && files.length == 0 && f.delete()) {
-                        n++;
-                    }
-                }
-            }
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            return children == null || children.length == 0;
         }
-        return n;
+        return false;
     }
 
     public class ActionBar {
@@ -580,7 +571,7 @@ public class BrowseFragment extends Fragment {
             copyButton = selectionBarLayout.findViewById(R.id.action_copy);
             deleteButton = selectionBarLayout.findViewById(R.id.action_delete);
             renameButton = selectionBarLayout.findViewById(R.id.action_rename);
-            ImageButton selectAllButton = selectionBarLayout.findViewById(R.id.select_all_icon);
+            ImageButton selectAllButton = selectionBarLayout.findViewById(R.id.select_all);
             ImageButton clearSelectionButton = selectionBarLayout.findViewById(R.id.select_close_icon);
 
             selectAllButton.setOnClickListener(v -> {

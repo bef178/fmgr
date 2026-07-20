@@ -37,7 +37,7 @@
 
     <string name="delete">Delete</string>
     <string name="about_to_delete_format">About to delete %d item(s)</string>
-    <string name="deleted_report_format">Deleted %d (%d failed)</string>
+    <string name="deleted_report_format">%d deleted (%d failed)</string>
     <string name="rename">Rename</string>
     <string name="renamed">Renamed</string>
     <string name="error_delete_failed">Failed to delete</string>
@@ -60,9 +60,8 @@
     <string name="search_status_results">Found %d result(s)</string>
 
     <!-- delete empty popup -->
-    <string name="delete_empty">Delete empty</string>
-    <string name="about_to_delete_empty">About to delete all empty files and directories</string>
-    <string name="deleted_empty_report_format">Deleted %d empty item(s)</string>
+    <string name="delete_empty_files">Delete empty files</string>
+    <string name="scanned_x_found_y_empty">Scanned %d, found %d empty item(s)</string>
 
     <!-- dedup popup -->
     <string name="delete_duplicate_files">Delete duplicate files</string>
