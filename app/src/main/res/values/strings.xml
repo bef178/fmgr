@@ -15,6 +15,11 @@
     <string name="abort">Abort</string>
     <string name="close">Close</string>
 
+    <string name="all_files_access_title">Allow access to all files</string>
+    <string name="all_files_access_message">Grant \"All files access\" so the file manager can manage files created by other apps.</string>
+    <string name="go_to_settings">Go to settings</string>
+    <string name="not_now">Not now</string>
+
     <string name="error_directory_not_accessible">Directory not accessible</string>
     <string name="error_failed_to_handle">Failed to handle</string>
     <string name="error_file_not_exist">File does not exist</string>

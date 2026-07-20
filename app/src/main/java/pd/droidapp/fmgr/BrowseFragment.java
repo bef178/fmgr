@@ -4,11 +4,14 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -63,6 +66,8 @@ public class BrowseFragment extends Fragment {
     private final Stack<File> backStack = new Stack<>();
     private final Stack<File> forwardStack = new Stack<>();
 
+    private boolean askedAllFilesAccess;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -97,6 +102,37 @@ public class BrowseFragment extends Fragment {
         super.onResume();
         pathBar.invalidate();
         fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+        askForAllFilesAccessIfNecessary();
+    }
+
+    private void askForAllFilesAccessIfNecessary() {
+        if (askedAllFilesAccess) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()) {
+            return;
+        }
+        askedAllFilesAccess = true;
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.all_files_access_title)
+                .setMessage(R.string.all_files_access_message)
+                .setPositiveButton(R.string.go_to_settings, (DialogInterface dialog, int which) -> {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                        intent.setData(Uri.parse("package:" + requireContext().getPackageName()));
+                        startActivity(intent);
+                    } catch (ActivityNotFoundException e) {
+                        try {
+                            Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                            startActivity(intent);
+                        } catch (ActivityNotFoundException ignored) {
+                            Toast.makeText(requireContext(), R.string.error_failed_to_handle, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                })
+                .setNegativeButton(R.string.not_now, null)
+                .show();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
