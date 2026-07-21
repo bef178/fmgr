@@ -69,7 +69,7 @@
     <!-- dedup popup -->
     <string name="delete_duplicate_files">Delete duplicate files</string>
     <string name="scanning">Scanning…</string>
-    <string name="x_scanned_y_found_groups">%d scanned, %d(%d) found</string>
+    <string name="x_scanned_y_found_groups">%d scanned, %d/%d found</string>
     <string name="x_files_y_each">%d files - %s each</string>
 
     <!-- paste popup -->

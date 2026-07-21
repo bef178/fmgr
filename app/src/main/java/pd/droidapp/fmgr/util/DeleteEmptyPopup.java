@@ -14,7 +14,6 @@ import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
-import androidx.core.util.Consumer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -26,16 +25,10 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import pd.droidapp.fmgr.R;
 
 import static pd.droidapp.fmgr.util.Util.getRelativePath;
-import static pd.util.PathExtension.compare;
 
 public class DeleteEmptyPopup {
 
@@ -47,9 +40,6 @@ public class DeleteEmptyPopup {
     private final PopupWindow popupWindow;
     private final View selectionBar;
     private final TextView numSelectedTextView;
-    private final ImageButton selectAllButton;
-    private final ImageButton deleteButton;
-    private final ImageButton deleteParentsButton;
     private final ImageView statusIcon;
     private final TextView statusText;
 
@@ -80,9 +70,9 @@ public class DeleteEmptyPopup {
 
         selectionBar = popupView.findViewById(R.id.selection_bar);
         numSelectedTextView = popupView.findViewById(R.id.num_selected);
-        selectAllButton = popupView.findViewById(R.id.select_all);
-        deleteButton = popupView.findViewById(R.id.action_delete);
-        deleteParentsButton = popupView.findViewById(R.id.action_delete_parents);
+        ImageButton selectAllButton = popupView.findViewById(R.id.select_all);
+        ImageButton deleteButton = popupView.findViewById(R.id.action_delete);
+        ImageButton deleteParentsButton = popupView.findViewById(R.id.action_delete_parents);
 
         closeButton.setOnClickListener(v -> dismiss());
 
@@ -144,28 +134,6 @@ public class DeleteEmptyPopup {
 
     private void doScan() {
         scanner = new Scanner();
-        scanner.whenScanStarted(() -> containerView.post(() -> {
-            RotateAnimation rotateAnim = new RotateAnimation(0, 360,
-                    Animation.RELATIVE_TO_SELF, 0.5f,
-                    Animation.RELATIVE_TO_SELF, 0.5f);
-            rotateAnim.setDuration(1000);
-            rotateAnim.setRepeatCount(Animation.INFINITE);
-            statusIcon.startAnimation(rotateAnim);
-            statusText.setText(R.string.scanning);
-
-            updateButtons();
-        }));
-        scanner.whenScanUpdated((numFilesScanned) -> containerView.post(() -> {
-            updateEmptyItems();
-            updateButtons();
-            if (scanner.isCompleted()) {
-                statusIcon.clearAnimation();
-                statusIcon.setImageResource(R.drawable.baseline_done_24);
-            }
-            statusText.setText(context.getString(R.string.x_scanned_y_found,
-                    numFilesScanned, emptyItemAdapter.getItemCount()));
-        }));
-
         scanner.start(startDirectory);
     }
 
@@ -180,9 +148,7 @@ public class DeleteEmptyPopup {
     }
 
     void updateEmptyItems() {
-        List<EmptyItem> items = scanner.copyEmptyItems();
-        Collections.sort(items, (a, b) -> compare(a.file.getPath(), b.file.getPath()));
-        emptyItemAdapter.invalidate(items);
+        emptyItemAdapter.invalidate(scanner.copyEmptyItems());
     }
 
     public void dismiss() {
@@ -208,116 +174,56 @@ public class DeleteEmptyPopup {
         }
     }
 
-    static class Scanner {
+    class Scanner extends FileScanner {
 
-        private static final int UPDATE_INTERVAL_IN_MILLISECONDS = 1000;
-
-        private final AtomicBoolean cancelled = new AtomicBoolean(false);
-        private final AtomicBoolean completed = new AtomicBoolean(false);
-        private Runnable onScanStarted;
-        private Consumer<Integer> onScanUpdated;
-        private Thread scanThread;
-        private Timer scanUpdateTimer;
-        final AtomicInteger numFilesScanned = new AtomicInteger(0);
         final List<EmptyItem> emptyItems = Collections.synchronizedList(new ArrayList<>());
 
-        public void whenScanStarted(Runnable onScanStarted) {
-            this.onScanStarted = onScanStarted;
-        }
-
-        public void whenScanUpdated(Consumer<Integer> onScanUpdated) {
-            this.onScanUpdated = onScanUpdated;
-        }
-
-        public void start(File startDirectory) {
-            if (isCancelled() || isCompleted()) {
-                return;
-            }
-
-            if (onScanStarted != null) {
-                onScanStarted.run();
-            }
-
-            startTimer();
-
-            scanThread = new Thread(() -> {
-                Stack<File> stack = new Stack<>();
-                stack.push(startDirectory);
-                while (!cancelled.get() && !stack.isEmpty()) {
-                    File[] files = stack.pop().listFiles();
-                    if (files == null) {
-                        continue;
-                    }
-
-                    for (File file : files) {
-                        if (cancelled.get()) {
-                            return;
-                        }
-                        if (file.isFile()) {
-                            numFilesScanned.incrementAndGet();
-                            if (file.length() == 0) {
-                                emptyItems.add(new EmptyItem(file, false));
-                            }
-                        } else if (file.isDirectory()) {
-                            File[] children = file.listFiles();
-                            if (children == null || children.length == 0) {
-                                emptyItems.add(new EmptyItem(file, true));
-                            } else {
-                                stack.push(file);
-                            }
-                        }
-                    }
-                }
-                if (!cancelled.get()) {
-                    completed.set(true);
-                }
+        @Override
+        protected void onScanStarted() {
+            containerView.post(() -> {
+                RotateAnimation rotateAnim = new RotateAnimation(0, 360,
+                        Animation.RELATIVE_TO_SELF, 0.5f,
+                        Animation.RELATIVE_TO_SELF, 0.5f);
+                rotateAnim.setDuration(1000);
+                rotateAnim.setRepeatCount(Animation.INFINITE);
+                statusIcon.startAnimation(rotateAnim);
+                statusText.setText(R.string.scanning);
+                updateButtons();
             });
-            scanThread.start();
         }
 
-        private void startTimer() {
-            scanUpdateTimer = new Timer();
-            scanUpdateTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if (cancelled.get()) {
-                        clearTimer();
-                        return;
-                    }
-                    if (onScanUpdated != null) {
-                        onScanUpdated.accept(numFilesScanned.get());
-                    }
-                    if (completed.get()) {
-                        clearTimer();
-                    }
+        @Override
+        protected void onScanUpdated(int numFilesScanned) {
+            containerView.post(() -> {
+                updateEmptyItems();
+                updateButtons();
+                if (isCompleted()) {
+                    statusIcon.clearAnimation();
+                    statusIcon.setImageResource(R.drawable.baseline_done_24);
                 }
-            }, UPDATE_INTERVAL_IN_MILLISECONDS, UPDATE_INTERVAL_IN_MILLISECONDS);
+                statusText.setText(context.getString(R.string.x_scanned_y_found,
+                        numFilesScanned, emptyItemAdapter.getItemCount()));
+            });
         }
 
-        private void clearTimer() {
-            if (scanUpdateTimer != null) {
-                scanUpdateTimer.cancel();
-                scanUpdateTimer.purge();
-                scanUpdateTimer = null;
+        @Override
+        protected void onFile(File file) {
+            if (file.length() == 0) {
+                emptyItems.add(new EmptyItem(file, false));
             }
         }
 
-        public void cancel() {
-            cancelled.set(true);
-            if (scanThread != null) {
-                scanThread.interrupt();
+        @Override
+        protected boolean onDirectory(File directory) {
+            File[] children = directory.listFiles();
+            if (children == null || children.length == 0) {
+                emptyItems.add(new EmptyItem(directory, true));
+                return false;
             }
+            return true;
         }
 
-        public boolean isCompleted() {
-            return completed.get();
-        }
-
-        public boolean isCancelled() {
-            return cancelled.get();
-        }
-
-        public List<EmptyItem> copyEmptyItems() {
+        List<EmptyItem> copyEmptyItems() {
             synchronized (emptyItems) {
                 return new ArrayList<>(emptyItems);
             }

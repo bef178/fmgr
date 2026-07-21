@@ -16,7 +16,6 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
-import androidx.core.util.Consumer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -31,12 +30,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
@@ -141,32 +136,6 @@ public class DedupPopup {
 
     private void doScan() {
         scanner = new Scanner();
-        scanner.whenScanStarted(() -> containerView.post(() -> {
-            RotateAnimation rotateAnim = new RotateAnimation(0, 360,
-                    Animation.RELATIVE_TO_SELF, 0.5f,
-                    Animation.RELATIVE_TO_SELF, 0.5f);
-            rotateAnim.setDuration(1000);
-            rotateAnim.setRepeatCount(Animation.INFINITE);
-            statusIcon.startAnimation(rotateAnim);
-            statusText.setText(R.string.scanning);
-
-            updateButtons();
-        }));
-        scanner.whenScanUpdated((numFilesScanned) -> containerView.post(() -> {
-            updateDedupGroups();
-            updateButtons();
-            if (scanner.isCompleted()) {
-                statusIcon.clearAnimation();
-                statusIcon.setImageResource(R.drawable.baseline_done_24);
-            }
-            int totalFiles = 0;
-            for (FileGroup group : dedupGroupAdapter.fileGroups) {
-                totalFiles += group.numFiles();
-            }
-            statusText.setText(context.getString(R.string.x_scanned_y_found_groups,
-                    numFilesScanned, totalFiles, dedupGroupAdapter.fileGroups.size()));
-        }));
-
         scanner.start(startDirectory);
     }
 
@@ -242,79 +211,59 @@ public class DedupPopup {
         popupWindow.dismiss();
     }
 
-    static class Scanner {
+    class Scanner extends FileScanner {
 
-        private static final int UPDATE_INTERVAL_IN_MILLISECONDS = 1000;
-
-        private final AtomicBoolean cancelled = new AtomicBoolean(false);
-        private final AtomicBoolean completed = new AtomicBoolean(false);
-        private Runnable onScanStarted;
-        private Consumer<Integer> onScanUpdated;
-        private Thread scanThread;
-        private Timer scanUpdateTimer;
-        final AtomicInteger numFilesScanned = new AtomicInteger(0);
         final Map<String, FileGroup> fileGroups = new ConcurrentHashMap<>();
+        private final Map<Long, List<File>> reachedFiles = new HashMap<>();
 
-        public void whenScanStarted(Runnable onScanStarted) {
-            this.onScanStarted = onScanStarted;
+        @Override
+        protected void onScanStarted() {
+            containerView.post(() -> {
+                RotateAnimation rotateAnim = new RotateAnimation(0, 360,
+                        Animation.RELATIVE_TO_SELF, 0.5f,
+                        Animation.RELATIVE_TO_SELF, 0.5f);
+                rotateAnim.setDuration(1000);
+                rotateAnim.setRepeatCount(Animation.INFINITE);
+                statusIcon.startAnimation(rotateAnim);
+                statusText.setText(R.string.scanning);
+                updateButtons();
+            });
         }
 
-        public void whenScanUpdated(Consumer<Integer> onScanUpdated) {
-            this.onScanUpdated = onScanUpdated;
+        @Override
+        protected void onScanUpdated(int numFilesScanned) {
+            containerView.post(() -> {
+                updateDedupGroups();
+                updateButtons();
+                if (isCompleted()) {
+                    statusIcon.clearAnimation();
+                    statusIcon.setImageResource(R.drawable.baseline_done_24);
+                }
+                int totalFiles = 0;
+                for (FileGroup group : dedupGroupAdapter.fileGroups) {
+                    totalFiles += group.numFiles();
+                }
+                statusText.setText(context.getString(R.string.x_scanned_y_found_groups,
+                        numFilesScanned, totalFiles, dedupGroupAdapter.fileGroups.size()));
+            });
         }
 
-        public void start(File startDirectory) {
-            if (isCancelled() || isCompleted()) {
+        @Override
+        protected void onFile(File file) {
+            long size = file.length();
+            if (size == 0) {
                 return;
             }
-
-            if (onScanStarted != null) {
-                onScanStarted.run();
+            List<File> a = reachedFiles.computeIfAbsent(size, n -> new LinkedList<>());
+            if (a.isEmpty()) {
+                a.add(file);
+            } else if (a.size() == 1) {
+                addToFileGroup(a.get(0), size);
+                addToFileGroup(file, size);
+                a.add(file);
+            } else {
+                addToFileGroup(file, size);
             }
-
-            startTimer();
-
-            scanThread = new Thread(() -> {
-                Map<Long, List<File>> reachedFiles = new HashMap<>();
-                Stack<File> stack = new Stack<>();
-                stack.push(startDirectory);
-                while (!cancelled.get() && !stack.isEmpty()) {
-                    File[] files = stack.pop().listFiles();
-                    if (files == null) {
-                        continue;
-                    }
-
-                    for (File file : files) {
-                        if (cancelled.get()) {
-                            return;
-                        }
-                        if (file.isFile()) {
-                            numFilesScanned.incrementAndGet();
-                            long size = file.length();
-                            if (size == 0) {
-                                continue;  // skip empty files
-                            }
-                            List<File> a = reachedFiles.computeIfAbsent(size, n -> new LinkedList<>());
-                            if (a.isEmpty()) {
-                                a.add(file);
-                            } else if (a.size() == 1) {
-                                addToFileGroup(a.get(0), size);
-                                addToFileGroup(file, size);
-                                a.add(file);
-                            } else {
-                                addToFileGroup(file, size);
-                                // not add to save memory
-                            }
-                        } else if (file.isDirectory()) {
-                            stack.push(file);
-                        }
-                    }
-                }
-                if (!cancelled.get()) {
-                    completed.set(true);
-                }
-            });
-            scanThread.start();
         }
 
         private void addToFileGroup(File file, long size) {
@@ -328,49 +277,7 @@ public class DedupPopup {
             }
         }
 
-        private void startTimer() {
-            scanUpdateTimer = new Timer();
-            scanUpdateTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if (cancelled.get()) {
-                        clearTimer();
-                        return;
-                    }
-                    if (onScanUpdated != null) {
-                        onScanUpdated.accept(numFilesScanned.get());
-                    }
-                    if (completed.get()) {
-                        clearTimer();
-                    }
-                }
-            }, UPDATE_INTERVAL_IN_MILLISECONDS, UPDATE_INTERVAL_IN_MILLISECONDS);
-        }
-
-        private void clearTimer() {
-            if (scanUpdateTimer != null) {
-                scanUpdateTimer.cancel();
-                scanUpdateTimer.purge();
-                scanUpdateTimer = null;
-            }
-        }
-
-        public void cancel() {
-            cancelled.set(true);
-            if (scanThread != null) {
-                scanThread.interrupt();
-            }
-        }
-
-        public boolean isCompleted() {
-            return completed.get();
-        }
-
-        public boolean isCancelled() {
-            return cancelled.get();
-        }
-
-        public List<FileGroup> copyFileGroups() {
+        List<FileGroup> copyFileGroups() {
             return new ArrayList<>(fileGroups.values());
         }
     }

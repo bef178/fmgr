@@ -19,7 +19,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -28,29 +27,19 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 
-import static pd.util.PathExtension.compare;
-
 public class SearchPopup {
 
     private static final int SEARCH_START_DELAY_IN_MILLISECONDS = 1000;
-    private static final int SEARCH_RESULT_UPDATE_INTERVAL_IN_MILLISECONDS = 1000;
 
     private final Context context;
     private final View containerView;
@@ -67,15 +56,12 @@ public class SearchPopup {
     private final TextView searchStatusText;
     private final View selectionBar;
     private final TextView numSelectedTextView;
-    private final ImageButton selectAllButton;
-    private final ImageButton selectNoneButton;
     private final ImageButton jumpButton;
-    private final ImageButton deleteButton;
     private final SearchResultAdapter searchResultAdapter;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable searchRunnable = this::doSearch;
-    private Searcher searcher;
+    private Scanner scanner;
 
     public SearchPopup(Context context, View containerView, File startDirectory) {
         this.context = context;
@@ -96,10 +82,10 @@ public class SearchPopup {
         searchStatusText = popupView.findViewById(R.id.status_text);
         selectionBar = popupView.findViewById(R.id.selection_bar);
         numSelectedTextView = popupView.findViewById(R.id.num_selected);
-        selectAllButton = popupView.findViewById(R.id.select_all);
-        selectNoneButton = popupView.findViewById(R.id.select_none);
+        ImageButton selectAllButton = popupView.findViewById(R.id.select_all);
+        ImageButton selectNoneButton = popupView.findViewById(R.id.select_none);
         jumpButton = popupView.findViewById(R.id.action_jump);
-        deleteButton = popupView.findViewById(R.id.action_delete);
+        ImageButton deleteButton = popupView.findViewById(R.id.action_delete);
         RecyclerView searchResultItemsList = popupView.findViewById(R.id.files_list);
 
         searchResultAdapter = new SearchResultAdapter(context, startDirectory);
@@ -111,8 +97,8 @@ public class SearchPopup {
 
         selectAllButton.setOnClickListener(v -> {
             searchResultAdapter.selectedFiles.clear();
-            for (SearchResultItem item : searchResultAdapter.results) {
-                searchResultAdapter.selectedFiles.add(item.file);
+            for (File file : searchResultAdapter.results) {
+                searchResultAdapter.selectedFiles.add(file);
             }
             containerView.post(() -> {
                 searchResultAdapter.notifyDataSetChanged();
@@ -224,37 +210,14 @@ public class SearchPopup {
         cancelSearch();
         clearResults();
 
-        searcher = new Searcher(SEARCH_RESULT_UPDATE_INTERVAL_IN_MILLISECONDS);
-        searcher.whenSearchStarted(() -> containerView.post(() -> {
-            statusBar.setVisibility(View.VISIBLE);
-            searchStatusIcon.setImageResource(R.drawable.baseline_refresh_24);
-            RotateAnimation rotateAnim = new RotateAnimation(0, 360,
-                    Animation.RELATIVE_TO_SELF, 0.5f,
-                    Animation.RELATIVE_TO_SELF, 0.5f);
-            rotateAnim.setDuration(1000);
-            rotateAnim.setRepeatCount(Animation.INFINITE);
-            searchStatusIcon.startAnimation(rotateAnim);
-            searchStatusText.setText(R.string.search_status_searching);
-        }));
-        searcher.whenSearchUpdated((numResults) -> containerView.post(() -> {
-            searchResultAdapter.invalidate(searcher.copyResults());
-            if (searcher.isCompleted()) {
-                searchStatusIcon.clearAnimation();
-                searchStatusIcon.setImageResource(R.drawable.baseline_done_24);
-                searchStatusText.setText(context.getString(R.string.x_scanned_y_found,
-                        searcher.numFilesScanned.get(), numResults));
-            } else {
-                searchStatusText.setText(R.string.search_status_searching);
-            }
-        }));
-
-        searcher.start(startDirectory, query);
+        scanner = new Scanner();
+        scanner.start(query);
     }
 
     private void cancelSearch() {
-        if (searcher != null) {
-            searcher.cancel();
-            searcher = null;
+        if (scanner != null) {
+            scanner.cancel();
+            scanner = null;
         }
         searchStatusIcon.clearAnimation();
     }
@@ -288,166 +251,117 @@ public class SearchPopup {
         }
     }
 
-    static class Searcher {
+    class Scanner {
 
-        private final int searchResultUpdateIntervalInMilliseconds;
-        private final AtomicBoolean cancelled = new AtomicBoolean(false);
-        private final AtomicBoolean completed = new AtomicBoolean(false);
-        private Runnable onSearchStarted;
-        private Consumer<Integer> onSearchUpdated;
-        private Thread searchThread;
-        private Timer updateTimer;
-        final AtomicInteger numFilesScanned = new AtomicInteger(0);
-        final AtomicInteger numResults = new AtomicInteger(0);
-        final List<SearchResultItem> results = Collections.synchronizedList(new LinkedList<>());
+        private String query;
+        private FileScanner nameScanner;
+        private FileScanner contentScanner;
+        final List<File> results = Collections.synchronizedList(new LinkedList<>());
 
-        public Searcher(int searchResultUpdateIntervalInMilliseconds) {
-            this.searchResultUpdateIntervalInMilliseconds = searchResultUpdateIntervalInMilliseconds;
-        }
+        void start(String query) {
+            this.query = query;
+            results.clear();
 
-        public void whenSearchStarted(Runnable onSearchStarted) {
-            this.onSearchStarted = onSearchStarted;
-        }
-
-        public void whenSearchUpdated(Consumer<Integer> onSearchUpdated) {
-            this.onSearchUpdated = onSearchUpdated;
-        }
-
-        public void start(File startDirectory, String query) {
-            if (isCancelled() || isCompleted()) {
-                return;
-            }
-
-            if (onSearchStarted != null) {
-                onSearchStarted.run();
-            }
-
-            startTimer();
-
-            String queryLower = query.toLowerCase();
-            searchThread = new Thread(() -> {
-                Comparator<File> pathComparator = (f1, f2) ->
-                        compare(f1.getPath(), f2.getPath());
-
-                // First pass: match by name
-                Stack<File> stack = new Stack<>();
-                stack.push(startDirectory);
-                while (!cancelled.get() && !stack.isEmpty()) {
-                    File[] files = stack.pop().listFiles();
-                    if (files == null) {
-                        continue;
-                    }
-                    Arrays.sort(files, pathComparator);
-
-                    // push subdirectories in reverse so they are visited in ascending order
-                    for (int i = files.length - 1; i >= 0; i--) {
-                        if (cancelled.get()) {
-                            return;
-                        }
-                        if (files[i].isDirectory()) {
-                            stack.push(files[i]);
-                        }
-                    }
-                    for (File file : files) {
-                        if (cancelled.get()) {
-                            return;
-                        }
-                        if (file.isFile()) {
-                            numFilesScanned.incrementAndGet();
-                        }
-                        if ((file.isDirectory() || file.isFile())
-                                && file.getName().contains(query)) {
-                            addResult(new SearchResultItem(file));
-                        }
-                    }
-                }
-
-                // Second pass: match by content (text files whose name did not match)
-                stack.push(startDirectory);
-                while (!cancelled.get() && !stack.isEmpty()) {
-                    File[] files = stack.pop().listFiles();
-                    if (files == null) {
-                        continue;
-                    }
-                    Arrays.sort(files, pathComparator);
-
-                    for (int i = files.length - 1; i >= 0; i--) {
-                        if (cancelled.get()) {
-                            return;
-                        }
-                        if (files[i].isDirectory()) {
-                            stack.push(files[i]);
-                        }
-                    }
-                    for (File file : files) {
-                        if (cancelled.get()) {
-                            return;
-                        }
-                        if (file.isFile() && !file.getName().contains(query)) {
-                            numFilesScanned.incrementAndGet();
-                            if ((isTextFile(file) || isSmallAnonymousFile(file))
-                                    && fileContainsText(file, queryLower)) {
-                                addResult(new SearchResultItem(file));
-                            }
-                        }
-                    }
-                }
-
-                if (!cancelled.get()) {
-                    completed.set(true);
-                }
-            });
-            searchThread.start();
-        }
-
-        private void addResult(SearchResultItem result) {
-            results.add(result);
-            numResults.incrementAndGet();
-        }
-
-        private void startTimer() {
-            updateTimer = new Timer();
-            updateTimer.schedule(new TimerTask() {
+            nameScanner = new FileScanner() {
                 @Override
-                public void run() {
-                    if (cancelled.get()) {
-                        clearTimer();
-                        return;
-                    }
-                    if (onSearchUpdated != null) {
-                        onSearchUpdated.accept(numResults.get());
-                    }
-                    if (completed.get()) {
-                        clearTimer();
+                protected void onFile(File file) {
+                    if (file.getName().contains(Scanner.this.query)) {
+                        addResult(file);
                     }
                 }
-            }, searchResultUpdateIntervalInMilliseconds, searchResultUpdateIntervalInMilliseconds);
+
+                @Override
+                protected boolean onDirectory(File directory) {
+                    if (directory.getName().contains(Scanner.this.query)) {
+                        addResult(directory);
+                    }
+                    return true;
+                }
+
+                @Override
+                protected void onScanStarted() {
+                    containerView.post(() -> {
+                        statusBar.setVisibility(View.VISIBLE);
+                        searchStatusIcon.setImageResource(R.drawable.baseline_refresh_24);
+                        RotateAnimation rotateAnim = new RotateAnimation(0, 360,
+                                Animation.RELATIVE_TO_SELF, 0.5f,
+                                Animation.RELATIVE_TO_SELF, 0.5f);
+                        rotateAnim.setDuration(1000);
+                        rotateAnim.setRepeatCount(Animation.INFINITE);
+                        searchStatusIcon.startAnimation(rotateAnim);
+                        searchStatusText.setText(R.string.search_status_searching);
+                    });
+                }
+
+                @Override
+                protected void onScanUpdated(int n) {
+                    containerView.post(() -> {
+                        searchResultAdapter.invalidate(copyResults());
+                        if (isCompleted()) {
+                            startContentScan();
+                        } else {
+                            searchStatusText.setText(R.string.search_status_searching);
+                        }
+                    });
+                }
+            };
+            nameScanner.start(startDirectory);
         }
 
-        private void clearTimer() {
-            if (updateTimer != null) {
-                updateTimer.cancel();
-                updateTimer.purge();
-                updateTimer = null;
-            }
+        private void startContentScan() {
+            int nameScanned = nameScanner.numFilesScanned.get();
+
+            contentScanner = new FileScanner() {
+                @Override
+                protected void onFile(File file) {
+                    if (!isSettled(file)
+                            && (isTextFile(file) || isSmallAnonymousFile(file))
+                            && fileContainsText(file, query)) {
+                        addResult(file);
+                    }
+                }
+
+                @Override
+                protected void onScanUpdated(int n) {
+                    containerView.post(() -> {
+                        searchResultAdapter.invalidate(copyResults());
+                        if (isCompleted()) {
+                            searchStatusIcon.clearAnimation();
+                            searchStatusIcon.setImageResource(R.drawable.baseline_done_24);
+                            searchStatusText.setText(context.getString(R.string.x_scanned_y_found,
+                                    nameScanned + n, results.size()));
+                        }
+                    });
+                }
+            };
+            contentScanner.start(startDirectory);
         }
 
         void cancel() {
-            cancelled.set(true);
-            if (searchThread != null) {
-                searchThread.interrupt();
+            if (nameScanner != null) {
+                nameScanner.cancel();
+            }
+            if (contentScanner != null) {
+                contentScanner.cancel();
             }
         }
 
-        public boolean isCompleted() {
-            return completed.get();
+        private void addResult(File result) {
+            results.add(result);
         }
 
-        public boolean isCancelled() {
-            return cancelled.get();
+        private boolean isSettled(File file) {
+            synchronized (results) {
+                for (File item : results) {
+                    if (item.getPath().equals(file.getPath())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
-        public List<SearchResultItem> copyResults() {
+        List<File> copyResults() {
             synchronized (results) {
                 return new ArrayList<>(results);
             }
@@ -472,7 +386,7 @@ public class SearchPopup {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (line.toLowerCase().contains(query)) {
+                    if (line.contains(query)) {
                         return true;
                     }
                 }
@@ -483,21 +397,12 @@ public class SearchPopup {
         }
     }
 
-    public static class SearchResultItem {
-
-        public final File file;
-
-        public SearchResultItem(File file) {
-            this.file = file;
-        }
-    }
-
     static class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapter.ViewHolder> {
 
         private final Context context;
         private final File startDirectory;
         final Set<File> selectedFiles = new HashSet<>();
-        private final List<SearchResultItem> results = new LinkedList<>();
+        private final List<File> results = new LinkedList<>();
         private Runnable onSelectionChanged;
 
         SearchResultAdapter(Context context, File startDirectory) {
@@ -505,7 +410,7 @@ public class SearchPopup {
             this.startDirectory = startDirectory;
         }
 
-        void invalidate(List<SearchResultItem> newResults) {
+        void invalidate(List<File> newResults) {
             results.clear();
             results.addAll(newResults);
             notifyDataSetChanged();
@@ -513,10 +418,6 @@ public class SearchPopup {
 
         void whenSelectionChanged(Runnable onSelectionChanged) {
             this.onSelectionChanged = onSelectionChanged;
-        }
-
-        boolean hasSelection() {
-            return !selectedFiles.isEmpty();
         }
 
         void clearSelected() {
@@ -533,7 +434,7 @@ public class SearchPopup {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
-            File file = results.get(position).file;
+            File file = results.get(position);
 
             viewHolder.indexText.setText(String.valueOf(position + 1));
 
