@@ -59,7 +59,7 @@
     <string name="error_paste_failed">Failed to paste</string>
 
     <!-- search popup -->
-    <string name="search_hint">Enter keyword to search</string>
+    <string name="search_hint">Type to search</string>
     <string name="search_status_searching">Searching…</string>
     <string name="search_status_no_results">No results found</string>
     <string name="search_status_results">Found %d result(s)</string>

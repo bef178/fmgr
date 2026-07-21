@@ -35,13 +35,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import pd.droidapp.fmgr.R;
 
 import static pd.droidapp.fmgr.util.Util.getRelativePath;
+import static pd.util.PathExtension.compare;
 
 public class DeleteEmptyPopup {
 
     private final Context context;
     private final View containerView;
     private final File startDirectory;
-    private OnConfirm onConfirm;
+    private OnDelete onDelete;
 
     private final PopupWindow popupWindow;
     private final View selectionBar;
@@ -100,15 +101,15 @@ public class DeleteEmptyPopup {
         filesListView.setAdapter(emptyItemAdapter);
 
         deleteButton.setOnClickListener(v -> {
-            if (onConfirm != null) {
-                onConfirm.accept(emptyItemAdapter.selectedFiles, false);
+            if (onDelete != null) {
+                onDelete.accept(emptyItemAdapter.selectedFiles, false);
             }
             dismiss();
         });
 
         deleteParentsButton.setOnClickListener(v -> {
-            if (onConfirm != null) {
-                onConfirm.accept(emptyItemAdapter.selectedFiles, true);
+            if (onDelete != null) {
+                onDelete.accept(emptyItemAdapter.selectedFiles, true);
             }
             dismiss();
         });
@@ -128,8 +129,8 @@ public class DeleteEmptyPopup {
         popupWindow.setElevation(24);
     }
 
-    public void whenConfirmClicked(OnConfirm onConfirm) {
-        this.onConfirm = onConfirm;
+    public void whenDeleteClicked(OnDelete onDelete) {
+        this.onDelete = onDelete;
     }
 
     public void show() {
@@ -180,7 +181,7 @@ public class DeleteEmptyPopup {
 
     void updateEmptyItems() {
         List<EmptyItem> items = scanner.copyEmptyItems();
-        Collections.sort(items, (a, b) -> a.file.getAbsolutePath().compareToIgnoreCase(b.file.getAbsolutePath()));
+        Collections.sort(items, (a, b) -> compare(a.file.getPath(), b.file.getPath()));
         emptyItemAdapter.invalidate(items);
     }
 
@@ -191,9 +192,9 @@ public class DeleteEmptyPopup {
         popupWindow.dismiss();
     }
 
-    public interface OnConfirm {
+    public interface OnDelete {
 
-        void accept(Collection<File> files, boolean cascade);
+        void accept(Collection<File> files, boolean parents);
     }
 
     static class EmptyItem {

@@ -50,7 +50,7 @@ public class DedupPopup {
     private final Context context;
     private final View containerView;
     private final File startDirectory;
-    private Consumer<Collection<File>> onConfirm;
+    private Consumer<Collection<File>> onDelete;
 
     private final PopupWindow popupWindow;
     private final View selectionBar;
@@ -105,8 +105,8 @@ public class DedupPopup {
         groupsListView.setAdapter(dedupGroupAdapter);
 
         deleteButton.setOnClickListener(v -> {
-            if (onConfirm != null) {
-                onConfirm.accept(dedupGroupAdapter.selectedFiles);
+            if (onDelete != null) {
+                onDelete.accept(dedupGroupAdapter.selectedFiles);
             }
             dismiss();
         });
@@ -126,8 +126,8 @@ public class DedupPopup {
         popupWindow.setElevation(24);
     }
 
-    public void whenConfirmClicked(Consumer<Collection<File>> onConfirm) {
-        this.onConfirm = onConfirm;
+    public void whenDeleteClicked(Consumer<Collection<File>> onDelete) {
+        this.onDelete = onDelete;
     }
 
     public void show() {

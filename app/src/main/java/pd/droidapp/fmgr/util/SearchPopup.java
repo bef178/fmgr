@@ -28,9 +28,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -40,6 +45,8 @@ import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 
+import static pd.util.PathExtension.compare;
+
 public class SearchPopup {
 
     private static final int SEARCH_START_DELAY_IN_MILLISECONDS = 1000;
@@ -48,14 +55,22 @@ public class SearchPopup {
     private final Context context;
     private final View containerView;
     private final File startDirectory;
-    private Consumer<File> onSearchResultFileClickedListener;
+    private Consumer<File> onFileClicked;
+    private Consumer<Collection<File>> onDelete;
 
     private final PopupWindow popupWindow;
     private final EditText searchEdit;
     private final ImageButton searchEditClearButton;
     private final ImageButton closeButton;
+    private final View statusBar;
     private final ImageView searchStatusIcon;
     private final TextView searchStatusText;
+    private final View selectionBar;
+    private final TextView numSelectedTextView;
+    private final ImageButton selectAllButton;
+    private final ImageButton selectNoneButton;
+    private final ImageButton jumpButton;
+    private final ImageButton deleteButton;
     private final SearchResultAdapter searchResultAdapter;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -76,27 +91,59 @@ public class SearchPopup {
         searchEdit = popupView.findViewById(R.id.search_edit);
         searchEditClearButton = popupView.findViewById(R.id.search_edit_clear);
         closeButton = popupView.findViewById(R.id.action_close);
+        statusBar = popupView.findViewById(R.id.status_bar);
         searchStatusIcon = popupView.findViewById(R.id.status_icon);
         searchStatusText = popupView.findViewById(R.id.status_text);
-        RecyclerView searchResultItemsList = popupView.findViewById(R.id.result_list);
+        selectionBar = popupView.findViewById(R.id.selection_bar);
+        numSelectedTextView = popupView.findViewById(R.id.num_selected);
+        selectAllButton = popupView.findViewById(R.id.select_all);
+        selectNoneButton = popupView.findViewById(R.id.select_none);
+        jumpButton = popupView.findViewById(R.id.action_jump);
+        deleteButton = popupView.findViewById(R.id.action_delete);
+        RecyclerView searchResultItemsList = popupView.findViewById(R.id.files_list);
 
         searchResultAdapter = new SearchResultAdapter(context, startDirectory);
-        searchResultAdapter.whenSearchResultItemClicked(searchResultItem -> {
-            if (onSearchResultFileClickedListener != null) {
-                onSearchResultFileClickedListener.accept(searchResultItem.file);
-            }
-            dismiss();
-        });
+        searchResultAdapter.whenSelectionChanged(() -> containerView.post(this::updateSelectionBar));
         searchResultItemsList.setLayoutManager(new LinearLayoutManager(context));
         searchResultItemsList.setAdapter(searchResultAdapter);
 
         closeButton.setOnClickListener(v -> dismiss());
 
+        selectAllButton.setOnClickListener(v -> {
+            searchResultAdapter.selectedFiles.clear();
+            for (SearchResultItem item : searchResultAdapter.results) {
+                searchResultAdapter.selectedFiles.add(item.file);
+            }
+            containerView.post(() -> {
+                searchResultAdapter.notifyDataSetChanged();
+                updateSelectionBar();
+            });
+        });
+
+        selectNoneButton.setOnClickListener(v -> {
+            searchResultAdapter.clearSelected();
+            containerView.post(this::updateSelectionBar);
+        });
+
+        jumpButton.setOnClickListener(v -> {
+            if (searchResultAdapter.selectedFiles.size() == 1) {
+                File file = searchResultAdapter.selectedFiles.iterator().next();
+                if (onFileClicked != null) {
+                    onFileClicked.accept(file);
+                }
+                dismiss();
+            }
+        });
+
+        deleteButton.setOnClickListener(v -> {
+            if (onDelete != null) {
+                onDelete.accept(new ArrayList<>(searchResultAdapter.selectedFiles));
+            }
+            dismiss();
+        });
+
         searchEditClearButton.setOnClickListener(v -> {
             searchEdit.setText("");
-            cancelSearch();
-            clearResults();
-            clearStatus();
         });
 
         searchEdit.addTextChangedListener(new TextWatcher() {
@@ -113,6 +160,7 @@ public class SearchPopup {
             public void afterTextChanged(Editable s) {
                 handler.removeCallbacks(searchRunnable);
                 cancelSearch();
+                clearSelection();
 
                 String query = s.toString();
                 if (query.isEmpty()) {
@@ -145,8 +193,12 @@ public class SearchPopup {
         popupWindow.setElevation(24);
     }
 
-    public void whenSearchResultFileClicked(Consumer<File> onSearchResultItemClickedListener) {
-        this.onSearchResultFileClickedListener = onSearchResultItemClickedListener;
+    public void whenSearchResultFileClicked(Consumer<File> onFileClicked) {
+        this.onFileClicked = onFileClicked;
+    }
+
+    public void whenDeleteClicked(Consumer<Collection<File>> onDelete) {
+        this.onDelete = onDelete;
     }
 
     public void show() {
@@ -174,6 +226,7 @@ public class SearchPopup {
 
         searcher = new Searcher(SEARCH_RESULT_UPDATE_INTERVAL_IN_MILLISECONDS);
         searcher.whenSearchStarted(() -> containerView.post(() -> {
+            statusBar.setVisibility(View.VISIBLE);
             searchStatusIcon.setImageResource(R.drawable.baseline_refresh_24);
             RotateAnimation rotateAnim = new RotateAnimation(0, 360,
                     Animation.RELATIVE_TO_SELF, 0.5f,
@@ -215,9 +268,27 @@ public class SearchPopup {
     }
 
     private void clearStatus() {
+        statusBar.setVisibility(View.GONE);
         searchStatusIcon.clearAnimation();
         searchStatusIcon.setImageResource(android.R.color.transparent);
         searchStatusText.setText("");
+    }
+
+    private void clearSelection() {
+        searchResultAdapter.clearSelected();
+        selectionBar.setVisibility(View.GONE);
+    }
+
+    private void updateSelectionBar() {
+        int numSelected = searchResultAdapter.selectedFiles.size();
+        if (numSelected > 0) {
+            numSelectedTextView.setText(context.getString(R.string.num_selected_format, numSelected));
+            selectionBar.setVisibility(View.VISIBLE);
+            // jump is only meaningful for a single selection
+            jumpButton.setVisibility(numSelected == 1 ? View.VISIBLE : View.GONE);
+        } else {
+            selectionBar.setVisibility(View.GONE);
+        }
     }
 
     static class Searcher {
@@ -257,6 +328,10 @@ public class SearchPopup {
 
             String queryLower = query.toLowerCase();
             searchThread = new Thread(() -> {
+                Comparator<File> pathComparator = (f1, f2) ->
+                        compare(f1.getPath(), f2.getPath());
+
+                // First pass: match by name
                 Stack<File> stack = new Stack<>();
                 stack.push(startDirectory);
                 while (!cancelled.get() && !stack.isEmpty()) {
@@ -264,45 +339,53 @@ public class SearchPopup {
                     if (files == null) {
                         continue;
                     }
+                    Arrays.sort(files, pathComparator);
 
+                    // push subdirectories in reverse so they are visited in ascending order
+                    for (int i = files.length - 1; i >= 0; i--) {
+                        if (cancelled.get()) {
+                            return;
+                        }
+                        if (files[i].isDirectory()) {
+                            stack.push(files[i]);
+                        }
+                    }
                     for (File file : files) {
                         if (cancelled.get()) {
                             return;
                         }
-
-                        String name = file.getName().toLowerCase();
-                        if (file.isDirectory()) {
-                            if (name.contains(queryLower)) {
-                                addResult(new SearchResultItem(file, true, false));
-                            }
-                            stack.push(file);
-                        } else if (file.isFile()) {
-                            if (name.contains(queryLower)) {
-                                addResult(new SearchResultItem(file, true, false));
-                            }
+                        if ((file.isDirectory() || file.isFile())
+                                && file.getName().contains(query)) {
+                            addResult(new SearchResultItem(file));
                         }
                     }
                 }
 
-                // Second pass: search content (only for text files)
+                // Second pass: match by content (text files whose name did not match)
                 stack.push(startDirectory);
                 while (!cancelled.get() && !stack.isEmpty()) {
                     File[] files = stack.pop().listFiles();
                     if (files == null) {
                         continue;
                     }
+                    Arrays.sort(files, pathComparator);
 
+                    for (int i = files.length - 1; i >= 0; i--) {
+                        if (cancelled.get()) {
+                            return;
+                        }
+                        if (files[i].isDirectory()) {
+                            stack.push(files[i]);
+                        }
+                    }
                     for (File file : files) {
                         if (cancelled.get()) {
                             return;
                         }
-
-                        if (file.isDirectory()) {
-                            stack.push(file);
-                        } else if (file.isFile() && !file.getName().toLowerCase().contains(queryLower)) {
-                            if ((isTextFile(file) || isSmallAnonymousFile(file)) && fileContainsText(file, queryLower)) {
-                                addResult(new SearchResultItem(file, false, true));
-                            }
+                        if (file.isFile() && !file.getName().contains(query)
+                                && (isTextFile(file) || isSmallAnonymousFile(file))
+                                && fileContainsText(file, queryLower)) {
+                            addResult(new SearchResultItem(file));
                         }
                     }
                 }
@@ -400,13 +483,9 @@ public class SearchPopup {
     public static class SearchResultItem {
 
         public final File file;
-        public final boolean matchedByName;
-        public final boolean matchedByContent;
 
-        public SearchResultItem(File file, boolean matchedByName, boolean matchedByContent) {
+        public SearchResultItem(File file) {
             this.file = file;
-            this.matchedByName = matchedByName;
-            this.matchedByContent = matchedByContent;
         }
     }
 
@@ -414,8 +493,9 @@ public class SearchPopup {
 
         private final Context context;
         private final File startDirectory;
+        final Set<File> selectedFiles = new HashSet<>();
         private final List<SearchResultItem> results = new LinkedList<>();
-        private Consumer<SearchResultItem> onSearchResultItemClickedListener;
+        private Runnable onSelectionChanged;
 
         SearchResultAdapter(Context context, File startDirectory) {
             this.context = context;
@@ -428,34 +508,63 @@ public class SearchPopup {
             notifyDataSetChanged();
         }
 
-        void whenSearchResultItemClicked(Consumer<SearchResultItem> onSearchResultItemClickedListener) {
-            this.onSearchResultItemClickedListener = onSearchResultItemClickedListener;
+        void whenSelectionChanged(Runnable onSelectionChanged) {
+            this.onSelectionChanged = onSelectionChanged;
+        }
+
+        boolean hasSelection() {
+            return !selectedFiles.isEmpty();
+        }
+
+        void clearSelected() {
+            selectedFiles.clear();
+            notifyDataSetChanged();
         }
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(context).inflate(R.layout.file_item_32, parent, false);
+            View view = LayoutInflater.from(context).inflate(R.layout.popup_file, parent, false);
             return new ViewHolder(view);
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
-            SearchResultItem searchResultItem = results.get(position);
-            File file = searchResultItem.file;
+            File file = results.get(position).file;
 
             if (file.isDirectory()) {
                 viewHolder.iconView.setImageResource(R.drawable.i_directory_24);
             } else {
                 viewHolder.iconView.setImageResource(R.drawable.i_file_24);
             }
+
+            viewHolder.selectedIcon.setVisibility(selectedFiles.contains(file) ? View.VISIBLE : View.GONE);
+
             viewHolder.itemView.setOnClickListener(v -> {
-                if (onSearchResultItemClickedListener != null) {
-                    onSearchResultItemClickedListener.accept(searchResultItem);
+                // selecting only starts once something is selected (e.g. via long-press);
+                // jumping is done via the selection bar's jump button on a single selection
+                if (!selectedFiles.isEmpty()) {
+                    toggleSelected(file, position);
                 }
+            });
+            viewHolder.itemView.setOnLongClickListener(v -> {
+                toggleSelected(file, position);
+                return true;
             });
 
             viewHolder.pathView.setText(Util.getRelativePath(startDirectory, file));
+        }
+
+        private void toggleSelected(File file, int position) {
+            if (selectedFiles.contains(file)) {
+                selectedFiles.remove(file);
+            } else {
+                selectedFiles.add(file);
+            }
+            notifyItemChanged(position);
+            if (onSelectionChanged != null) {
+                onSelectionChanged.run();
+            }
         }
 
         @Override
@@ -466,12 +575,14 @@ public class SearchPopup {
         static class ViewHolder extends RecyclerView.ViewHolder {
 
             final ImageView iconView;
+            final ImageView selectedIcon;
             final TextView pathView;
 
             ViewHolder(View itemView) {
                 super(itemView);
-                iconView = itemView.findViewById(R.id.item_icon);
-                pathView = itemView.findViewById(R.id.item_path);
+                iconView = itemView.findViewById(R.id.popup_file_icon);
+                selectedIcon = itemView.findViewById(R.id.popup_file_selected);
+                pathView = itemView.findViewById(R.id.popup_file_name);
             }
         }
     }

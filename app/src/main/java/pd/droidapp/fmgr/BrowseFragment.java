@@ -239,6 +239,7 @@ public class BrowseFragment extends Fragment {
     private void showSearchPopup() {
         SearchPopup searchPopup = new SearchPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
         searchPopup.whenSearchResultFileClicked(this::jumpToFile);
+        searchPopup.whenDeleteClicked(this::deleteItems);
         searchPopup.show();
     }
 
@@ -489,7 +490,7 @@ public class BrowseFragment extends Fragment {
 
     private void showDeleteEmptyDialog() {
         DeleteEmptyPopup popup = new DeleteEmptyPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
-        popup.whenConfirmClicked(this::deleteEmptyItems);
+        popup.whenDeleteClicked(this::deleteEmptyItems);
         popup.show();
     }
 
@@ -565,7 +566,7 @@ public class BrowseFragment extends Fragment {
                 actionPopup.whenDeleteEmptyClicked(BrowseFragment.this::showDeleteEmptyDialog);
                 actionPopup.whenDedupFilesClicked(() -> {
                     DedupPopup popup = new DedupPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
-                    popup.whenConfirmClicked(BrowseFragment.this::deleteItems);
+                    popup.whenDeleteClicked(BrowseFragment.this::deleteItems);
                     popup.show();
                 });
                 if (clipboard.isCut()) {
