@@ -61,17 +61,15 @@
     <!-- search popup -->
     <string name="search_hint">Type to search</string>
     <string name="search_status_searching">Searching…</string>
-    <string name="search_status_no_results">No results found</string>
-    <string name="search_status_results">Found %d result(s)</string>
 
     <!-- delete empty popup -->
     <string name="delete_empty_files">Delete empty files</string>
-    <string name="scanned_x_found_y_empty">Scanned %d, found %d empty item(s)</string>
+    <string name="x_scanned_y_found">%d scanned, %d found</string>
 
     <!-- dedup popup -->
     <string name="delete_duplicate_files">Delete duplicate files</string>
     <string name="scanning">Scanning…</string>
-    <string name="scanned_x_found_y">Scanned %d, found %d dup group(s)</string>
+    <string name="x_scanned_y_found_groups">%d scanned, %d(%d) found</string>
     <string name="x_files_y_each">%d files - %s each</string>
 
     <!-- paste popup -->

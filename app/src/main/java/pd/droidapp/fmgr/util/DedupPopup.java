@@ -159,7 +159,12 @@ public class DedupPopup {
                 statusIcon.clearAnimation();
                 statusIcon.setImageResource(R.drawable.baseline_done_24);
             }
-            statusText.setText(context.getString(R.string.scanned_x_found_y, numFilesScanned, dedupGroupAdapter.fileGroups.size()));
+            int totalFiles = 0;
+            for (FileGroup group : dedupGroupAdapter.fileGroups) {
+                totalFiles += group.numFiles();
+            }
+            statusText.setText(context.getString(R.string.x_scanned_y_found_groups,
+                    numFilesScanned, totalFiles, dedupGroupAdapter.fileGroups.size()));
         }));
 
         scanner.start(startDirectory);
@@ -457,6 +462,11 @@ public class DedupPopup {
             int nowCount = viewHolder.groupFilesView.getChildCount();
             int requiredCount = files.size();
 
+            int startIndex = 1;
+            for (int g = 0; g < position; g++) {
+                startIndex += fileGroups.get(g).numFiles();
+            }
+
             LayoutInflater layoutInflater = LayoutInflater.from(context);
             for (int i = 0; i < requiredCount; i++) {
                 File file = files.get(i);
@@ -472,7 +482,9 @@ public class DedupPopup {
                 ImageView icon = fileView.findViewById(R.id.popup_file_icon);
                 ImageView selectedIcon = fileView.findViewById(R.id.popup_file_selected);
                 TextView nameText = fileView.findViewById(R.id.popup_file_name);
+                TextView indexText = fileView.findViewById(R.id.popup_file_index);
 
+                indexText.setText(String.valueOf(startIndex + i));
                 icon.setImageResource(R.drawable.i_file_24);
                 nameText.setText(getRelativePath(startDirectory, file));
                 selectedIcon.setVisibility(selectedFiles.contains(file) ? View.VISIBLE : View.GONE);

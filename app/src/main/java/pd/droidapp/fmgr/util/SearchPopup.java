@@ -241,11 +241,8 @@ public class SearchPopup {
             if (searcher.isCompleted()) {
                 searchStatusIcon.clearAnimation();
                 searchStatusIcon.setImageResource(R.drawable.baseline_done_24);
-                if (numResults == 0) {
-                    searchStatusText.setText(R.string.search_status_no_results);
-                } else {
-                    searchStatusText.setText(context.getString(R.string.search_status_results, numResults));
-                }
+                searchStatusText.setText(context.getString(R.string.x_scanned_y_found,
+                        searcher.numFilesScanned.get(), numResults));
             } else {
                 searchStatusText.setText(R.string.search_status_searching);
             }
@@ -300,6 +297,7 @@ public class SearchPopup {
         private Consumer<Integer> onSearchUpdated;
         private Thread searchThread;
         private Timer updateTimer;
+        final AtomicInteger numFilesScanned = new AtomicInteger(0);
         final AtomicInteger numResults = new AtomicInteger(0);
         final List<SearchResultItem> results = Collections.synchronizedList(new LinkedList<>());
 
@@ -354,6 +352,9 @@ public class SearchPopup {
                         if (cancelled.get()) {
                             return;
                         }
+                        if (file.isFile()) {
+                            numFilesScanned.incrementAndGet();
+                        }
                         if ((file.isDirectory() || file.isFile())
                                 && file.getName().contains(query)) {
                             addResult(new SearchResultItem(file));
@@ -382,10 +383,12 @@ public class SearchPopup {
                         if (cancelled.get()) {
                             return;
                         }
-                        if (file.isFile() && !file.getName().contains(query)
-                                && (isTextFile(file) || isSmallAnonymousFile(file))
-                                && fileContainsText(file, queryLower)) {
-                            addResult(new SearchResultItem(file));
+                        if (file.isFile() && !file.getName().contains(query)) {
+                            numFilesScanned.incrementAndGet();
+                            if ((isTextFile(file) || isSmallAnonymousFile(file))
+                                    && fileContainsText(file, queryLower)) {
+                                addResult(new SearchResultItem(file));
+                            }
                         }
                     }
                 }
@@ -532,6 +535,8 @@ public class SearchPopup {
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
             File file = results.get(position).file;
 
+            viewHolder.indexText.setText(String.valueOf(position + 1));
+
             if (file.isDirectory()) {
                 viewHolder.iconView.setImageResource(R.drawable.i_directory_24);
             } else {
@@ -552,7 +557,7 @@ public class SearchPopup {
                 return true;
             });
 
-            viewHolder.pathView.setText(Util.getRelativePath(startDirectory, file));
+            viewHolder.pathText.setText(Util.getRelativePath(startDirectory, file));
         }
 
         private void toggleSelected(File file, int position) {
@@ -576,13 +581,15 @@ public class SearchPopup {
 
             final ImageView iconView;
             final ImageView selectedIcon;
-            final TextView pathView;
+            final TextView pathText;
+            final TextView indexText;
 
             ViewHolder(View itemView) {
                 super(itemView);
+                indexText = itemView.findViewById(R.id.popup_file_index);
                 iconView = itemView.findViewById(R.id.popup_file_icon);
                 selectedIcon = itemView.findViewById(R.id.popup_file_selected);
-                pathView = itemView.findViewById(R.id.popup_file_name);
+                pathText = itemView.findViewById(R.id.popup_file_name);
             }
         }
     }

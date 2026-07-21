@@ -38,4 +38,12 @@
         android:textColor="@color/black"
         android:textSize="14sp" />
 
+    <TextView
+        android:id="@+id/popup_file_index"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:textColor="#888"
+        android:textSize="12sp" />
+
 </LinearLayout>

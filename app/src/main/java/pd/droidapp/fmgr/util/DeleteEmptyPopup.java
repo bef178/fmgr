@@ -162,7 +162,7 @@ public class DeleteEmptyPopup {
                 statusIcon.clearAnimation();
                 statusIcon.setImageResource(R.drawable.baseline_done_24);
             }
-            statusText.setText(context.getString(R.string.scanned_x_found_y_empty,
+            statusText.setText(context.getString(R.string.x_scanned_y_found,
                     numFilesScanned, emptyItemAdapter.getItemCount()));
         }));
 
@@ -358,6 +358,8 @@ public class DeleteEmptyPopup {
             EmptyItem item = emptyItems.get(position);
             boolean selected = selectedFiles.contains(item.file);
 
+            holder.indexText.setText(String.valueOf(position + 1));
+
             if (item.isDirectory) {
                 holder.icon.setImageResource(R.drawable.i_directory_24);
             } else {
@@ -407,9 +409,11 @@ public class DeleteEmptyPopup {
             final ImageView icon;
             final ImageView selectedIcon;
             final TextView nameText;
+            final TextView indexText;
 
             ViewHolder(View itemView) {
                 super(itemView);
+                indexText = itemView.findViewById(R.id.popup_file_index);
                 icon = itemView.findViewById(R.id.popup_file_icon);
                 selectedIcon = itemView.findViewById(R.id.popup_file_selected);
                 nameText = itemView.findViewById(R.id.popup_file_name);
