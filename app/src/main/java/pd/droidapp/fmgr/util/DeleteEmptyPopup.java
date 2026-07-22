@@ -21,7 +21,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -38,8 +37,7 @@ public class DeleteEmptyPopup {
     private OnDelete onDelete;
 
     private final PopupWindow popupWindow;
-    private final View selectionBar;
-    private final TextView numSelectedTextView;
+    private final SelectionBar selectionBar;
     private final ImageView statusIcon;
     private final TextView statusText;
 
@@ -51,9 +49,6 @@ public class DeleteEmptyPopup {
         this.context = context;
         this.containerView = containerView;
         this.startDirectory = startDirectory;
-
-        emptyItemAdapter = new EmptyItemAdapter(startDirectory);
-        emptyItemAdapter.whenEmptyItemClicked(() -> containerView.post(this::updateButtons));
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.delete_empty_popup,
@@ -68,46 +63,47 @@ public class DeleteEmptyPopup {
         statusIcon = popupView.findViewById(R.id.status_icon);
         statusText = popupView.findViewById(R.id.status_text);
 
-        selectionBar = popupView.findViewById(R.id.selection_bar);
-        numSelectedTextView = popupView.findViewById(R.id.num_selected);
-        ImageButton selectAllButton = popupView.findViewById(R.id.select_all);
-        ImageButton deleteButton = popupView.findViewById(R.id.action_delete);
-        ImageButton deleteParentsButton = popupView.findViewById(R.id.action_delete_parents);
+        selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
+
+        emptyItemAdapter = new EmptyItemAdapter(startDirectory, selectionBar.selectedFiles);
+        emptyItemAdapter.whenEmptyItemClicked(selectionBar::invalidate);
 
         closeButton.setOnClickListener(v -> dismiss());
 
-        selectAllButton.setOnClickListener(v -> {
-            emptyItemAdapter.selectedFiles.clear();
-            for (EmptyItem item : emptyItemAdapter.emptyItems) {
-                emptyItemAdapter.selectedFiles.add(item.file);
+        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
+            if (onDelete != null) {
+                onDelete.accept(selectionBar.copySelectedFiles(), false);
             }
-            containerView.post(() -> {
-                emptyItemAdapter.notifyDataSetChanged();
-                updateButtons();
-            });
+            dismiss();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
+            if (onDelete != null) {
+                onDelete.accept(selectionBar.copySelectedFiles(), true);
+            }
+            dismiss();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
+            selectionBar.clear();
+            for (EmptyItem item : emptyItemAdapter.emptyItems) {
+                selectionBar.selectedFiles.add(item.file);
+            }
+            selectionBar.invalidate();
+            emptyItemAdapter.notifyDataSetChanged();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
+            selectionBar.clear();
+            selectionBar.invalidate();
+            emptyItemAdapter.notifyDataSetChanged();
         });
 
         filesListView.setLayoutManager(new LinearLayoutManager(context));
         filesListView.setAdapter(emptyItemAdapter);
 
-        deleteButton.setOnClickListener(v -> {
-            if (onDelete != null) {
-                onDelete.accept(emptyItemAdapter.selectedFiles, false);
-            }
-            dismiss();
-        });
-
-        deleteParentsButton.setOnClickListener(v -> {
-            if (onDelete != null) {
-                onDelete.accept(emptyItemAdapter.selectedFiles, true);
-            }
-            dismiss();
-        });
-
         popupView.setOnClickListener(v -> dismiss());
-        popupArea.setOnClickListener(v -> {
-            // dummy
-        });
+        popupArea.setOnClickListener(v -> {});
 
         popupWindow = new PopupWindow(popupView,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -135,16 +131,6 @@ public class DeleteEmptyPopup {
     private void doScan() {
         scanner = new Scanner();
         scanner.start(startDirectory);
-    }
-
-    void updateButtons() {
-        int numSelected = emptyItemAdapter.selectedFiles.size();
-        if (numSelected > 0) {
-            numSelectedTextView.setText(context.getString(R.string.num_selected_format, numSelected));
-            selectionBar.setVisibility(View.VISIBLE);
-        } else {
-            selectionBar.setVisibility(View.GONE);
-        }
     }
 
     void updateEmptyItems() {
@@ -188,7 +174,7 @@ public class DeleteEmptyPopup {
                 rotateAnim.setRepeatCount(Animation.INFINITE);
                 statusIcon.startAnimation(rotateAnim);
                 statusText.setText(R.string.scanning);
-                updateButtons();
+                selectionBar.invalidate();
             });
         }
 
@@ -196,7 +182,7 @@ public class DeleteEmptyPopup {
         protected void onScanUpdated(int numFilesScanned) {
             containerView.post(() -> {
                 updateEmptyItems();
-                updateButtons();
+                selectionBar.invalidate();
                 if (isCompleted()) {
                     statusIcon.clearAnimation();
                     statusIcon.setImageResource(R.drawable.baseline_done_24);
@@ -232,13 +218,14 @@ public class DeleteEmptyPopup {
 
     static class EmptyItemAdapter extends RecyclerView.Adapter<EmptyItemAdapter.ViewHolder> {
 
-        private final Set<File> selectedFiles = new HashSet<>();
+        private final Set<File> selectedFiles;
         final List<EmptyItem> emptyItems = new LinkedList<>();
         private final File startDirectory;
         private Runnable onEmptyItemClicked;
 
-        EmptyItemAdapter(File startDirectory) {
+        EmptyItemAdapter(File startDirectory, Set<File> selectedFiles) {
             this.startDirectory = startDirectory;
+            this.selectedFiles = selectedFiles;
         }
 
         void whenEmptyItemClicked(Runnable onEmptyItemClicked) {

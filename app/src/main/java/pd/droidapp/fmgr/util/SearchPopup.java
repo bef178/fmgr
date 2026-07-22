@@ -29,7 +29,6 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -54,9 +53,7 @@ public class SearchPopup {
     private final View statusBar;
     private final ImageView searchStatusIcon;
     private final TextView searchStatusText;
-    private final View selectionBar;
-    private final TextView numSelectedTextView;
-    private final ImageButton jumpButton;
+    private final SelectionBar selectionBar;
     private final SearchResultAdapter searchResultAdapter;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -80,57 +77,17 @@ public class SearchPopup {
         statusBar = popupView.findViewById(R.id.status_bar);
         searchStatusIcon = popupView.findViewById(R.id.status_icon);
         searchStatusText = popupView.findViewById(R.id.status_text);
-        selectionBar = popupView.findViewById(R.id.selection_bar);
-        numSelectedTextView = popupView.findViewById(R.id.num_selected);
-        ImageButton selectAllButton = popupView.findViewById(R.id.select_all);
-        ImageButton selectNoneButton = popupView.findViewById(R.id.select_none);
-        jumpButton = popupView.findViewById(R.id.action_jump);
-        ImageButton deleteButton = popupView.findViewById(R.id.action_delete);
+
+        selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
+
         RecyclerView searchResultItemsList = popupView.findViewById(R.id.files_list);
 
-        searchResultAdapter = new SearchResultAdapter(context, startDirectory);
-        searchResultAdapter.whenSelectionChanged(() -> containerView.post(this::updateSelectionBar));
+        searchResultAdapter = new SearchResultAdapter(context, startDirectory, selectionBar.selectedFiles);
+        searchResultAdapter.whenSelectionChanged(selectionBar::invalidate);
         searchResultItemsList.setLayoutManager(new LinearLayoutManager(context));
         searchResultItemsList.setAdapter(searchResultAdapter);
 
         closeButton.setOnClickListener(v -> dismiss());
-
-        selectAllButton.setOnClickListener(v -> {
-            searchResultAdapter.selectedFiles.clear();
-            for (File file : searchResultAdapter.results) {
-                searchResultAdapter.selectedFiles.add(file);
-            }
-            containerView.post(() -> {
-                searchResultAdapter.notifyDataSetChanged();
-                updateSelectionBar();
-            });
-        });
-
-        selectNoneButton.setOnClickListener(v -> {
-            searchResultAdapter.clearSelected();
-            containerView.post(this::updateSelectionBar);
-        });
-
-        jumpButton.setOnClickListener(v -> {
-            if (searchResultAdapter.selectedFiles.size() == 1) {
-                File file = searchResultAdapter.selectedFiles.iterator().next();
-                if (onFileClicked != null) {
-                    onFileClicked.accept(file);
-                }
-                dismiss();
-            }
-        });
-
-        deleteButton.setOnClickListener(v -> {
-            if (onDelete != null) {
-                onDelete.accept(new ArrayList<>(searchResultAdapter.selectedFiles));
-            }
-            dismiss();
-        });
-
-        searchEditClearButton.setOnClickListener(v -> {
-            searchEdit.setText("");
-        });
 
         searchEdit.addTextChangedListener(new TextWatcher() {
 
@@ -163,6 +120,36 @@ public class SearchPopup {
                 }
             }
         });
+
+        searchEditClearButton.setOnClickListener(v -> {
+            searchEdit.setText("");
+        });
+
+        selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
+            if (selectionBar.selectedFiles.size() == 1) {
+                File file = selectionBar.selectedFiles.iterator().next();
+                if (onFileClicked != null) {
+                    onFileClicked.accept(file);
+                }
+                dismiss();
+            }
+        });
+
+        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
+            if (onDelete != null) {
+                onDelete.accept(selectionBar.copySelectedFiles());
+            }
+            dismiss();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
+            selectionBar.clear();
+            selectionBar.addAll(searchResultAdapter.results);
+            selectionBar.invalidate();
+            searchResultAdapter.notifyDataSetChanged();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> clearSelection());
 
         popupView.setOnClickListener(v -> dismiss());
         popupArea.setOnClickListener(v -> {
@@ -235,20 +222,9 @@ public class SearchPopup {
     }
 
     private void clearSelection() {
-        searchResultAdapter.clearSelected();
-        selectionBar.setVisibility(View.GONE);
-    }
-
-    private void updateSelectionBar() {
-        int numSelected = searchResultAdapter.selectedFiles.size();
-        if (numSelected > 0) {
-            numSelectedTextView.setText(context.getString(R.string.num_selected_format, numSelected));
-            selectionBar.setVisibility(View.VISIBLE);
-            // jump is only meaningful for a single selection
-            jumpButton.setVisibility(numSelected == 1 ? View.VISIBLE : View.GONE);
-        } else {
-            selectionBar.setVisibility(View.GONE);
-        }
+        selectionBar.clear();
+        selectionBar.invalidate();
+        searchResultAdapter.notifyDataSetChanged();
     }
 
     class Scanner {
@@ -401,13 +377,14 @@ public class SearchPopup {
 
         private final Context context;
         private final File startDirectory;
-        final Set<File> selectedFiles = new HashSet<>();
+        final Set<File> selectedFiles;
         private final List<File> results = new LinkedList<>();
         private Runnable onSelectionChanged;
 
-        SearchResultAdapter(Context context, File startDirectory) {
+        SearchResultAdapter(Context context, File startDirectory, Set<File> selectedFiles) {
             this.context = context;
             this.startDirectory = startDirectory;
+            this.selectedFiles = selectedFiles;
         }
 
         void invalidate(List<File> newResults) {
@@ -418,11 +395,6 @@ public class SearchPopup {
 
         void whenSelectionChanged(Runnable onSelectionChanged) {
             this.onSelectionChanged = onSelectionChanged;
-        }
-
-        void clearSelected() {
-            selectedFiles.clear();
-            notifyDataSetChanged();
         }
 
         @NonNull

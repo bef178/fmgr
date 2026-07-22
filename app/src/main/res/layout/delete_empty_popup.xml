@@ -46,14 +46,14 @@
 
         </LinearLayout>
 
-        <!-- status bar (full-bleed) -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
+            <!-- status bar (full-bleed) -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="28dp"
+                android:layout_height="32dp"
                 android:background="?attr/colorSurfaceVariant"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -78,60 +78,7 @@
 
             </LinearLayout>
 
-            <!-- selection bar (full-bleed) -->
-            <LinearLayout
-                android:id="@+id/selection_bar"
-                android:layout_width="match_parent"
-                android:layout_height="28dp"
-                android:background="?attr/colorPrimary"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="18dp"
-                android:paddingEnd="18dp"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/num_selected"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="?attr/colorOnPrimary"
-                    android:textSize="14sp" />
-
-                <ImageButton
-                    android:id="@+id/select_all"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_marginStart="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/i_check_all_24"
-                    app:tint="?attr/colorOnPrimary"
-                    tools:ignore="contentDescription" />
-
-                <ImageButton
-                    android:id="@+id/action_delete"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_marginStart="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/outline_delete_24"
-                    app:tint="?attr/colorOnPrimary"
-                    tools:ignore="contentDescription" />
-
-                <ImageButton
-                    android:id="@+id/action_delete_parents"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_marginStart="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/i_delete_up_24"
-                    app:tint="?attr/colorOnPrimary"
-                    tools:ignore="contentDescription" />
-
-            </LinearLayout>
+            <include layout="@layout/selection_bar" />
 
         </FrameLayout>
 

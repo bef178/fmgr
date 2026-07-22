@@ -51,6 +51,7 @@ import pd.droidapp.fmgr.util.PastePopup;
 import pd.droidapp.fmgr.util.PathBar;
 import pd.droidapp.fmgr.util.Progressor;
 import pd.droidapp.fmgr.util.SearchPopup;
+import pd.droidapp.fmgr.util.SelectionBar;
 
 import static pd.util.FileExtension.removeRecursively;
 
@@ -78,13 +79,35 @@ public class BrowseFragment extends Fragment {
         pathBar = new PathBar(requireContext(), view.findViewById(R.id.path_bar));
         pathBar.whenBreadcrumbClicked(this::navigateToDirectory);
 
-        selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
+        selectionBar = new SelectionBar(requireContext(), view.findViewById(R.id.selection_bar));
 
         fileItemAdapter = new FileItemAdapter();
 
         filesView = view.findViewById(R.id.file_list);
         filesView.setLayoutManager(new LinearLayoutManager(requireContext()));
         filesView.setAdapter(fileItemAdapter);
+
+        selectionBar.addButton(R.layout.selection_button_rename, c -> c == 1, v -> {
+            if (selectionBar.selectedFiles.size() == 1) {
+                showRenamePopup(selectionBar.selectedFiles.iterator().next());
+            }
+        });
+        selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> markSelectedItemsForCopy());
+        selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> markSelectedItemsForCut());
+        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> showDeleteDialog());
+
+        selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
+            selectionBar.clear();
+            selectionBar.addAll(fileItemAdapter.getFiles());
+            selectionBar.invalidate();
+            fileItemAdapter.notifyDataSetChanged();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
+            selectionBar.clear();
+            selectionBar.invalidate();
+            fileItemAdapter.notifyDataSetChanged();
+        });
 
         doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
 
@@ -94,7 +117,8 @@ public class BrowseFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        selectionBar.clearSelected();
+        selectionBar.clear();
+        selectionBar.invalidate();
     }
 
     @Override
@@ -143,7 +167,8 @@ public class BrowseFragment extends Fragment {
     private void doChangeCurrentDirectory(File directory) {
         pathBar.invalidate(directory);
         actionBar.invalidate();
-        selectionBar.clearSelected();
+        selectionBar.clear();
+        selectionBar.invalidate();
         fileItemAdapter.invalidate(directory);
     }
 
@@ -239,7 +264,7 @@ public class BrowseFragment extends Fragment {
     private void showSearchPopup() {
         SearchPopup searchPopup = new SearchPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
         searchPopup.whenSearchResultFileClicked(this::jumpToFile);
-        searchPopup.whenDeleteClicked(this::deleteItems);
+        searchPopup.whenDeleteClicked(files -> deleteItems(files, false));
         searchPopup.show();
     }
 
@@ -371,11 +396,12 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCut() {
-        List<File> files = new ArrayList<>(selectionBar.selectedFiles);
+        List<File> files = selectionBar.copySelectedFiles();
         clipboard.setCut(files);
         Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
-        selectionBar.clearSelected();
+        selectionBar.clear();
+        selectionBar.invalidate();
         for (File file : files) {
             int i = fileItemAdapter.indexOf(file);
             if (i >= 0) {
@@ -385,11 +411,12 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCopy() {
-        List<File> files = new ArrayList<>(selectionBar.selectedFiles);
+        List<File> files = selectionBar.copySelectedFiles();
         clipboard.setCopy(files);
         Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
-        selectionBar.clearSelected();
+        selectionBar.clear();
+        selectionBar.invalidate();
         for (File file : files) {
             int i = fileItemAdapter.indexOf(file);
             if (i >= 0) {
@@ -421,29 +448,57 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeleteDialog() {
-        List<File> files = new LinkedList<>(selectionBar.selectedFiles);
+        List<File> files = selectionBar.copySelectedFiles();
         new AlertDialog.Builder(requireContext())
                 .setTitle(getString(R.string.about_to_delete_format, files.size()))
-                .setPositiveButton(R.string.ok, (dialog, which) -> deleteItems(files))
+                .setPositiveButton(R.string.ok, (dialog, which) -> {
+                    deleteItems(files, false);
+                    selectionBar.clear();
+                    selectionBar.invalidate();
+                })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
-    private void deleteItems(Collection<File> files) {
+    private void deleteItems(Collection<File> files, boolean prune) {
         Set<File> filesToDelete = new HashSet<>(files);
         int okCount = 0;
         int failedCount = 0;
+        Deque<File> pruneCandidates = new ArrayDeque<>();
 
         for (File file : filesToDelete) {
             if (removeRecursively(file, null)) {
                 okCount++;
+                if (prune) {
+                    File parent = file.getParentFile();
+                    if (parent != null) {
+                        pruneCandidates.add(parent);
+                    }
+                }
+            } else {
+                failedCount++;
+            }
+        }
+
+        File root = pathBar.getCurrentDirectory();
+        while (!pruneCandidates.isEmpty()) {
+            File dir = pruneCandidates.poll();
+            // never delete the browsed root; only prune directories that became empty
+            if (dir == null || dir.equals(root) || !isEmpty(dir)) {
+                continue;
+            }
+            if (dir.delete()) {
+                okCount++;
+                File parent = dir.getParentFile();
+                if (parent != null && !parent.equals(root)) {
+                    pruneCandidates.add(parent);
+                }
             } else {
                 failedCount++;
             }
         }
 
         Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
-        selectionBar.clearSelected();
         fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
     }
 
@@ -458,7 +513,8 @@ public class BrowseFragment extends Fragment {
                     newName = newName.trim();
                     if (newName.isEmpty() || newName.equals(currentName) || renameItem(file, newName)) {
                         editPopup.dismiss();
-                        selectionBar.clearSelected();
+                        selectionBar.clear();
+                        selectionBar.invalidate();
                     }
                 });
     }
@@ -490,38 +546,8 @@ public class BrowseFragment extends Fragment {
 
     private void showDeleteEmptyDialog() {
         DeleteEmptyPopup popup = new DeleteEmptyPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
-        popup.whenDeleteClicked(this::deleteEmptyItems);
+        popup.whenDeleteClicked(this::deleteItems);
         popup.show();
-    }
-
-    private void deleteEmptyItems(Collection<File> files, boolean parents) {
-        File root = pathBar.getCurrentDirectory();
-        Deque<File> candidateFiles = new ArrayDeque<>(files);
-        int okCount = 0;
-        int failedCount = 0;
-
-        while (!candidateFiles.isEmpty()) {
-            File file = candidateFiles.poll();
-            // never delete the browsed root; every other entry is a descendant of it
-            if (file == null || file.equals(root) || !isEmpty(file)) {
-                continue;
-            }
-            if (file.delete()) {
-                okCount++;
-                if (parents) {
-                    File parent = file.getParentFile();
-                    // cascade into newly-empty parents, but never the current directory
-                    if (parent != null && !parent.equals(root)) {
-                        candidateFiles.add(parent);
-                    }
-                }
-            } else {
-                failedCount++;
-            }
-        }
-
-        Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
-        fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
     }
 
     private static boolean isEmpty(File file) {
@@ -587,89 +613,6 @@ public class BrowseFragment extends Fragment {
             upButton.setEnabled(hasParentDirectory);
             backButton.setEnabled(!backStack.isEmpty());
             forwardButton.setEnabled(!forwardStack.isEmpty());
-        }
-    }
-
-    public class SelectionBar {
-
-        private final Set<File> selectedFiles = new HashSet<>();
-
-        private final View selectionBarLayout;
-        private final TextView numSelectedTextView;
-        private final ImageButton deleteButton;
-        private final ImageButton renameButton;
-        private final ImageButton cutButton;
-        private final ImageButton copyButton;
-
-        public SelectionBar(View selectionBarLayout) {
-            this.selectionBarLayout = selectionBarLayout;
-            numSelectedTextView = selectionBarLayout.findViewById(R.id.num_selected);
-            cutButton = selectionBarLayout.findViewById(R.id.action_cut);
-            copyButton = selectionBarLayout.findViewById(R.id.action_copy);
-            deleteButton = selectionBarLayout.findViewById(R.id.action_delete);
-            renameButton = selectionBarLayout.findViewById(R.id.action_rename);
-            ImageButton selectAllButton = selectionBarLayout.findViewById(R.id.select_all);
-            ImageButton clearSelectionButton = selectionBarLayout.findViewById(R.id.select_close_icon);
-
-            selectAllButton.setOnClickListener(v -> {
-                selectedFiles.clear();
-                selectedFiles.addAll(fileItemAdapter.getFiles());
-                fileItemAdapter.notifyDataSetChanged();
-                invalidate();
-            });
-            clearSelectionButton.setOnClickListener(v -> {
-                selectedFiles.clear();
-                fileItemAdapter.notifyDataSetChanged();
-                invalidate();
-            });
-
-            deleteButton.setOnClickListener(v -> showDeleteDialog());
-
-            renameButton.setOnClickListener(v -> {
-                if (selectedFiles.size() == 1) {
-                    File file = selectedFiles.iterator().next();
-                    showRenamePopup(file);
-                }
-            });
-
-            cutButton.setOnClickListener(v -> markSelectedItemsForCut());
-
-            copyButton.setOnClickListener(v -> markSelectedItemsForCopy());
-        }
-
-        public void invalidate() {
-            if (selectedFiles.isEmpty()) {
-                selectionBarLayout.setVisibility(View.GONE);
-            } else {
-                numSelectedTextView.setText(getString(R.string.num_selected_format, selectedFiles.size()));
-                selectionBarLayout.setVisibility(View.VISIBLE);
-                renameButton.setVisibility(selectedFiles.size() == 1 ? View.VISIBLE : View.GONE);
-                deleteButton.setVisibility(View.VISIBLE);
-                cutButton.setVisibility(View.VISIBLE);
-                copyButton.setVisibility(View.VISIBLE);
-            }
-        }
-
-        boolean isSelected(File file) {
-            return selectedFiles.contains(file);
-        }
-
-        boolean hasSelection() {
-            return !selectedFiles.isEmpty();
-        }
-
-        void toggleSelected(File file) {
-            if (selectedFiles.contains(file)) {
-                selectedFiles.remove(file);
-            } else {
-                selectedFiles.add(file);
-            }
-            invalidate();
-        }
-
-        void clearSelected() {
-            selectedFiles.clear();
-            invalidate();
         }
     }
 
@@ -822,6 +765,7 @@ public class BrowseFragment extends Fragment {
 
         private void toggleSelected(File file) {
             selectionBar.toggleSelected(file);
+            selectionBar.invalidate();
             for (int i = 0; i < fileItems.size(); i++) {
                 if (fileItems.get(i).getFile().equals(file)) {
                     notifyItemChanged(i);

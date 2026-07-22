@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageButton xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="32dp"
+    android:layout_height="32dp"
+    android:layout_marginStart="4dp"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:padding="6dp"
+    android:scaleType="fitCenter"
+    android:src="@drawable/baseline_edit_24"
+    android:tint="?attr/colorOnPrimary"
+    tools:ignore="ContentDescription" />

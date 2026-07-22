@@ -24,14 +24,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
@@ -45,13 +44,10 @@ public class DedupPopup {
     private final Context context;
     private final View containerView;
     private final File startDirectory;
-    private Consumer<Collection<File>> onDelete;
+    private BiConsumer<Collection<File>, Boolean> onDelete;
 
     private final PopupWindow popupWindow;
-    private final View selectionBar;
-    private final TextView numSelectedTextView;
-    private final ImageButton smartSelectButton;
-    private final ImageButton deleteButton;
+    private final SelectionBar selectionBar;
     private final ImageView statusIcon;
     private final TextView statusText;
 
@@ -63,9 +59,6 @@ public class DedupPopup {
         this.context = context;
         this.containerView = containerView;
         this.startDirectory = startDirectory;
-
-        dedupGroupAdapter = new DedupGroupAdapter(context, startDirectory);
-        dedupGroupAdapter.whenFileClicked((position, file, isChecked) -> containerView.post(this::updateButtons));
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.dedup_popup,
@@ -80,36 +73,45 @@ public class DedupPopup {
         statusIcon = popupView.findViewById(R.id.status_icon);
         statusText = popupView.findViewById(R.id.status_text);
 
-        selectionBar = popupView.findViewById(R.id.selection_bar);
-        numSelectedTextView = popupView.findViewById(R.id.num_selected);
-        smartSelectButton = popupView.findViewById(R.id.smart_select);
-        deleteButton = popupView.findViewById(R.id.action_delete);
+        selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
+
+        dedupGroupAdapter = new DedupGroupAdapter(context, startDirectory, selectionBar.selectedFiles);
+        dedupGroupAdapter.whenFileClicked((position, file, isChecked) -> selectionBar.invalidate());
 
         closeButton.setOnClickListener(v -> dismiss());
 
-        smartSelectButton.setOnClickListener(v -> {
-            List<File> newlySelected = suggestToSelect(dedupGroupAdapter.selectedFiles);
-            dedupGroupAdapter.selectedFiles.addAll(newlySelected);
-            containerView.post(() -> {
-                dedupGroupAdapter.notifyDataSetChanged();
-                updateButtons();
-            });
+        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
+            if (onDelete != null) {
+                onDelete.accept(selectionBar.copySelectedFiles(), false);
+            }
+            dismiss();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
+            if (onDelete != null) {
+                onDelete.accept(selectionBar.copySelectedFiles(), true);
+            }
+            dismiss();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_smart_select, c -> c > 0, v -> {
+            List<File> newlySelected = suggestToSelect(selectionBar.selectedFiles);
+            selectionBar.selectedFiles.addAll(newlySelected);
+            dedupGroupAdapter.notifyDataSetChanged();
+            selectionBar.invalidate();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
+            selectionBar.clear();
+            dedupGroupAdapter.notifyDataSetChanged();
+            selectionBar.invalidate();
         });
 
         groupsListView.setLayoutManager(new LinearLayoutManager(context));
         groupsListView.setAdapter(dedupGroupAdapter);
 
-        deleteButton.setOnClickListener(v -> {
-            if (onDelete != null) {
-                onDelete.accept(dedupGroupAdapter.selectedFiles);
-            }
-            dismiss();
-        });
-
         popupView.setOnClickListener(v -> dismiss());
-        popupArea.setOnClickListener(v -> {
-            // dummy
-        });
+        popupArea.setOnClickListener(v -> {});
 
         popupWindow = new PopupWindow(popupView,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -121,7 +123,7 @@ public class DedupPopup {
         popupWindow.setElevation(24);
     }
 
-    public void whenDeleteClicked(Consumer<Collection<File>> onDelete) {
+    public void whenDeleteClicked(BiConsumer<Collection<File>, Boolean> onDelete) {
         this.onDelete = onDelete;
     }
 
@@ -137,16 +139,6 @@ public class DedupPopup {
     private void doScan() {
         scanner = new Scanner();
         scanner.start(startDirectory);
-    }
-
-    void updateButtons() {
-        int numSelected = dedupGroupAdapter.selectedFiles.size();
-        if (numSelected > 0) {
-            numSelectedTextView.setText(context.getString(R.string.num_selected_format, numSelected));
-            selectionBar.setVisibility(View.VISIBLE);
-        } else {
-            selectionBar.setVisibility(View.GONE);
-        }
     }
 
     void updateDedupGroups() {
@@ -226,7 +218,7 @@ public class DedupPopup {
                 rotateAnim.setRepeatCount(Animation.INFINITE);
                 statusIcon.startAnimation(rotateAnim);
                 statusText.setText(R.string.scanning);
-                updateButtons();
+                selectionBar.invalidate();
             });
         }
 
@@ -234,7 +226,7 @@ public class DedupPopup {
         protected void onScanUpdated(int numFilesScanned) {
             containerView.post(() -> {
                 updateDedupGroups();
-                updateButtons();
+                selectionBar.invalidate();
                 if (isCompleted()) {
                     statusIcon.clearAnimation();
                     statusIcon.setImageResource(R.drawable.baseline_done_24);
@@ -314,13 +306,14 @@ public class DedupPopup {
 
         private final Context context;
         private final File startDirectory;
-        private final Set<File> selectedFiles = new HashSet<>();
+        private final Set<File> selectedFiles;
         final List<FileGroup> fileGroups = new LinkedList<>();
         private OnFileClicked onFileClicked;
 
-        DedupGroupAdapter(Context context, File startDirectory) {
+        DedupGroupAdapter(Context context, File startDirectory, Set<File> selectedFiles) {
             this.context = context;
             this.startDirectory = startDirectory;
+            this.selectedFiles = selectedFiles;
         }
 
         void whenFileClicked(OnFileClicked onFileClicked) {
