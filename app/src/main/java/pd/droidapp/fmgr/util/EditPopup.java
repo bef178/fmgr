@@ -16,7 +16,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.PopupWindow;
-import android.widget.TextView;
 
 import androidx.core.util.Consumer;
 
@@ -28,10 +27,10 @@ public class EditPopup {
 
     private final Context context;
     private final View containerView;
-    private final PopupWindow popupWindow;
-    private final TextView titleTextView;
+    private final PopupTitleBar titleBar;
     private final EditText textEditView;
     private final Button okButton;
+    private final PopupWindow popupWindow;
 
     public EditPopup(View containerView) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
@@ -43,10 +42,10 @@ public class EditPopup {
                 false);
 
         View popupArea = popupView.findViewById(R.id.popup_area);
-        titleTextView = popupView.findViewById(R.id.popup_title);
+        titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
+        titleBar.setOnCloseClicked(v -> dismiss());
         textEditView = popupView.findViewById(R.id.popup_edit);
         okButton = popupView.findViewById(R.id.button_ok);
-        Button cancelButton = popupView.findViewById(R.id.button_cancel);
 
         textEditView.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -59,8 +58,6 @@ public class EditPopup {
             }
             return false;
         });
-
-        cancelButton.setOnClickListener(v -> dismiss());
 
         popupView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             private final Rect rect = new Rect();
@@ -96,7 +93,7 @@ public class EditPopup {
     }
 
     public void show(String title, String text, String hintText, Consumer<String> onConfirm) {
-        titleTextView.setText(title);
+        titleBar.setTitle(title);
         textEditView.setText(text);
         textEditView.setHint(hintText);
 
