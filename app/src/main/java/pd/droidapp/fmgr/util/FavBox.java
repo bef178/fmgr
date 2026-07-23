@@ -31,7 +31,6 @@ public class FavBox {
     private final FavItemStore favItemStore;
     private final FavItemAdapter favItemAdapter;
 
-    private final EditPopup editPopup;
     private boolean isFavItemsViewCollapsed = false;
 
     private Consumer<File> onFavDirectoryClickedListener;
@@ -46,8 +45,6 @@ public class FavBox {
 
         favItemStore = new FavItemStore(context);
 
-        editPopup = new EditPopup(context, selfView);
-
         favItemAdapter = new FavItemAdapter();
         favItemAdapter.whenFavItemClicked(favItem -> {
             File file = new File(favItem.path);
@@ -61,19 +58,22 @@ public class FavBox {
             favItemStore.remove(favItem);
             invalidate();
         });
-        favItemAdapter.whenFavEditClicked(favItem -> editPopup.show(
-                context.getString(R.string.edit_favorite_name),
-                favItem.getDisplayName(),
-                favItem.getDefaultName(),
-                newName -> {
-                    newName = newName.trim();
-                    if (!newName.equals(favItem.getDisplayName())) {
-                        favItem.setDisplayName(newName);
-                        favItemStore.put(favItem);
-                        favItemAdapter.invalidate(favItemStore.getAll());
-                    }
-                    editPopup.dismiss();
-                }));
+        favItemAdapter.whenFavEditClicked(favItem -> {
+            EditPopup editPopup = new EditPopup(context, selfView);
+            editPopup.show(
+                    context.getString(R.string.edit_favorite_name),
+                    favItem.getDisplayName(),
+                    favItem.getDefaultName(),
+                    newName -> {
+                        newName = newName.trim();
+                        if (!newName.equals(favItem.getDisplayName())) {
+                            favItem.setDisplayName(newName);
+                            favItemStore.put(favItem);
+                            favItemAdapter.invalidate(favItemStore.getAll());
+                        }
+                        editPopup.dismiss();
+                    });
+        });
 
         favTriangle.setOnClickListener(v -> toggleFavItemsView());
 
