@@ -8,9 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.core.util.Consumer;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -24,30 +22,31 @@ import pd.droidapp.fmgr.R;
 public class FavBox {
 
     private final Context context;
-    private final FavItemStore favItemStore;
-    private final FavItemAdapter favItemAdapter;
+    private final View selfView;
 
-    private final LinearLayout favLayout;
     private final ImageView favTriangle;
     private final TextView favTitle;
     private final RecyclerView favItemsView;
+
+    private final FavItemStore favItemStore;
+    private final FavItemAdapter favItemAdapter;
 
     private final EditPopup editPopup;
     private boolean isFavItemsViewCollapsed = false;
 
     private Consumer<File> onFavDirectoryClickedListener;
 
-    public FavBox(Context context, View containerView) {
+    public FavBox(Context context, View selfView) {
         this.context = context;
+        this.selfView = selfView;
 
-        favLayout = containerView.findViewById(R.id.favorites_layout);
-        favTriangle = containerView.findViewById(R.id.favorites_triangle);
-        favTitle = containerView.findViewById(R.id.favorites_title);
-        favItemsView = containerView.findViewById(R.id.favorites_list);
+        favTriangle = selfView.findViewById(R.id.favorites_triangle);
+        favTitle = selfView.findViewById(R.id.favorites_title);
+        favItemsView = selfView.findViewById(R.id.favorites_list);
 
         favItemStore = new FavItemStore(context);
 
-        editPopup = new EditPopup(context, favLayout);
+        editPopup = new EditPopup(context, selfView);
 
         favItemAdapter = new FavItemAdapter();
         favItemAdapter.whenFavItemClicked(favItem -> {
@@ -89,10 +88,10 @@ public class FavBox {
     public void invalidate() {
         List<FavItem> favItems = favItemStore.getAll();
         if (favItems.isEmpty()) {
-            favLayout.setVisibility(View.GONE);
+            selfView.setVisibility(View.GONE);
             return;
         }
-        favLayout.setVisibility(View.VISIBLE);
+        selfView.setVisibility(View.VISIBLE);
         favTitle.setText(context.getString(R.string.home_favorites_title, favItems.size()));
         favItemAdapter.invalidate(favItems);
     }
