@@ -7,8 +7,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
@@ -38,8 +36,7 @@ public class DeleteEmptyPopup {
 
     private final PopupWindow popupWindow;
     private final SelectionBar selectionBar;
-    private final ImageView statusIcon;
-    private final TextView statusText;
+    private final StatusBar statusBar;
 
     private final EmptyItemAdapter emptyItemAdapter;
 
@@ -60,8 +57,7 @@ public class DeleteEmptyPopup {
 
         RecyclerView filesListView = popupView.findViewById(R.id.files_list);
 
-        statusIcon = popupView.findViewById(R.id.status_icon);
-        statusText = popupView.findViewById(R.id.status_text);
+        statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
 
         selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
 
@@ -167,13 +163,7 @@ public class DeleteEmptyPopup {
         @Override
         protected void onScanStarted() {
             containerView.post(() -> {
-                RotateAnimation rotateAnim = new RotateAnimation(0, 360,
-                        Animation.RELATIVE_TO_SELF, 0.5f,
-                        Animation.RELATIVE_TO_SELF, 0.5f);
-                rotateAnim.setDuration(1000);
-                rotateAnim.setRepeatCount(Animation.INFINITE);
-                statusIcon.startAnimation(rotateAnim);
-                statusText.setText(R.string.scanning);
+                statusBar.markRunning(context.getString(R.string.scanning));
                 selectionBar.invalidate();
             });
         }
@@ -184,10 +174,9 @@ public class DeleteEmptyPopup {
                 updateEmptyItems();
                 selectionBar.invalidate();
                 if (isCompleted()) {
-                    statusIcon.clearAnimation();
-                    statusIcon.setImageResource(R.drawable.baseline_done_24);
+                    statusBar.markDone();
                 }
-                statusText.setText(context.getString(R.string.x_scanned_y_found,
+                statusBar.setText(context.getString(R.string.x_scanned_y_found,
                         numFilesScanned, emptyItemAdapter.getItemCount()));
             });
         }

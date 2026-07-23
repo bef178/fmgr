@@ -50,33 +50,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <!-- status bar (full-bleed) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
-                android:background="?attr/colorSurfaceVariant"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="18dp"
-                android:paddingEnd="12dp">
-
-                <ImageView
-                    android:id="@+id/status_icon"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:layout_marginEnd="4dp"
-                    android:src="@drawable/baseline_refresh_24"
-                    app:tint="#666" />
-
-                <TextView
-                    android:id="@+id/status_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/scanning"
-                    android:textColor="#666"
-                    android:textSize="12sp" />
-
-            </LinearLayout>
+            <include layout="@layout/status_bar" />
 
             <include layout="@layout/selection_bar" />
 

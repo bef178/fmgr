@@ -8,8 +8,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -48,8 +46,7 @@ public class DedupPopup {
 
     private final PopupWindow popupWindow;
     private final SelectionBar selectionBar;
-    private final ImageView statusIcon;
-    private final TextView statusText;
+    private final StatusBar statusBar;
 
     private final DedupGroupAdapter dedupGroupAdapter;
 
@@ -70,8 +67,7 @@ public class DedupPopup {
 
         RecyclerView groupsListView = popupView.findViewById(R.id.files_list);
 
-        statusIcon = popupView.findViewById(R.id.status_icon);
-        statusText = popupView.findViewById(R.id.status_text);
+        statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
 
         selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
 
@@ -211,13 +207,7 @@ public class DedupPopup {
         @Override
         protected void onScanStarted() {
             containerView.post(() -> {
-                RotateAnimation rotateAnim = new RotateAnimation(0, 360,
-                        Animation.RELATIVE_TO_SELF, 0.5f,
-                        Animation.RELATIVE_TO_SELF, 0.5f);
-                rotateAnim.setDuration(1000);
-                rotateAnim.setRepeatCount(Animation.INFINITE);
-                statusIcon.startAnimation(rotateAnim);
-                statusText.setText(R.string.scanning);
+                statusBar.markRunning(context.getString(R.string.scanning));
                 selectionBar.invalidate();
             });
         }
@@ -228,14 +218,13 @@ public class DedupPopup {
                 updateDedupGroups();
                 selectionBar.invalidate();
                 if (isCompleted()) {
-                    statusIcon.clearAnimation();
-                    statusIcon.setImageResource(R.drawable.baseline_done_24);
+                    statusBar.markDone();
                 }
                 int totalFiles = 0;
                 for (FileGroup group : dedupGroupAdapter.fileGroups) {
                     totalFiles += group.numFiles();
                 }
-                statusText.setText(context.getString(R.string.x_scanned_y_found_groups,
+                statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
                         numFilesScanned, totalFiles, dedupGroupAdapter.fileGroups.size()));
             });
         }

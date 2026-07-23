@@ -11,8 +11,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -50,9 +48,7 @@ public class SearchPopup {
     private final EditText searchEdit;
     private final ImageButton searchEditClearButton;
     private final ImageButton closeButton;
-    private final View statusBar;
-    private final ImageView searchStatusIcon;
-    private final TextView searchStatusText;
+    private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private final SearchResultAdapter searchResultAdapter;
 
@@ -74,9 +70,7 @@ public class SearchPopup {
         searchEdit = popupView.findViewById(R.id.search_edit);
         searchEditClearButton = popupView.findViewById(R.id.search_edit_clear);
         closeButton = popupView.findViewById(R.id.action_close);
-        statusBar = popupView.findViewById(R.id.status_bar);
-        searchStatusIcon = popupView.findViewById(R.id.status_icon);
-        searchStatusText = popupView.findViewById(R.id.status_text);
+        statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
 
         selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
 
@@ -110,12 +104,12 @@ public class SearchPopup {
                     closeButton.setVisibility(View.VISIBLE);
                     searchEditClearButton.setVisibility(View.GONE);
                     clearResults();
-                    clearStatus();
+                    statusBar.hide();
                 } else {
                     closeButton.setVisibility(View.GONE);
                     searchEditClearButton.setVisibility(View.VISIBLE);
                     clearResults();
-                    clearStatus();
+                    statusBar.hide();
                     handler.postDelayed(searchRunnable, SEARCH_START_DELAY_IN_MILLISECONDS);
                 }
             }
@@ -206,19 +200,11 @@ public class SearchPopup {
             scanner.cancel();
             scanner = null;
         }
-        searchStatusIcon.clearAnimation();
     }
 
     private void clearResults() {
         searchResultAdapter.results.clear();
         searchResultAdapter.notifyDataSetChanged();
-    }
-
-    private void clearStatus() {
-        statusBar.setVisibility(View.GONE);
-        searchStatusIcon.clearAnimation();
-        searchStatusIcon.setImageResource(android.R.color.transparent);
-        searchStatusText.setText("");
     }
 
     private void clearSelection() {
@@ -256,17 +242,7 @@ public class SearchPopup {
 
                 @Override
                 protected void onScanStarted() {
-                    containerView.post(() -> {
-                        statusBar.setVisibility(View.VISIBLE);
-                        searchStatusIcon.setImageResource(R.drawable.baseline_refresh_24);
-                        RotateAnimation rotateAnim = new RotateAnimation(0, 360,
-                                Animation.RELATIVE_TO_SELF, 0.5f,
-                                Animation.RELATIVE_TO_SELF, 0.5f);
-                        rotateAnim.setDuration(1000);
-                        rotateAnim.setRepeatCount(Animation.INFINITE);
-                        searchStatusIcon.startAnimation(rotateAnim);
-                        searchStatusText.setText(R.string.search_status_searching);
-                    });
+                    containerView.post(() -> statusBar.markRunning(context.getString(R.string.search_status_searching)));
                 }
 
                 @Override
@@ -276,7 +252,7 @@ public class SearchPopup {
                         if (isCompleted()) {
                             startContentScan();
                         } else {
-                            searchStatusText.setText(R.string.search_status_searching);
+                            statusBar.setText(context.getString(R.string.search_status_searching));
                         }
                     });
                 }
@@ -302,9 +278,8 @@ public class SearchPopup {
                     containerView.post(() -> {
                         searchResultAdapter.invalidate(copyResults());
                         if (isCompleted()) {
-                            searchStatusIcon.clearAnimation();
-                            searchStatusIcon.setImageResource(R.drawable.baseline_done_24);
-                            searchStatusText.setText(context.getString(R.string.x_scanned_y_found,
+                            statusBar.markDone();
+                            statusBar.setText(context.getString(R.string.x_scanned_y_found,
                                     nameScanned + n, results.size()));
                         }
                     });
