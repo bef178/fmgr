@@ -26,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -52,14 +53,14 @@ public class DedupPopup {
 
     private Scanner scanner;
 
-    public DedupPopup(Context context, View containerView, File startDirectory) {
-        this.context = context;
+    public DedupPopup(View containerView, File startDirectory) {
+        this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
         this.startDirectory = startDirectory;
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.dedup_popup,
-                containerView != null ? (ViewGroup) containerView : null,
+                (ViewGroup) containerView,
                 false);
 
         View popupArea = popupView.findViewById(R.id.popup_area);
@@ -69,7 +70,7 @@ public class DedupPopup {
 
         statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
 
-        selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
+        selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));
 
         dedupGroupAdapter = new DedupGroupAdapter(context, startDirectory, selectionBar.selectedFiles);
         dedupGroupAdapter.whenFileClicked((position, file, isChecked) -> selectionBar.invalidate());
@@ -124,12 +125,10 @@ public class DedupPopup {
     }
 
     public void show() {
-        if (containerView != null) {
-            containerView.post(() -> {
-                popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
-                doScan();
-            });
-        }
+        containerView.post(() -> {
+            popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
+            doScan();
+        });
     }
 
     private void doScan() {

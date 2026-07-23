@@ -76,10 +76,10 @@ public class BrowseFragment extends Fragment {
 
         actionBar = new ActionBar(view);
 
-        pathBar = new PathBar(requireContext(), view.findViewById(R.id.path_bar));
+        pathBar = new PathBar(view.findViewById(R.id.path_bar));
         pathBar.whenBreadcrumbClicked(this::navigateToDirectory);
 
-        selectionBar = new SelectionBar(requireContext(), view.findViewById(R.id.selection_bar));
+        selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
         fileItemAdapter = new FileItemAdapter();
 
@@ -262,7 +262,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showSearchPopup() {
-        SearchPopup searchPopup = new SearchPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
+        SearchPopup searchPopup = new SearchPopup(getView(), pathBar.getCurrentDirectory());
         searchPopup.whenSearchResultFileClicked(this::jumpToFile);
         searchPopup.whenDeleteClicked(files -> deleteItems(files, false));
         searchPopup.show();
@@ -299,7 +299,7 @@ public class BrowseFragment extends Fragment {
     }
 
     void showCreateDirectoryPopup() {
-        EditPopup editPopup = new EditPopup(requireContext(), getView());
+        EditPopup editPopup = new EditPopup(getView());
         editPopup.show(
                 getString(R.string.new_directory),
                 "",
@@ -312,7 +312,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showCreateFilePopup() {
-        EditPopup editPopup = new EditPopup(requireContext(), getView());
+        EditPopup editPopup = new EditPopup(getView());
         editPopup.show(
                 getString(R.string.new_file),
                 "",
@@ -438,7 +438,7 @@ public class BrowseFragment extends Fragment {
             return;
         }
 
-        PastePopup pastePopup = new PastePopup(requireContext(), getView(), op, srcFiles, pathBar.getCurrentDirectory());
+        PastePopup pastePopup = new PastePopup(getView(), op, srcFiles, pathBar.getCurrentDirectory());
         pastePopup.whenCompleted(() -> {
             clipboard.clear();
             actionBar.invalidate();
@@ -504,7 +504,7 @@ public class BrowseFragment extends Fragment {
 
     private void showRenamePopup(File file) {
         String currentName = file.getName();
-        EditPopup editPopup = new EditPopup(requireContext(), getView());
+        EditPopup editPopup = new EditPopup(getView());
         editPopup.show(
                 getString(R.string.rename),
                 currentName,
@@ -545,7 +545,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeleteEmptyDialog() {
-        DeleteEmptyPopup popup = new DeleteEmptyPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
+        DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), pathBar.getCurrentDirectory());
         popup.whenDeleteClicked(this::deleteItems);
         popup.show();
     }
@@ -591,7 +591,7 @@ public class BrowseFragment extends Fragment {
                 actionPopup.setOnNewFileClickedListener(BrowseFragment.this::showCreateFilePopup);
                 actionPopup.whenDeleteEmptyClicked(BrowseFragment.this::showDeleteEmptyDialog);
                 actionPopup.whenDedupFilesClicked(() -> {
-                    DedupPopup popup = new DedupPopup(requireContext(), getView(), pathBar.getCurrentDirectory());
+                    DedupPopup popup = new DedupPopup(getView(), pathBar.getCurrentDirectory());
                     popup.whenDeleteClicked(BrowseFragment.this::deleteItems);
                     popup.show();
                 });

@@ -20,24 +20,26 @@ import android.widget.TextView;
 
 import androidx.core.util.Consumer;
 
+import java.util.Objects;
+
 import pd.droidapp.fmgr.R;
 
 public class EditPopup {
 
     private final Context context;
-    private final View rootView;
+    private final View containerView;
     private final PopupWindow popupWindow;
     private final TextView titleTextView;
     private final EditText textEditView;
     private final Button okButton;
 
-    public EditPopup(Context context, View rootView) {
-        this.context = context;
-        this.rootView = rootView;
+    public EditPopup(View containerView) {
+        this.context = Objects.requireNonNull(containerView, "containerView").getContext();
+        this.containerView = containerView;
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.edit_popup,
-                rootView != null ? (ViewGroup) rootView : null,
+                (ViewGroup) containerView,
                 false);
 
         View popupArea = popupView.findViewById(R.id.popup_area);
@@ -104,19 +106,17 @@ public class EditPopup {
             }
         });
 
-        if (rootView != null) {
-            rootView.post(() -> {
-                popupWindow.showAtLocation(rootView, Gravity.NO_GRAVITY, 0, 0);
-                textEditView.requestFocus();
-                textEditView.selectAll();
-                textEditView.postDelayed(() -> {
-                    InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-                    if (imm != null) {
-                        imm.showSoftInput(textEditView, InputMethodManager.SHOW_FORCED);
-                    }
-                }, 300);
-            });
-        }
+        containerView.post(() -> {
+            popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
+            textEditView.requestFocus();
+            textEditView.selectAll();
+            textEditView.postDelayed(() -> {
+                InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(textEditView, InputMethodManager.SHOW_FORCED);
+                }
+            }, 300);
+        });
     }
 
     public void dismiss() {

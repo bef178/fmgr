@@ -1,6 +1,5 @@
 package pd.droidapp.fmgr.util;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -19,8 +18,7 @@ import pd.droidapp.fmgr.R;
 
 public class SelectionBar {
 
-    private final Context context;
-    private final View componentView;
+    private final View selfView;
     private final TextView numSelectedTextView;
     private final LinearLayout buttonsView;
 
@@ -28,15 +26,14 @@ public class SelectionBar {
 
     public final Set<File> selectedFiles = new HashSet<>();
 
-    public SelectionBar(Context context, View componentView) {
-        this.context = context;
-        this.componentView = componentView;
-        numSelectedTextView = componentView.findViewById(R.id.x_selected);
-        buttonsView = componentView.findViewById(R.id.selection_buttons);
+    public SelectionBar(View selfView) {
+        this.selfView = selfView;
+        numSelectedTextView = selfView.findViewById(R.id.x_selected);
+        buttonsView = selfView.findViewById(R.id.selection_buttons);
     }
 
     public void addButton(@LayoutRes int layoutResId, IntPredicate visible, View.OnClickListener listener) {
-        View button = LayoutInflater.from(context).inflate(layoutResId, buttonsView, false);
+        View button = LayoutInflater.from(selfView.getContext()).inflate(layoutResId, buttonsView, false);
         button.setOnClickListener(listener);
         buttonsView.addView(button);
         actionButtons.add(new ActionButton(button, visible));
@@ -44,10 +41,10 @@ public class SelectionBar {
 
     public void invalidate() {
         if (selectedFiles.isEmpty()) {
-            componentView.setVisibility(View.GONE);
+            selfView.setVisibility(View.GONE);
         } else {
-            numSelectedTextView.setText(context.getString(R.string.x_selected, selectedFiles.size()));
-            componentView.setVisibility(View.VISIBLE);
+            numSelectedTextView.setText(selfView.getContext().getString(R.string.x_selected, selectedFiles.size()));
+            selfView.setVisibility(View.VISIBLE);
         }
         int count = selectedFiles.size();
         for (ActionButton action : actionButtons) {

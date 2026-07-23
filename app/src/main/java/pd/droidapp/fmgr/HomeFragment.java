@@ -20,7 +20,7 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.home_fragment, container, false);
 
-        favBox = new FavBox(requireContext(), view.findViewById(R.id.fav_box));
+        favBox = new FavBox(view.findViewById(R.id.fav_box));
         favBox.whenFavDirectoryClicked(file -> {
             if (file.exists() && file.isDirectory()) {
                 MainActivity mainActivity = (MainActivity) requireActivity();

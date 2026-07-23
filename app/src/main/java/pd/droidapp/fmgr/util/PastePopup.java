@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,8 +52,8 @@ public class PastePopup {
 
     private Paster paster;
 
-    public PastePopup(Context context, View containerView, String op, List<File> srcFiles, File dstRoot) {
-        this.context = context;
+    public PastePopup(View containerView, String op, List<File> srcFiles, File dstRoot) {
+        this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
         this.dstRoot = dstRoot;
         this.srcFiles = new ArrayList<>(srcFiles);
@@ -60,7 +61,7 @@ public class PastePopup {
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.paste_popup,
-                containerView != null ? (ViewGroup) containerView : null,
+                (ViewGroup) containerView,
                 false);
 
         TextView titleTextView = popupView.findViewById(R.id.popup_title);
@@ -124,9 +125,7 @@ public class PastePopup {
     }
 
     public void show() {
-        if (containerView != null) {
-            containerView.post(() -> popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0));
-        }
+        containerView.post(() -> popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0));
     }
 
     public void dismiss() {

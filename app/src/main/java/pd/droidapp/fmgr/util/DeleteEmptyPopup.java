@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import pd.droidapp.fmgr.R;
@@ -42,14 +43,14 @@ public class DeleteEmptyPopup {
 
     private Scanner scanner;
 
-    public DeleteEmptyPopup(Context context, View containerView, File startDirectory) {
-        this.context = context;
+    public DeleteEmptyPopup(View containerView, File startDirectory) {
+        this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
         this.startDirectory = startDirectory;
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.delete_empty_popup,
-                containerView != null ? (ViewGroup) containerView : null,
+                (ViewGroup) containerView,
                 false);
 
         View popupArea = popupView.findViewById(R.id.popup_area);
@@ -59,7 +60,7 @@ public class DeleteEmptyPopup {
 
         statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
 
-        selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
+        selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));
 
         emptyItemAdapter = new EmptyItemAdapter(startDirectory, selectionBar.selectedFiles);
         emptyItemAdapter.whenEmptyItemClicked(selectionBar::invalidate);
@@ -116,12 +117,10 @@ public class DeleteEmptyPopup {
     }
 
     public void show() {
-        if (containerView != null) {
-            containerView.post(() -> {
-                popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
-                doScan();
-            });
-        }
+        containerView.post(() -> {
+            popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
+            doScan();
+        });
     }
 
     private void doScan() {

@@ -17,7 +17,6 @@ import pd.droidapp.fmgr.R;
 
 public class PathBar {
 
-    private final Context context;
     private final FavItemStore favItemStore;
     private File directory;
     private Consumer<File> onBreadcrumbClickedListener;
@@ -25,13 +24,12 @@ public class PathBar {
     private final LinearLayout breadcrumbLayout;
     private final ImageButton favIcon;
 
-    public PathBar(Context context, View containerView) {
-        this.context = context;
-        favItemStore = new FavItemStore(context);
+    public PathBar(View selfView) {
+        favItemStore = new FavItemStore(selfView.getContext());
 
-        breadcrumbLayout = containerView.findViewById(R.id.breadcrumb_layout);
+        breadcrumbLayout = selfView.findViewById(R.id.breadcrumb_layout);
 
-        favIcon = containerView.findViewById(R.id.fav_icon);
+        favIcon = selfView.findViewById(R.id.fav_icon);
         favIcon.setOnClickListener(v -> toggleFavorite());
     }
 
@@ -47,6 +45,7 @@ public class PathBar {
 
         favIcon.setSelected(favItemStore.contains(directory));
 
+        Context context = breadcrumbLayout.getContext();
         LayoutInflater inflater = LayoutInflater.from(context);
         File f = directory;
         while (f != null) {
@@ -72,6 +71,7 @@ public class PathBar {
     }
 
     private void toggleFavorite() {
+        Context context = favIcon.getContext();
         if (favItemStore.contains(directory)) {
             favItemStore.remove(directory);
             Toast.makeText(context, R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();

@@ -21,7 +21,6 @@ import pd.droidapp.fmgr.R;
 
 public class FavBox {
 
-    private final Context context;
     private final View selfView;
 
     private final ImageView favTriangle;
@@ -35,14 +34,14 @@ public class FavBox {
 
     private Consumer<File> onFavDirectoryClickedListener;
 
-    public FavBox(Context context, View selfView) {
-        this.context = context;
+    public FavBox(View selfView) {
         this.selfView = selfView;
 
         favTriangle = selfView.findViewById(R.id.favorites_triangle);
         favTitle = selfView.findViewById(R.id.favorites_title);
         favItemsView = selfView.findViewById(R.id.favorites_list);
 
+        Context context = selfView.getContext();
         favItemStore = new FavItemStore(context);
 
         favItemAdapter = new FavItemAdapter();
@@ -59,7 +58,7 @@ public class FavBox {
             invalidate();
         });
         favItemAdapter.whenFavEditClicked(favItem -> {
-            EditPopup editPopup = new EditPopup(context, selfView);
+            EditPopup editPopup = new EditPopup(selfView);
             editPopup.show(
                     context.getString(R.string.edit_favorite_name),
                     favItem.getDisplayName(),
@@ -92,7 +91,7 @@ public class FavBox {
             return;
         }
         selfView.setVisibility(View.VISIBLE);
-        favTitle.setText(context.getString(R.string.home_favorites_title, favItems.size()));
+        favTitle.setText(selfView.getContext().getString(R.string.home_favorites_title, favItems.size()));
         favItemAdapter.invalidate(favItems);
     }
 

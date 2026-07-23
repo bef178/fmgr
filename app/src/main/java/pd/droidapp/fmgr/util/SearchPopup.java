@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -56,14 +57,14 @@ public class SearchPopup {
     private final Runnable searchRunnable = this::doSearch;
     private Scanner scanner;
 
-    public SearchPopup(Context context, View containerView, File startDirectory) {
-        this.context = context;
+    public SearchPopup(View containerView, File startDirectory) {
+        this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
         this.startDirectory = startDirectory;
 
         View popupView = LayoutInflater.from(context).inflate(
                 R.layout.search_popup,
-                containerView != null ? (ViewGroup) containerView : null,
+                (ViewGroup) containerView,
                 false);
 
         LinearLayout popupArea = popupView.findViewById(R.id.popup_area);
@@ -72,7 +73,7 @@ public class SearchPopup {
         closeButton = popupView.findViewById(R.id.action_close);
         statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
 
-        selectionBar = new SelectionBar(context, popupView.findViewById(R.id.selection_bar));
+        selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));
 
         RecyclerView searchResultItemsList = popupView.findViewById(R.id.files_list);
 
@@ -169,12 +170,10 @@ public class SearchPopup {
     }
 
     public void show() {
-        if (containerView != null) {
-            containerView.post(() -> {
-                popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
-                searchEdit.requestFocus();
-            });
-        }
+        containerView.post(() -> {
+            popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
+            searchEdit.requestFocus();
+        });
     }
 
     public void dismiss() {
