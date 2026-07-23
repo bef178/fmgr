@@ -7,7 +7,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
@@ -33,13 +32,13 @@ public class DeleteEmptyPopup {
     private final Context context;
     private final View containerView;
     private final File startDirectory;
-    private OnDelete onDelete;
 
-    private final PopupWindow popupWindow;
-    private final SelectionBar selectionBar;
     private final StatusBar statusBar;
-
+    private final SelectionBar selectionBar;
+    private OnDelete onDelete;
     private final EmptyItemAdapter emptyItemAdapter;
+    private final PopupWindow popupWindow;
+
 
     private Scanner scanner;
 
@@ -54,7 +53,10 @@ public class DeleteEmptyPopup {
                 false);
 
         View popupArea = popupView.findViewById(R.id.popup_area);
-        ImageButton closeButton = popupView.findViewById(R.id.action_close);
+
+        PopupTitleBar titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
+        titleBar.setTitle(R.string.delete_empty_files);
+        titleBar.setOnCloseClicked(v -> dismiss());
 
         RecyclerView filesListView = popupView.findViewById(R.id.files_list);
 
@@ -64,8 +66,6 @@ public class DeleteEmptyPopup {
 
         emptyItemAdapter = new EmptyItemAdapter(startDirectory, selectionBar.selectedFiles);
         emptyItemAdapter.whenEmptyItemClicked(selectionBar::invalidate);
-
-        closeButton.setOnClickListener(v -> dismiss());
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {

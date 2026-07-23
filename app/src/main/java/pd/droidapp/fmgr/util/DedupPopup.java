@@ -8,7 +8,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -43,13 +42,12 @@ public class DedupPopup {
     private final Context context;
     private final View containerView;
     private final File startDirectory;
-    private BiConsumer<Collection<File>, Boolean> onDelete;
 
-    private final PopupWindow popupWindow;
-    private final SelectionBar selectionBar;
     private final StatusBar statusBar;
-
+    private final SelectionBar selectionBar;
+    private BiConsumer<Collection<File>, Boolean> onDelete;
     private final DedupGroupAdapter dedupGroupAdapter;
+    private final PopupWindow popupWindow;
 
     private Scanner scanner;
 
@@ -64,7 +62,10 @@ public class DedupPopup {
                 false);
 
         View popupArea = popupView.findViewById(R.id.popup_area);
-        ImageButton closeButton = popupView.findViewById(R.id.action_close);
+
+        PopupTitleBar titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
+        titleBar.setTitle(R.string.delete_duplicate_files);
+        titleBar.setOnCloseClicked(v -> dismiss());
 
         RecyclerView groupsListView = popupView.findViewById(R.id.files_list);
 
@@ -74,8 +75,6 @@ public class DedupPopup {
 
         dedupGroupAdapter = new DedupGroupAdapter(context, startDirectory, selectionBar.selectedFiles);
         dedupGroupAdapter.whenFileClicked((position, file, isChecked) -> selectionBar.invalidate());
-
-        closeButton.setOnClickListener(v -> dismiss());
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {

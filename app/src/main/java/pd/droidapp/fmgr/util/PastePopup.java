@@ -9,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.RadioGroup;
@@ -38,6 +37,7 @@ public class PastePopup {
     private final List<File> srcFiles;
     private Runnable onCompleted;
 
+    private final PopupTitleBar titleBar;
     private final PopupWindow popupWindow;
     private final TextView resolutionTitleTextView;
     private final RadioGroup resolutionOptionsGroup;
@@ -48,7 +48,6 @@ public class PastePopup {
     private final Button startButton;
     private final Button abortButton;
     private final Button closeButton;
-    private final ImageButton actionClose;
 
     private Paster paster;
 
@@ -64,7 +63,7 @@ public class PastePopup {
                 (ViewGroup) containerView,
                 false);
 
-        TextView titleTextView = popupView.findViewById(R.id.popup_title);
+        titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
         TextView detectedTextView = popupView.findViewById(R.id.detected_text);
         resolutionTitleTextView = popupView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = popupView.findViewById(R.id.resolution_options);
@@ -75,14 +74,13 @@ public class PastePopup {
         startButton = popupView.findViewById(R.id.button_start);
         abortButton = popupView.findViewById(R.id.button_abort);
         closeButton = popupView.findViewById(R.id.button_close);
-        actionClose = popupView.findViewById(R.id.action_close);
 
         startButton.setVisibility(View.VISIBLE);
         abortButton.setVisibility(View.GONE);
         closeButton.setVisibility(View.GONE);
-        actionClose.setEnabled(true);
+        titleBar.setEnabled(true);
 
-        titleTextView.setText(isCopyAction
+        titleBar.setTitle(isCopyAction
                 ? R.string.paste_from_copy
                 : R.string.paste_from_cut);
 
@@ -94,7 +92,7 @@ public class PastePopup {
         progressCountTextView.setText(context.getString(R.string.paste_progress_count, 0, this.srcFiles.size()));
         progressCurrentTextView.setText(R.string.paste_progress_pending);
 
-        actionClose.setOnClickListener(v -> dismiss());
+        titleBar.setOnCloseClicked(v -> dismiss());
         startButton.setOnClickListener(v -> start(isCopyAction));
         abortButton.setOnClickListener(v -> abort());
         closeButton.setOnClickListener(v -> dismiss());
@@ -181,7 +179,7 @@ public class PastePopup {
 
         startButton.setVisibility(View.GONE);
         abortButton.setVisibility(View.VISIBLE);
-        actionClose.setEnabled(false);
+        titleBar.setEnabled(false);
 
         paster = new Paster();
         paster.whenPasteStarted(() -> containerView.post(() -> {
@@ -205,7 +203,7 @@ public class PastePopup {
 
             abortButton.setVisibility(View.GONE);
             closeButton.setVisibility(View.VISIBLE);
-            actionClose.setEnabled(true);
+            titleBar.setEnabled(true);
         }));
         paster.start(srcFiles, dstRoot, isCopyAction, resolution);
     }
