@@ -13,22 +13,19 @@
         android:background="@color/white"
         android:orientation="vertical">
 
-        <!-- edit bar -->
+        <include layout="@layout/popup_title_bar" />
+
+        <!-- search edit -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:elevation="2dp"
             android:paddingStart="18dp"
-            android:paddingTop="18dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="12dp">
+            android:paddingEnd="12dp">
 
             <EditText
                 android:id="@+id/search_edit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="-2dp"
-                android:layout_marginEnd="-2dp"
                 android:hint="@string/search_hint"
                 android:imeOptions="actionSearch"
                 android:inputType="text"
@@ -44,18 +41,9 @@
                 android:layout_height="32dp"
                 android:layout_gravity="end|center_vertical"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/baseline_close_24"
-                tools:ignore="ContentDescription" />
-
-            <ImageButton
-                android:id="@+id/action_close"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_gravity="end|center_vertical"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_close_gray_24"
+                android:src="@drawable/action_wipe"
                 tools:ignore="ContentDescription" />
 
         </FrameLayout>

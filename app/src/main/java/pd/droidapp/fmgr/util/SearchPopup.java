@@ -51,7 +51,7 @@ public class SearchPopup {
     private final PopupWindow popupWindow;
     private final EditText searchEdit;
     private final ImageButton searchEditClearButton;
-    private final ImageButton closeButton;
+    private final PopupTitleBar titleBar;
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private final SearchResultAdapter searchResultAdapter;
@@ -74,7 +74,9 @@ public class SearchPopup {
         LinearLayout popupArea = popupView.findViewById(R.id.popup_area);
         searchEdit = popupView.findViewById(R.id.search_edit);
         searchEditClearButton = popupView.findViewById(R.id.search_edit_clear);
-        closeButton = popupView.findViewById(R.id.action_close);
+        titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
+        titleBar.setTitle(R.string.search_files);
+        titleBar.setOnCloseClicked(v -> dismiss());
         statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
 
         selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));
@@ -86,7 +88,6 @@ public class SearchPopup {
         searchResultItemsList.setLayoutManager(new LinearLayoutManager(context));
         searchResultItemsList.setAdapter(searchResultAdapter);
 
-        closeButton.setOnClickListener(v -> dismiss());
 
         searchEdit.addTextChangedListener(new TextWatcher() {
 
@@ -101,21 +102,15 @@ public class SearchPopup {
             @Override
             public void afterTextChanged(Editable s) {
                 handler.removeCallbacks(searchRunnable);
-
-                String query = s.toString();
-                if (query.isEmpty()) {
-                    closeButton.setVisibility(View.VISIBLE);
-                    searchEditClearButton.setVisibility(View.GONE);
-                } else {
-                    closeButton.setVisibility(View.GONE);
-                    searchEditClearButton.setVisibility(View.VISIBLE);
-                }
+                searchEditClearButton.setEnabled(!s.toString().isEmpty());
                 handler.postDelayed(searchRunnable, SEARCH_START_DELAY_IN_MILLISECONDS);
             }
         });
 
         searchEditClearButton.setOnClickListener(v -> {
             searchEdit.setText("");
+            handler.removeCallbacks(searchRunnable);
+            doSearch();
         });
 
         searchEdit.setOnEditorActionListener((v, actionId, event) -> {
@@ -185,6 +180,7 @@ public class SearchPopup {
         containerView.post(() -> {
             popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
             searchEdit.requestFocus();
+            searchEditClearButton.setEnabled(false);
             searchEdit.postDelayed(() -> {
                 InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (imm != null) {
