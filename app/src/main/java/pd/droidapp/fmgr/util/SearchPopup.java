@@ -11,6 +11,9 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -56,6 +59,7 @@ public class SearchPopup {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable searchRunnable = this::doSearch;
     private Scanner scanner;
+    private String lastQuery = "";
 
     public SearchPopup(View containerView, File startDirectory) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
@@ -97,27 +101,34 @@ public class SearchPopup {
             @Override
             public void afterTextChanged(Editable s) {
                 handler.removeCallbacks(searchRunnable);
-                cancelSearch();
-                clearSelection();
 
                 String query = s.toString();
                 if (query.isEmpty()) {
                     closeButton.setVisibility(View.VISIBLE);
                     searchEditClearButton.setVisibility(View.GONE);
-                    clearResults();
-                    statusBar.hide();
                 } else {
                     closeButton.setVisibility(View.GONE);
                     searchEditClearButton.setVisibility(View.VISIBLE);
-                    clearResults();
-                    statusBar.hide();
-                    handler.postDelayed(searchRunnable, SEARCH_START_DELAY_IN_MILLISECONDS);
                 }
+                handler.postDelayed(searchRunnable, SEARCH_START_DELAY_IN_MILLISECONDS);
             }
         });
 
         searchEditClearButton.setOnClickListener(v -> {
             searchEdit.setText("");
+        });
+
+        searchEdit.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                handler.removeCallbacks(searchRunnable);
+                doSearch();
+                InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.hideSoftInputFromWindow(searchEdit.getWindowToken(), 0);
+                }
+                return true;
+            }
+            return false;
         });
 
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
@@ -159,6 +170,7 @@ public class SearchPopup {
         popupWindow.setOutsideTouchable(false);
         popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         popupWindow.setElevation(24);
+        popupWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
     public void whenSearchResultFileClicked(Consumer<File> onFileClicked) {
@@ -173,6 +185,12 @@ public class SearchPopup {
         containerView.post(() -> {
             popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
             searchEdit.requestFocus();
+            searchEdit.postDelayed(() -> {
+                InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(searchEdit, InputMethodManager.SHOW_IMPLICIT);
+                }
+            }, 300);
         });
     }
 
@@ -184,12 +202,23 @@ public class SearchPopup {
     private void doSearch() {
         String query = searchEdit.getText().toString();
         if (query.isEmpty()) {
+            cancelSearch();
+            clearSelection();
+            clearResults();
+            lastQuery = "";
+            statusBar.hide();
+            return;
+        }
+
+        if (query.equals(lastQuery)) {
             return;
         }
 
         cancelSearch();
+        clearSelection();
         clearResults();
 
+        lastQuery = query;
         scanner = new Scanner();
         scanner.start(query);
     }
