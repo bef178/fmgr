@@ -16,10 +16,8 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
-import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -399,7 +397,7 @@ public class SearchPopup {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(context).inflate(R.layout.popup_file, parent, false);
+            View view = LayoutInflater.from(context).inflate(R.layout.popup_file_item, parent, false);
             return new ViewHolder(view);
         }
 
@@ -407,15 +405,14 @@ public class SearchPopup {
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
             File file = results.get(position);
 
-            viewHolder.indexText.setText(String.valueOf(position + 1));
-
             if (file.isDirectory()) {
-                viewHolder.iconView.setImageResource(R.drawable.i_directory_24);
+                viewHolder.fileItem.setIcon(R.drawable.i_directory_24);
             } else {
-                viewHolder.iconView.setImageResource(R.drawable.i_file_24);
+                viewHolder.fileItem.setIcon(R.drawable.i_file_24);
             }
-
-            viewHolder.selectedIcon.setVisibility(selectedFiles.contains(file) ? View.VISIBLE : View.GONE);
+            viewHolder.fileItem.setSelected(selectedFiles.contains(file));
+            viewHolder.fileItem.setPath(Util.getRelativePath(startDirectory, file));
+            viewHolder.fileItem.setIndex(position + 1);
 
             viewHolder.itemView.setOnClickListener(v -> {
                 // selecting only starts once something is selected (e.g. via long-press);
@@ -428,8 +425,6 @@ public class SearchPopup {
                 toggleSelected(file, position);
                 return true;
             });
-
-            viewHolder.pathText.setText(Util.getRelativePath(startDirectory, file));
         }
 
         private void toggleSelected(File file, int position) {
@@ -451,17 +446,11 @@ public class SearchPopup {
 
         static class ViewHolder extends RecyclerView.ViewHolder {
 
-            final ImageView iconView;
-            final ImageView selectedIcon;
-            final TextView pathText;
-            final TextView indexText;
+            final PopupFileItem fileItem;
 
             ViewHolder(View itemView) {
                 super(itemView);
-                indexText = itemView.findViewById(R.id.popup_file_index);
-                iconView = itemView.findViewById(R.id.popup_file_icon);
-                selectedIcon = itemView.findViewById(R.id.popup_file_selected);
-                pathText = itemView.findViewById(R.id.popup_file_name);
+                fileItem = new PopupFileItem(itemView);
             }
         }
     }

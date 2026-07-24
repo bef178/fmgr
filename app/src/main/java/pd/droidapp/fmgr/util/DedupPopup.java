@@ -326,27 +326,26 @@ public class DedupPopup {
             FileGroup group = fileGroups.get(position);
             List<File> files = group.copyFiles();
 
-            viewHolder.groupTitleText.setText(context.getString(R.string.x_files_y_each, files.size(), getSizeString(files.get(0).length())));
+            viewHolder.titleTextView.setText(context.getString(R.string.x_files_y_each, files.size(), getSizeString(files.get(0).length())));
+            viewHolder.triangleImageView.setRotation(group.isCollapsed ? -90f : 0f);
+            viewHolder.filesView.setVisibility(group.isCollapsed ? View.GONE : View.VISIBLE);
 
-            viewHolder.groupFilesView.setVisibility(group.isCollapsed ? View.GONE : View.VISIBLE);
-
-            viewHolder.groupTriangle.setRotation(group.isCollapsed ? -90f : 0f);
-            viewHolder.groupHeader.setOnClickListener(v -> {
+            viewHolder.titleBarView.setOnClickListener(v -> {
                 group.isCollapsed = !group.isCollapsed;
-                viewHolder.groupFilesView.setVisibility(group.isCollapsed ? View.GONE : View.VISIBLE);
+                viewHolder.filesView.setVisibility(group.isCollapsed ? View.GONE : View.VISIBLE);
 
                 float targetRotation = group.isCollapsed ? -90f : 0f;
-                float currentRotation = viewHolder.groupTriangle.getRotation();
+                float currentRotation = viewHolder.triangleImageView.getRotation();
                 ValueAnimator animator = ValueAnimator.ofFloat(currentRotation, targetRotation);
                 animator.setDuration(200);
                 animator.addUpdateListener(animation -> {
                     float rotation = (float) animation.getAnimatedValue();
-                    viewHolder.groupTriangle.setRotation(rotation);
+                    viewHolder.triangleImageView.setRotation(rotation);
                 });
                 animator.start();
             });
 
-            int nowCount = viewHolder.groupFilesView.getChildCount();
+            int nowCount = viewHolder.filesView.getChildCount();
             int requiredCount = files.size();
 
             int startIndex = 1;
@@ -357,38 +356,34 @@ public class DedupPopup {
             LayoutInflater layoutInflater = LayoutInflater.from(context);
             for (int i = 0; i < requiredCount; i++) {
                 File file = files.get(i);
-                View fileView;
+                View groupView;
 
                 if (i < nowCount) {
-                    fileView = viewHolder.groupFilesView.getChildAt(i);
+                    groupView = viewHolder.filesView.getChildAt(i);
                 } else {
-                    fileView = layoutInflater.inflate(R.layout.popup_file, viewHolder.groupFilesView, false);
-                    viewHolder.groupFilesView.addView(fileView);
+                    groupView = layoutInflater.inflate(R.layout.popup_file_item, viewHolder.filesView, false);
+                    viewHolder.filesView.addView(groupView);
                 }
 
-                ImageView icon = fileView.findViewById(R.id.popup_file_icon);
-                ImageView selectedIcon = fileView.findViewById(R.id.popup_file_selected);
-                TextView nameText = fileView.findViewById(R.id.popup_file_name);
-                TextView indexText = fileView.findViewById(R.id.popup_file_index);
+                PopupFileItem fileItem = new PopupFileItem(groupView);
+                fileItem.setIndex(startIndex + i);
+                fileItem.setIcon(R.drawable.i_file_24);
+                fileItem.setPath(getRelativePath(startDirectory, file));
+                fileItem.setSelected(selectedFiles.contains(file));
 
-                indexText.setText(String.valueOf(startIndex + i));
-                icon.setImageResource(R.drawable.i_file_24);
-                nameText.setText(getRelativePath(startDirectory, file));
-                selectedIcon.setVisibility(selectedFiles.contains(file) ? View.VISIBLE : View.GONE);
-
-                fileView.setOnClickListener(v -> {
+                groupView.setOnClickListener(v -> {
                     // selecting only starts once something is selected (e.g. via long-press)
                     if (!selectedFiles.isEmpty()) {
                         toggleSelected(file, position);
                     }
                 });
-                fileView.setOnLongClickListener(v -> {
+                groupView.setOnLongClickListener(v -> {
                     toggleSelected(file, position);
                     return true;
                 });
             }
             if (nowCount > requiredCount) {
-                viewHolder.groupFilesView.removeViews(requiredCount, nowCount - requiredCount);
+                viewHolder.filesView.removeViews(requiredCount, nowCount - requiredCount);
             }
         }
 
@@ -418,17 +413,17 @@ public class DedupPopup {
 
         static class DedupGroupViewHolder extends RecyclerView.ViewHolder {
 
-            final View groupHeader;
-            final ImageView groupTriangle;
-            final TextView groupTitleText;
-            final LinearLayout groupFilesView;
+            final View titleBarView;
+            final ImageView triangleImageView;
+            final TextView titleTextView;
+            final LinearLayout filesView;
 
             DedupGroupViewHolder(View groupView) {
                 super(groupView);
-                groupHeader = groupView.findViewById(R.id.group_header);
-                groupTriangle = groupView.findViewById(R.id.group_triangle);
-                groupTitleText = groupView.findViewById(R.id.group_title);
-                groupFilesView = groupView.findViewById(R.id.group_files);
+                titleBarView = groupView.findViewById(R.id.group_title_bar);
+                triangleImageView = groupView.findViewById(R.id.group_triangle);
+                titleTextView = groupView.findViewById(R.id.group_title);
+                filesView = groupView.findViewById(R.id.group_files);
             }
         }
     }

@@ -7,9 +7,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.PopupWindow;
-import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -38,7 +36,6 @@ public class DeleteEmptyPopup {
     private OnDelete onDelete;
     private final EmptyItemAdapter emptyItemAdapter;
     private final PopupWindow popupWindow;
-
 
     private Scanner scanner;
 
@@ -230,33 +227,31 @@ public class DeleteEmptyPopup {
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.popup_file, parent, false);
+                    .inflate(R.layout.popup_file_item, parent, false);
             return new ViewHolder(view);
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             EmptyItem item = emptyItems.get(position);
-            boolean selected = selectedFiles.contains(item.file);
-
-            holder.indexText.setText(String.valueOf(position + 1));
 
             if (item.isDirectory) {
-                holder.icon.setImageResource(R.drawable.i_directory_24);
+                holder.fileItem.setIcon(R.drawable.i_directory_24);
             } else {
-                holder.icon.setImageResource(R.drawable.i_file_24);
+                holder.fileItem.setIcon(R.drawable.i_file_24);
             }
+
+            holder.fileItem.setSelected(selectedFiles.contains(item.file));
 
             String name = getRelativePath(startDirectory, item.file);
             if (item.isDirectory) {
                 name = name + "/";
             }
-            holder.nameText.setText(name);
+            holder.fileItem.setPath(name);
 
-            holder.selectedIcon.setVisibility(selected ? View.VISIBLE : View.GONE);
+            holder.fileItem.setIndex(position + 1);
 
             holder.itemView.setOnClickListener(v -> {
-                // selecting only starts once something is selected (e.g. via long-press)
                 if (!selectedFiles.isEmpty()) {
                     toggleSelected(item.file, position);
                 }
@@ -287,17 +282,11 @@ public class DeleteEmptyPopup {
 
         static class ViewHolder extends RecyclerView.ViewHolder {
 
-            final ImageView icon;
-            final ImageView selectedIcon;
-            final TextView nameText;
-            final TextView indexText;
+            final PopupFileItem fileItem;
 
             ViewHolder(View itemView) {
                 super(itemView);
-                indexText = itemView.findViewById(R.id.popup_file_index);
-                icon = itemView.findViewById(R.id.popup_file_icon);
-                selectedIcon = itemView.findViewById(R.id.popup_file_selected);
-                nameText = itemView.findViewById(R.id.popup_file_name);
+                fileItem = new PopupFileItem(itemView);
             }
         }
     }
