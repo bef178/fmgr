@@ -16,29 +16,28 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 
 import static pd.droidapp.fmgr.util.Util.copySafeReplace;
 import static pd.droidapp.fmgr.util.Util.getAlternativeFile;
+import static pd.droidapp.fmgr.util.Util.getFriendlyPath;
 import static pd.droidapp.fmgr.util.Util.moveSafeReplace;
 
 public class PastePopup {
 
     private final Context context;
     private final View containerView;
-    private final File dstRoot;
     private final List<File> srcFiles;
-    private Runnable onCompleted;
+    private final File dstRoot;
+    private Consumer<Boolean> onDismissed;
 
     private final PopupTitleBar titleBar;
-    private final PopupWindow popupWindow;
     private final TextView resolutionTitleTextView;
     private final RadioGroup resolutionOptionsGroup;
     private final TextView progressCountTextView;
@@ -48,8 +47,11 @@ public class PastePopup {
     private final Button startButton;
     private final Button abortButton;
     private final Button closeButton;
+    private final PopupWindow popupWindow;
 
     private Paster paster;
+    private boolean dismissed;
+    private boolean everExecuted;
 
     public PastePopup(View containerView, String op, List<File> srcFiles, File dstRoot) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
@@ -64,7 +66,6 @@ public class PastePopup {
                 false);
 
         titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
-        TextView detectedTextView = popupView.findViewById(R.id.detected_text);
         resolutionTitleTextView = popupView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = popupView.findViewById(R.id.resolution_options);
         progressCountTextView = popupView.findViewById(R.id.progress_count);
@@ -78,21 +79,17 @@ public class PastePopup {
         startButton.setVisibility(View.VISIBLE);
         abortButton.setVisibility(View.GONE);
         closeButton.setVisibility(View.GONE);
-        titleBar.setEnabled(true);
 
-        titleBar.setTitle(isCopyAction
-                ? R.string.paste_from_copy
-                : R.string.paste_from_cut);
+        titleBar.setTitle(context.getString(
+                isCopyAction ? R.string.copy_x_items : R.string.move_x_items,
+                srcFiles.size()));
 
-        detectedTextView.setText(context.getString(R.string.files_detected, srcFiles.size(), detectConflicts()));
-        detectedTextView.setEnabled(false);
-
-        resolutionTitleTextView.setText(R.string.select_conflict_resolution);
+        resolutionTitleTextView.setText(R.string.select_resolution);
 
         progressCountTextView.setText(context.getString(R.string.paste_progress_count, 0, this.srcFiles.size()));
         progressCurrentTextView.setText(R.string.paste_progress_pending);
 
-        titleBar.setOnCloseClicked(v -> dismiss());
+        titleBar.whenCloseButtonClicked(v -> dismiss());
         startButton.setOnClickListener(v -> start(isCopyAction));
         abortButton.setOnClickListener(v -> abort());
         closeButton.setOnClickListener(v -> dismiss());
@@ -118,8 +115,8 @@ public class PastePopup {
         popupWindow.setElevation(24);
     }
 
-    public void whenCompleted(Runnable callback) {
-        this.onCompleted = callback;
+    public void whenDismissed(Consumer<Boolean> callback) {
+        this.onDismissed = callback;
     }
 
     public void show() {
@@ -127,33 +124,14 @@ public class PastePopup {
     }
 
     public void dismiss() {
-        if (paster != null && !paster.isCompleted()) {
-            abort();
+        if (dismissed) {
             return;
         }
-        if (onCompleted != null) {
-            onCompleted.run();
+        dismissed = true;
+        if (onDismissed != null) {
+            onDismissed.accept(everExecuted);
         }
         popupWindow.dismiss();
-    }
-
-    private int detectConflicts() {
-        File[] dstFiles = dstRoot.listFiles();
-        if (dstFiles == null) {
-            return 0;
-        }
-
-        Set<String> dstNames = new HashSet<>();
-        for (File file : dstFiles) {
-            dstNames.add(file.getName());
-        }
-        int n = 0;
-        for (File src : srcFiles) {
-            if (dstNames.contains(src.getName())) {
-                n++;
-            }
-        }
-        return n;
     }
 
     private ConflictResolution getSelectedResolution() {
@@ -169,17 +147,26 @@ public class PastePopup {
     }
 
     private void start(boolean isCopyAction) {
-        resolutionTitleTextView.setEnabled(false);
-        for (int i = 0; i < resolutionOptionsGroup.getChildCount(); i++) {
-            resolutionOptionsGroup.getChildAt(i).setEnabled(false);
-        }
-
+        everExecuted = true;
         final ConflictResolution resolution = getSelectedResolution();
         final int total = srcFiles.size();
 
+        int shortId;
+        if (resolution == ConflictResolution.OVERWRITE) {
+            shortId = R.string.resolution_short_overwrite;
+        } else if (resolution == ConflictResolution.SKIP_INCOMING) {
+            shortId = R.string.resolution_short_skip;
+        } else {
+            shortId = R.string.resolution_short_rename;
+        }
+        resolutionTitleTextView.setText(
+                context.getString(R.string.on_conflict_x,
+                context.getString(shortId)));
+        resolutionOptionsGroup.setVisibility(View.GONE);
+
         startButton.setVisibility(View.GONE);
         abortButton.setVisibility(View.VISIBLE);
-        titleBar.setEnabled(false);
+        titleBar.enableCloseButton(false);
 
         paster = new Paster();
         paster.whenPasteStarted(() -> containerView.post(() -> {
@@ -203,7 +190,7 @@ public class PastePopup {
 
             abortButton.setVisibility(View.GONE);
             closeButton.setVisibility(View.VISIBLE);
-            titleBar.setEnabled(true);
+            titleBar.enableCloseButton(true);
         }));
         paster.start(srcFiles, dstRoot, isCopyAction, resolution);
     }

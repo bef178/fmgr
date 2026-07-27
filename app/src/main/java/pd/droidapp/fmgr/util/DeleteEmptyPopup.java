@@ -48,7 +48,7 @@ public class DeleteEmptyPopup {
 
         PopupTitleBar titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
         titleBar.setTitle(R.string.delete_empty_files);
-        titleBar.setOnCloseClicked(v -> dismiss());
+        titleBar.whenCloseButtonClicked(v -> dismiss());
 
         RecyclerView filesListView = popupView.findViewById(R.id.files_list);
 

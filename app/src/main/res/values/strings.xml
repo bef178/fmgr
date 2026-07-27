@@ -45,7 +45,7 @@
     <string name="deleted_report_format">%d deleted (%d failed)</string>
     <string name="rename">Rename</string>
     <string name="renamed">Renamed</string>
-    <string name="error_delete_failed">Failed to delete</string>
+
     <string name="error_rename_failed">Failed to rename</string>
 
     <string name="cut">Cut</string>
@@ -74,12 +74,16 @@
     <string name="x_files_y_each">%d files - %s each</string>
 
     <!-- paste popup -->
-    <string name="paste_from_copy">Paste from copy</string>
-    <string name="paste_from_cut">Paste from cut</string>
-    <string name="files_detected">%d item(s) to paste and %d conflict(s) detected. The number may change in the future.</string>
-    <string name="select_conflict_resolution">Select conflict resolution:</string>
+    <string name="copy_x_items">Copy %d item(s)</string>
+    <string name="move_x_items">Move %d item(s)</string>
+
+    <string name="select_resolution">Select a resolution for possible conflicts:</string>
+    <string name="on_conflict_x">On conflict: %s</string>
+    <string name="resolution_short_overwrite">overwrite</string>
+    <string name="resolution_short_skip">skip incoming</string>
+    <string name="resolution_short_rename">rename incoming</string>
     <string name="resolution_option_overwrite">Overwrite existing</string>
-    <string name="resolution_option_skip">Keep existing, skip incoming</string>
+    <string name="resolution_option_skip_incoming">Keep existing, skip incoming</string>
     <string name="resolution_option_rename_incoming">Keep existing, rename incoming</string>
     <string name="paste_progress_count">%d / %d</string>
     <string name="paste_progress_pending">Pending</string>

@@ -65,7 +65,7 @@ public class DedupPopup {
 
         PopupTitleBar titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
         titleBar.setTitle(R.string.delete_duplicate_files);
-        titleBar.setOnCloseClicked(v -> dismiss());
+        titleBar.whenCloseButtonClicked(v -> dismiss());
 
         RecyclerView groupsListView = popupView.findViewById(R.id.files_list);
 

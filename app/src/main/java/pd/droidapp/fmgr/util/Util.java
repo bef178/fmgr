@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import android.os.Environment;
+
 import pd.util.DigestCodec;
 import pd.util.PathExtension;
 
@@ -131,5 +133,23 @@ public class Util {
         } while (candidate.exists());
 
         return candidate;
+    }
+
+    /**
+     * Returns a user-friendly path, stripping the shared storage root
+     * (e.g. /storage/emulated/0) so that paths read as /Download/xxx.
+     */
+    public static String getFriendlyPath(File path) {
+        if (path == null) {
+            return "";
+        }
+        File root = Environment.getExternalStorageDirectory();
+        String rootPath = root.getAbsolutePath();
+        String absPath = path.getAbsolutePath();
+        if (absPath.startsWith(rootPath)) {
+            String relative = absPath.substring(rootPath.length());
+            return relative.isEmpty() ? "/" : relative;
+        }
+        return absPath;
     }
 }

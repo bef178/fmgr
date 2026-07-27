@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+
+    <!-- ring (copied from system btn_radio_mtrl, centered at 16,16, radius 9) -->
+    <group
+        android:translateX="16"
+        android:translateY="16">
+        <path
+            android:strokeWidth="2"
+            android:fillColor="@android:color/transparent"
+            android:pathData="M 0.0,-9.0 c 4.9705627482,0.0 9.0,4.0294372518 9.0,9.0 c 0.0,4.9705627482 -4.0294372518,9.0 -9.0,9.0 c -4.9705627482,0.0 -9.0,-4.0294372518 -9.0,-9.0 c 0.0,-4.9705627482 4.0294372518,-9.0 9.0,-9.0 Z">
+            <aapt:attr name="android:strokeColor">
+                <selector>
+                    <item android:state_enabled="false" android:alpha="0.38" android:color="?attr/colorOnSurface" />
+                    <item android:state_checked="true" android:state_enabled="true" android:color="?attr/colorPrimary" />
+                    <item android:color="?attr/colorOnSurfaceVariant" />
+                </selector>
+            </aapt:attr>
+        </path>
+
+        <!-- inner dot, visible only when checked (copied from system, radius 5) -->
+        <path
+            android:pathData="M 0.0,-5.0 c -2.7619934082,0.0 -5.0,2.2380065918 -5.0,5.0 c 0.0,2.7619934082 2.2380065918,5.0 5.0,5.0 c 2.7619934082,0.0 5.0,-2.2380065918 5.0,-5.0 c 0.0,-2.7619934082 -2.7619934082,-5.0 -5.0,-5.0 Z">
+            <aapt:attr name="android:fillColor">
+                <selector>
+                    <item android:state_checked="true" android:state_enabled="false" android:alpha="0.38" android:color="?attr/colorOnSurface" />
+                    <item android:state_checked="true" android:state_enabled="true" android:color="?attr/colorPrimary" />
+                    <item android:state_checked="true" android:color="?attr/colorOnSurfaceVariant" />
+                    <item android:color="@android:color/transparent" />
+                </selector>
+            </aapt:attr>
+        </path>
+    </group>
+
+</vector>

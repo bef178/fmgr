@@ -23,7 +23,7 @@
         tools:text="@string/app_name" />
 
     <ImageButton
-        android:id="@+id/action_close"
+        android:id="@+id/popup_close"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"

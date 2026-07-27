@@ -439,10 +439,12 @@ public class BrowseFragment extends Fragment {
         }
 
         PastePopup pastePopup = new PastePopup(getView(), op, srcFiles, pathBar.getCurrentDirectory());
-        pastePopup.whenCompleted(() -> {
-            clipboard.clear();
-            actionBar.invalidate();
-            fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+        pastePopup.whenDismissed(everExecuted -> {
+            if (everExecuted) {
+                clipboard.clear();
+                actionBar.invalidate();
+                fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
+            }
         });
         pastePopup.show();
     }

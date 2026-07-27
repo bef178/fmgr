@@ -15,7 +15,7 @@ public class PopupTitleBar {
 
     public PopupTitleBar(View selfView) {
         titleTextView = selfView.findViewById(R.id.popup_title);
-        closeButton = selfView.findViewById(R.id.action_close);
+        closeButton = selfView.findViewById(R.id.popup_close);
     }
 
     public void setTitle(@StringRes int textResId) {
@@ -26,11 +26,11 @@ public class PopupTitleBar {
         titleTextView.setText(text);
     }
 
-    public void setOnCloseClicked(View.OnClickListener listener) {
+    public void whenCloseButtonClicked(View.OnClickListener listener) {
         closeButton.setOnClickListener(listener);
     }
 
-    public void setEnabled(boolean enabled) {
+    public void enableCloseButton(boolean enabled) {
         closeButton.setEnabled(enabled);
     }
 }

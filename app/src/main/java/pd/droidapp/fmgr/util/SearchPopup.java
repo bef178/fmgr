@@ -71,7 +71,7 @@ public class SearchPopup {
         searchEditClearButton = popupView.findViewById(R.id.search_edit_clear);
         PopupTitleBar titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
         titleBar.setTitle(R.string.search_files);
-        titleBar.setOnCloseClicked(v -> dismiss());
+        titleBar.whenCloseButtonClicked(v -> dismiss());
         statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
 
         selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));

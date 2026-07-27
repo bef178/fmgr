@@ -43,7 +43,7 @@ public class EditPopup {
 
         View popupArea = popupView.findViewById(R.id.popup_area);
         titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
-        titleBar.setOnCloseClicked(v -> dismiss());
+        titleBar.whenCloseButtonClicked(v -> dismiss());
         textEditView = popupView.findViewById(R.id.popup_edit);
         okButton = popupView.findViewById(R.id.button_ok);
 

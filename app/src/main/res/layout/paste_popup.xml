@@ -7,23 +7,14 @@
     <LinearLayout
         android:id="@+id/popup_area"
         android:layout_width="match_parent"
-        android:layout_height="400dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_margin="32dp"
         android:background="@color/white"
-        android:orientation="vertical"
-        android:padding="18dp">
+        android:orientation="vertical">
 
         <include layout="@layout/popup_title_bar" />
 
-        <TextView
-            android:id="@+id/detected_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:textSize="14sp" />
-
-        <!-- resolution selection -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -34,6 +25,9 @@
                 android:id="@+id/resolution_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginBottom="4dp"
                 android:textSize="14sp" />
 
             <RadioGroup
@@ -43,22 +37,40 @@
 
                 <RadioButton
                     android:id="@+id/resolution_option_overwrite"
-                    android:layout_width="wrap_content"
-                    android:layout_height="32dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:button="@null"
+                    android:drawableStart="@drawable/radio_button"
+                    android:minHeight="32dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="12dp"
                     android:text="@string/resolution_option_overwrite"
                     android:textSize="14sp" />
 
                 <RadioButton
                     android:id="@+id/resolution_option_skip_incoming"
-                    android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:text="@string/resolution_option_skip" />
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:button="@null"
+                    android:drawableStart="@drawable/radio_button"
+                    android:minHeight="32dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/resolution_option_skip_incoming" />
 
                 <RadioButton
                     android:id="@+id/resolution_option_rename_incoming"
-                    android:layout_width="wrap_content"
-                    android:layout_height="32dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:button="@null"
                     android:checked="true"
+                    android:drawableStart="@drawable/radio_button"
+                    android:minHeight="32dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="12dp"
                     android:text="@string/resolution_option_rename_incoming" />
 
             </RadioGroup>
@@ -68,9 +80,10 @@
         <!-- progressing -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="18dp"
+            android:layout_marginEnd="12dp"
             android:layout_marginBottom="16dp"
-            android:layout_weight="1"
             android:orientation="horizontal">
 
             <FrameLayout
@@ -101,7 +114,8 @@
             <TextView
                 android:id="@+id/progress_current"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
 
         </LinearLayout>
 
@@ -109,34 +123,47 @@
             android:id="@+id/progress_summary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginStart="18dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="16dp"
+            android:lines="1" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="16dp"
             android:gravity="end"
             android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/button_close"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/close" />
-
-            <Button
-                android:id="@+id/button_abort"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/abort" />
 
             <Button
                 android:id="@+id/button_start"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:minWidth="0dp"
                 android:text="@string/start" />
+
+            <Button
+                android:id="@+id/button_abort"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:minWidth="0dp"
+                android:text="@string/abort"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/button_close"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:minWidth="0dp"
+                android:text="@string/close"
+                android:visibility="gone" />
 
         </LinearLayout>
 
