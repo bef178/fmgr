@@ -8,7 +8,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.PopupWindow;
-import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -16,14 +15,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import pd.droidapp.fmgr.R;
-
-import static pd.droidapp.fmgr.util.Util.getRelativePath;
 
 public class DeleteEmptyPopup {
 
@@ -34,7 +29,7 @@ public class DeleteEmptyPopup {
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private OnDelete onDelete;
-    private final EmptyItemAdapter emptyItemAdapter;
+    private final PopupFileItemAdapter itemAdapter;
     private final PopupWindow popupWindow;
 
     private Scanner scanner;
@@ -61,8 +56,8 @@ public class DeleteEmptyPopup {
 
         selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));
 
-        emptyItemAdapter = new EmptyItemAdapter(startDirectory, selectionBar.selectedFiles);
-        emptyItemAdapter.whenEmptyItemClicked(selectionBar::invalidate);
+        itemAdapter = new PopupFileItemAdapter(startDirectory, selectionBar.selectedFiles);
+        itemAdapter.whenItemFileToggled(selectionBar::invalidate);
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
@@ -80,21 +75,19 @@ public class DeleteEmptyPopup {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            for (EmptyItem item : emptyItemAdapter.emptyItems) {
-                selectionBar.selectedFiles.add(item.file);
-            }
+            selectionBar.selectedFiles.addAll(itemAdapter.items);
             selectionBar.invalidate();
-            emptyItemAdapter.notifyDataSetChanged();
+            itemAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
             selectionBar.clear();
             selectionBar.invalidate();
-            emptyItemAdapter.notifyDataSetChanged();
+            itemAdapter.notifyDataSetChanged();
         });
 
         filesListView.setLayoutManager(new LinearLayoutManager(context));
-        filesListView.setAdapter(emptyItemAdapter);
+        filesListView.setAdapter(itemAdapter);
 
         popupView.setOnClickListener(v -> dismiss());
         popupArea.setOnClickListener(v -> {});
@@ -125,8 +118,8 @@ public class DeleteEmptyPopup {
         scanner.start(startDirectory);
     }
 
-    void updateEmptyItems() {
-        emptyItemAdapter.invalidate(scanner.copyEmptyItems());
+    void updateResults() {
+        itemAdapter.invalidate(scanner.copyResults());
     }
 
     public void dismiss() {
@@ -141,20 +134,9 @@ public class DeleteEmptyPopup {
         void accept(Collection<File> files, boolean parents);
     }
 
-    static class EmptyItem {
-
-        final File file;
-        final boolean isDirectory;
-
-        EmptyItem(File file, boolean isDirectory) {
-            this.file = file;
-            this.isDirectory = isDirectory;
-        }
-    }
-
     class Scanner extends FileScanner {
 
-        final List<EmptyItem> emptyItems = Collections.synchronizedList(new ArrayList<>());
+        final List<File> results = Collections.synchronizedList(new ArrayList<>());
 
         @Override
         protected void onScanStarted() {
@@ -167,20 +149,20 @@ public class DeleteEmptyPopup {
         @Override
         protected void onScanUpdated(int numFilesScanned) {
             containerView.post(() -> {
-                updateEmptyItems();
+                updateResults();
                 selectionBar.invalidate();
                 if (isCompleted()) {
                     statusBar.markDone();
                 }
                 statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                        numFilesScanned, emptyItemAdapter.getItemCount()));
+                        numFilesScanned, itemAdapter.getItemCount()));
             });
         }
 
         @Override
         protected void onFile(File file) {
             if (file.length() == 0) {
-                emptyItems.add(new EmptyItem(file, false));
+                results.add(file);
             }
         }
 
@@ -188,105 +170,15 @@ public class DeleteEmptyPopup {
         protected boolean onDirectory(File directory) {
             File[] children = directory.listFiles();
             if (children == null || children.length == 0) {
-                emptyItems.add(new EmptyItem(directory, true));
+                results.add(directory);
                 return false;
             }
             return true;
         }
 
-        List<EmptyItem> copyEmptyItems() {
-            synchronized (emptyItems) {
-                return new ArrayList<>(emptyItems);
-            }
-        }
-    }
-
-    static class EmptyItemAdapter extends RecyclerView.Adapter<EmptyItemAdapter.ViewHolder> {
-
-        private final Set<File> selectedFiles;
-        final List<EmptyItem> emptyItems = new LinkedList<>();
-        private final File startDirectory;
-        private Runnable onEmptyItemClicked;
-
-        EmptyItemAdapter(File startDirectory, Set<File> selectedFiles) {
-            this.startDirectory = startDirectory;
-            this.selectedFiles = selectedFiles;
-        }
-
-        void whenEmptyItemClicked(Runnable onEmptyItemClicked) {
-            this.onEmptyItemClicked = onEmptyItemClicked;
-        }
-
-        void invalidate(List<EmptyItem> emptyItems) {
-            this.emptyItems.clear();
-            this.emptyItems.addAll(emptyItems);
-            notifyDataSetChanged();
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.popup_file_item, parent, false);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            EmptyItem item = emptyItems.get(position);
-
-            if (item.isDirectory) {
-                holder.fileItem.setIcon(R.drawable.i_directory_24);
-            } else {
-                holder.fileItem.setIcon(R.drawable.i_file_24);
-            }
-
-            holder.fileItem.setSelected(selectedFiles.contains(item.file));
-
-            String name = getRelativePath(startDirectory, item.file);
-            if (item.isDirectory) {
-                name = name + "/";
-            }
-            holder.fileItem.setPath(name);
-
-            holder.fileItem.setIndex(position + 1);
-
-            holder.itemView.setOnClickListener(v -> {
-                if (!selectedFiles.isEmpty()) {
-                    toggleSelected(item.file, position);
-                }
-            });
-
-            holder.itemView.setOnLongClickListener(v -> {
-                toggleSelected(item.file, position);
-                return true;
-            });
-        }
-
-        private void toggleSelected(File file, int position) {
-            if (selectedFiles.contains(file)) {
-                selectedFiles.remove(file);
-            } else {
-                selectedFiles.add(file);
-            }
-            notifyItemChanged(position);
-            if (onEmptyItemClicked != null) {
-                onEmptyItemClicked.run();
-            }
-        }
-
-        @Override
-        public int getItemCount() {
-            return emptyItems.size();
-        }
-
-        static class ViewHolder extends RecyclerView.ViewHolder {
-
-            final PopupFileItem fileItem;
-
-            ViewHolder(View itemView) {
-                super(itemView);
-                fileItem = new PopupFileItem(itemView);
+        List<File> copyResults() {
+            synchronized (results) {
+                return new ArrayList<>(results);
             }
         }
     }

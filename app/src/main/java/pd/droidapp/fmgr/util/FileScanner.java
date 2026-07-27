@@ -8,7 +8,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static pd.util.PathExtension.compare;
+import pd.util.PathExtension;
 
 public class FileScanner {
 
@@ -63,7 +63,7 @@ public class FileScanner {
                 continue;
             }
 
-            Arrays.sort(children, (a, b) -> compare(a.getPath(), b.getPath()));
+            Arrays.sort(children, (a, b) -> PathExtension.compare(a.getPath(), b.getPath()));
 
             // push directories in reverse so they are visited in sorted order
             for (int i = children.length - 1; i >= 0; i--) {

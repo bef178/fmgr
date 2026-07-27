@@ -37,17 +37,6 @@ public class Util {
         return String.format(Locale.US, "%.1f%sB", size / Math.pow(1024, exp), unit);
     }
 
-    /**
-     * cd `start`; cd `relative` => `dst`
-     */
-    public static String getRelativePath(File start, File dst) {
-        try {
-            return relativize(start.getCanonicalPath(), dst.getCanonicalPath());
-        } catch (Exception e) {
-            return dst.getAbsolutePath();
-        }
-    }
-
     public static float getGaussianValue(double mu, double sigma, float amplitude, float fraction) {
         // f(x) = A * exp(-(x-μ)² / (2σ²))
         double exponent = -Math.pow(fraction - mu, 2) / (2 * sigma * sigma);

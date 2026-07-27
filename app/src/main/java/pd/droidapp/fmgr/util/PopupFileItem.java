@@ -13,11 +13,11 @@ public class PopupFileItem {
     private final TextView pathView;
     private final TextView indexView;
 
-    public PopupFileItem(View itemView) {
-        iconView = itemView.findViewById(R.id.popup_file_icon);
-        selectedIcon = itemView.findViewById(R.id.popup_file_selected);
-        pathView = itemView.findViewById(R.id.popup_file_name);
-        indexView = itemView.findViewById(R.id.popup_file_index);
+    public PopupFileItem(View selfView) {
+        iconView = selfView.findViewById(R.id.popup_file_icon);
+        selectedIcon = selfView.findViewById(R.id.popup_file_selected);
+        pathView = selfView.findViewById(R.id.popup_file_name);
+        indexView = selfView.findViewById(R.id.popup_file_index);
     }
 
     public void setIndex(int index) {

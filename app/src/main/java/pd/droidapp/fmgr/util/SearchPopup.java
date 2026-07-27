@@ -18,7 +18,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
-import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -31,7 +30,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -49,10 +47,9 @@ public class SearchPopup {
     private final PopupWindow popupWindow;
     private final EditText searchEdit;
     private final ImageButton searchEditClearButton;
-    private final PopupTitleBar titleBar;
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
-    private final SearchResultAdapter searchResultAdapter;
+    private final PopupFileItemAdapter itemAdapter;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable searchRunnable = this::doSearch;
@@ -72,7 +69,7 @@ public class SearchPopup {
         LinearLayout popupArea = popupView.findViewById(R.id.popup_area);
         searchEdit = popupView.findViewById(R.id.search_edit);
         searchEditClearButton = popupView.findViewById(R.id.search_edit_clear);
-        titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
+        PopupTitleBar titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
         titleBar.setTitle(R.string.search_files);
         titleBar.setOnCloseClicked(v -> dismiss());
         statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
@@ -81,10 +78,10 @@ public class SearchPopup {
 
         RecyclerView searchResultItemsList = popupView.findViewById(R.id.files_list);
 
-        searchResultAdapter = new SearchResultAdapter(context, startDirectory, selectionBar.selectedFiles);
-        searchResultAdapter.whenSelectionChanged(selectionBar::invalidate);
+        itemAdapter = new PopupFileItemAdapter(startDirectory, selectionBar.selectedFiles);
+        itemAdapter.whenItemFileToggled(selectionBar::invalidate);
         searchResultItemsList.setLayoutManager(new LinearLayoutManager(context));
-        searchResultItemsList.setAdapter(searchResultAdapter);
+        searchResultItemsList.setAdapter(itemAdapter);
 
 
         searchEdit.addTextChangedListener(new TextWatcher() {
@@ -143,17 +140,15 @@ public class SearchPopup {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addAll(searchResultAdapter.results);
+            selectionBar.addAll(itemAdapter.items);
             selectionBar.invalidate();
-            searchResultAdapter.notifyDataSetChanged();
+            itemAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> clearSelection());
 
         popupView.setOnClickListener(v -> dismiss());
-        popupArea.setOnClickListener(v -> {
-            // dummy to prevent dismiss when click inside
-        });
+        popupArea.setOnClickListener(v -> {});
 
         popupWindow = new PopupWindow(popupView,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -225,14 +220,14 @@ public class SearchPopup {
     }
 
     private void clearResults() {
-        searchResultAdapter.results.clear();
-        searchResultAdapter.notifyDataSetChanged();
+        itemAdapter.items.clear();
+        itemAdapter.notifyDataSetChanged();
     }
 
     private void clearSelection() {
         selectionBar.clear();
         selectionBar.invalidate();
-        searchResultAdapter.notifyDataSetChanged();
+        itemAdapter.notifyDataSetChanged();
     }
 
     class Scanner {
@@ -270,7 +265,7 @@ public class SearchPopup {
                 @Override
                 protected void onScanUpdated(int n) {
                     containerView.post(() -> {
-                        searchResultAdapter.invalidate(copyResults());
+                        itemAdapter.invalidate(copyResults());
                         if (isCompleted()) {
                             startContentScan();
                         } else {
@@ -298,7 +293,7 @@ public class SearchPopup {
                 @Override
                 protected void onScanUpdated(int n) {
                     containerView.post(() -> {
-                        searchResultAdapter.invalidate(copyResults());
+                        itemAdapter.invalidate(copyResults());
                         if (isCompleted()) {
                             statusBar.markDone();
                             statusBar.setText(context.getString(R.string.x_scanned_y_found,
@@ -334,12 +329,6 @@ public class SearchPopup {
             return false;
         }
 
-        List<File> copyResults() {
-            synchronized (results) {
-                return new ArrayList<>(results);
-            }
-        }
-
         private boolean isTextFile(File file) {
             String lowerName = file.getName().toLowerCase();
             return lowerName.endsWith(".txt") || lowerName.endsWith(".md") || lowerName.endsWith(".json") ||
@@ -368,89 +357,10 @@ public class SearchPopup {
             }
             return false;
         }
-    }
 
-    static class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapter.ViewHolder> {
-
-        private final Context context;
-        private final File startDirectory;
-        final Set<File> selectedFiles;
-        private final List<File> results = new LinkedList<>();
-        private Runnable onSelectionChanged;
-
-        SearchResultAdapter(Context context, File startDirectory, Set<File> selectedFiles) {
-            this.context = context;
-            this.startDirectory = startDirectory;
-            this.selectedFiles = selectedFiles;
-        }
-
-        void invalidate(List<File> newResults) {
-            results.clear();
-            results.addAll(newResults);
-            notifyDataSetChanged();
-        }
-
-        void whenSelectionChanged(Runnable onSelectionChanged) {
-            this.onSelectionChanged = onSelectionChanged;
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(context).inflate(R.layout.popup_file_item, parent, false);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
-            File file = results.get(position);
-
-            if (file.isDirectory()) {
-                viewHolder.fileItem.setIcon(R.drawable.i_directory_24);
-            } else {
-                viewHolder.fileItem.setIcon(R.drawable.i_file_24);
-            }
-            viewHolder.fileItem.setSelected(selectedFiles.contains(file));
-            viewHolder.fileItem.setPath(Util.getRelativePath(startDirectory, file));
-            viewHolder.fileItem.setIndex(position + 1);
-
-            viewHolder.itemView.setOnClickListener(v -> {
-                // selecting only starts once something is selected (e.g. via long-press);
-                // jumping is done via the selection bar's jump button on a single selection
-                if (!selectedFiles.isEmpty()) {
-                    toggleSelected(file, position);
-                }
-            });
-            viewHolder.itemView.setOnLongClickListener(v -> {
-                toggleSelected(file, position);
-                return true;
-            });
-        }
-
-        private void toggleSelected(File file, int position) {
-            if (selectedFiles.contains(file)) {
-                selectedFiles.remove(file);
-            } else {
-                selectedFiles.add(file);
-            }
-            notifyItemChanged(position);
-            if (onSelectionChanged != null) {
-                onSelectionChanged.run();
-            }
-        }
-
-        @Override
-        public int getItemCount() {
-            return results.size();
-        }
-
-        static class ViewHolder extends RecyclerView.ViewHolder {
-
-            final PopupFileItem fileItem;
-
-            ViewHolder(View itemView) {
-                super(itemView);
-                fileItem = new PopupFileItem(itemView);
+        List<File> copyResults() {
+            synchronized (results) {
+                return new ArrayList<>(results);
             }
         }
     }
