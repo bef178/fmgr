@@ -404,7 +404,7 @@ public class BrowseFragment extends Fragment {
 
     private void markSelectedItemsForCut() {
         List<File> files = selectionBar.copySelectedFiles();
-        clipboard.setCut(files);
+        clipboard.setFilesToCut(files);
         Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
         selectionBar.clear();
@@ -419,7 +419,7 @@ public class BrowseFragment extends Fragment {
 
     private void markSelectedItemsForCopy() {
         List<File> files = selectionBar.copySelectedFiles();
-        clipboard.setCopy(files);
+        clipboard.setFilesToCopy(files);
         Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
         selectionBar.clear();
@@ -433,13 +433,13 @@ public class BrowseFragment extends Fragment {
     }
 
     private void copyToClipboard(Collection<File> files) {
-        clipboard.setCopy(new ArrayList<>(files));
+        clipboard.setFilesToCopy(new ArrayList<>(files));
         Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
     }
 
     private void cutToClipboard(Collection<File> files) {
-        clipboard.setCut(new ArrayList<>(files));
+        clipboard.setFilesToCut(new ArrayList<>(files));
         Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
     }
@@ -447,12 +447,12 @@ public class BrowseFragment extends Fragment {
     private void showPastePopup() {
         String op;
         List<File> srcFiles;
-        if (clipboard.isCut()) {
+        if (clipboard.toCut()) {
             op = "move";
-            srcFiles = clipboard.getCut();
-        } else if (clipboard.isCopy()) {
+            srcFiles = clipboard.getFilesToCut();
+        } else if (clipboard.toCopy()) {
             op = "copy";
-            srcFiles = clipboard.getCopy();
+            srcFiles = clipboard.getFilesToCopy();
         } else {
             return;
         }
@@ -505,6 +505,8 @@ public class BrowseFragment extends Fragment {
                 failedCount++;
             }
         }
+
+        clipboard.removeAllIfSameAsOrDescendantOf(filesToDelete);
 
         Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
         fileItemAdapter.invalidate(pathBar.getCurrentDirectory());
@@ -607,10 +609,10 @@ public class BrowseFragment extends Fragment {
                     popup.whenDeleteClicked(BrowseFragment.this::deleteItems);
                     popup.show();
                 });
-                if (clipboard.isCut()) {
+                if (clipboard.toCut()) {
                     actionPopup.setPasteFromCutButtonVisible(true);
                     actionPopup.whenPasteFromCutClicked(BrowseFragment.this::showPastePopup);
-                } else if (clipboard.isCopy()) {
+                } else if (clipboard.toCopy()) {
                     actionPopup.setPasteFromCopyButtonVisible(true);
                     actionPopup.whenPasteFromCopyClicked(BrowseFragment.this::showPastePopup);
                 } else {
