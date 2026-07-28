@@ -20,11 +20,7 @@ public class StatusBar {
         textView = selfView.findViewById(R.id.status_text);
     }
 
-    public void setText(CharSequence value) {
-        textView.setText(value);
-    }
-
-    public void markRunning(CharSequence value) {
+    public void markRunning() {
         selfView.setVisibility(View.VISIBLE);
         iconView.setImageResource(R.drawable.baseline_refresh_24);
         RotateAnimation rotateAnim = new RotateAnimation(0, 360,
@@ -33,12 +29,15 @@ public class StatusBar {
         rotateAnim.setDuration(1000);
         rotateAnim.setRepeatCount(Animation.INFINITE);
         iconView.startAnimation(rotateAnim);
-        textView.setText(value);
     }
 
     public void markDone() {
         iconView.clearAnimation();
         iconView.setImageResource(R.drawable.baseline_done_24);
+    }
+
+    public void setText(CharSequence value) {
+        textView.setText(value);
     }
 
     public void hide() {

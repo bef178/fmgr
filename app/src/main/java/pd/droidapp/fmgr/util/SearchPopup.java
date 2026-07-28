@@ -280,7 +280,10 @@ public class SearchPopup {
 
                 @Override
                 protected void onScanStarted() {
-                    containerView.post(() -> statusBar.markRunning(context.getString(R.string.search_status_searching)));
+                    containerView.post(() -> {
+                        statusBar.markRunning();
+                        statusBar.setText(context.getString(R.string.search_status_searching));
+                    });
                 }
 
                 @Override
@@ -317,9 +320,9 @@ public class SearchPopup {
                         itemAdapter.invalidate(copyResults());
                         if (isCompleted()) {
                             statusBar.markDone();
-                            statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                                    nameScanned + n, results.size()));
                         }
+                        statusBar.setText(context.getString(R.string.x_scanned_y_found,
+                                nameScanned + n, results.size()));
                     });
                 }
             };

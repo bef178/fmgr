@@ -246,7 +246,8 @@ public class DedupPopup {
         @Override
         protected void onScanStarted() {
             containerView.post(() -> {
-                statusBar.markRunning(context.getString(R.string.scanning));
+                statusBar.markRunning();
+                statusBar.setText(context.getString(R.string.scanning));
                 selectionBar.invalidate();
             });
         }
@@ -259,10 +260,8 @@ public class DedupPopup {
                 if (isCompleted()) {
                     statusBar.markDone();
                 }
-                int totalFiles = 0;
-                for (FileGroup group : dedupFileGroupAdapter.fileGroups) {
-                    totalFiles += group.numFiles();
-                }
+                int totalFiles = dedupFileGroupAdapter.fileGroups.stream()
+                        .mapToInt(FileGroup::numFiles).sum();
                 statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
                         numFilesScanned, totalFiles, dedupFileGroupAdapter.fileGroups.size()));
             });

@@ -159,7 +159,8 @@ public class DeleteEmptyPopup {
         @Override
         protected void onScanStarted() {
             containerView.post(() -> {
-                statusBar.markRunning(context.getString(R.string.scanning));
+                statusBar.markRunning();
+                statusBar.setText(context.getString(R.string.scanning));
                 selectionBar.invalidate();
             });
         }
