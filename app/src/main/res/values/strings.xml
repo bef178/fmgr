@@ -41,8 +41,8 @@
     <string name="x_selected">%d selected</string>
 
     <string name="delete">Delete</string>
-    <string name="about_to_delete_format">About to delete %d item(s)</string>
     <string name="deleted_report_format">%d deleted (%d failed)</string>
+
     <string name="rename">Rename</string>
     <string name="renamed">Renamed</string>
 

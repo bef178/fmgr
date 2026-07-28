@@ -94,7 +94,11 @@ public class BrowseFragment extends Fragment {
         });
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> markSelectedItemsForCopy());
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> markSelectedItemsForCut());
-        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> showDeleteDialog());
+        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
+            deleteItems(selectionBar.copySelectedFiles(), false);
+            selectionBar.clear();
+            selectionBar.invalidate();
+        });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
@@ -448,19 +452,6 @@ public class BrowseFragment extends Fragment {
             }
         });
         pastePopup.show();
-    }
-
-    private void showDeleteDialog() {
-        List<File> files = selectionBar.copySelectedFiles();
-        new AlertDialog.Builder(requireContext())
-                .setTitle(getString(R.string.about_to_delete_format, files.size()))
-                .setPositiveButton(R.string.ok, (dialog, which) -> {
-                    deleteItems(files, false);
-                    selectionBar.clear();
-                    selectionBar.invalidate();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
     }
 
     private void deleteItems(Collection<File> files, boolean prune) {
