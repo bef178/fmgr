@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 
@@ -28,6 +29,7 @@ public class DeleteEmptyPopup {
 
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
+    private Consumer<File> onJump;
     private OnDelete onDelete;
     private final PopupFileItemAdapter itemAdapter;
     private final PopupWindow popupWindow;
@@ -59,18 +61,36 @@ public class DeleteEmptyPopup {
         itemAdapter = new PopupFileItemAdapter(startDirectory, selectionBar.selectedFiles);
         itemAdapter.whenItemFileToggled(selectionBar::invalidate);
 
+        selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
+            if (selectionBar.selectedFiles.size() == 1) {
+                File file = selectionBar.selectedFiles.iterator().next();
+                if (onJump != null) {
+                    onJump.accept(file);
+                }
+                dismiss();
+            }
+        });
+
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
-                onDelete.accept(selectionBar.copySelectedFiles(), false);
+                List<File> selected = selectionBar.copySelectedFiles();
+                onDelete.accept(selected, false);
+                itemAdapter.items.removeAll(selected);
             }
-            dismiss();
+            selectionBar.clear();
+            selectionBar.invalidate();
+            itemAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
             if (onDelete != null) {
-                onDelete.accept(selectionBar.copySelectedFiles(), true);
+                List<File> selected = selectionBar.copySelectedFiles();
+                onDelete.accept(selected, true);
+                itemAdapter.items.removeAll(selected);
             }
-            dismiss();
+            selectionBar.clear();
+            selectionBar.invalidate();
+            itemAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
@@ -100,6 +120,10 @@ public class DeleteEmptyPopup {
         popupWindow.setOutsideTouchable(false);
         popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         popupWindow.setElevation(24);
+    }
+
+    public void whenJumpClicked(Consumer<File> onJump) {
+        this.onJump = onJump;
     }
 
     public void whenDeleteClicked(OnDelete onDelete) {

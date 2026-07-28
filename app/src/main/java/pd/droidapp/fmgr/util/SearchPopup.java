@@ -41,7 +41,9 @@ public class SearchPopup {
     private final Context context;
     private final View containerView;
     private final File startDirectory;
-    private Consumer<File> onFileClicked;
+    private Consumer<File> onJump;
+    private Consumer<Collection<File>> onCopy;
+    private Consumer<Collection<File>> onCut;
     private Consumer<Collection<File>> onDelete;
 
     private final PopupWindow popupWindow;
@@ -124,18 +126,34 @@ public class SearchPopup {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.selectedFiles.size() == 1) {
                 File file = selectionBar.selectedFiles.iterator().next();
-                if (onFileClicked != null) {
-                    onFileClicked.accept(file);
+                if (onJump != null) {
+                    onJump.accept(file);
                 }
                 dismiss();
             }
         });
 
-        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            if (onDelete != null) {
-                onDelete.accept(selectionBar.copySelectedFiles());
+        selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
+            if (onCopy != null) {
+                onCopy.accept(selectionBar.copySelectedFiles());
             }
             dismiss();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
+            if (onCut != null) {
+                onCut.accept(selectionBar.copySelectedFiles());
+            }
+            dismiss();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
+            if (onDelete != null) {
+                List<File> selected = selectionBar.copySelectedFiles();
+                onDelete.accept(selected);
+                itemAdapter.items.removeAll(selected);
+            }
+            clearSelection();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
@@ -161,8 +179,16 @@ public class SearchPopup {
         popupWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
-    public void whenSearchResultFileClicked(Consumer<File> onFileClicked) {
-        this.onFileClicked = onFileClicked;
+    public void whenJumpClicked(Consumer<File> onJump) {
+        this.onJump = onJump;
+    }
+
+    public void whenCopyClicked(Consumer<Collection<File>> onCopy) {
+        this.onCopy = onCopy;
+    }
+
+    public void whenCutClicked(Consumer<Collection<File>> onCut) {
+        this.onCut = onCut;
     }
 
     public void whenDeleteClicked(Consumer<Collection<File>> onDelete) {

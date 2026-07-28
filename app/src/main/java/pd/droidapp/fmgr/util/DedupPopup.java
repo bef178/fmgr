@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
@@ -45,6 +47,9 @@ public class DedupPopup {
 
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
+    private Consumer<File> onJump;
+    private Consumer<Collection<File>> onCopy;
+    private Consumer<Collection<File>> onCut;
     private BiConsumer<Collection<File>, Boolean> onDelete;
     private final DedupFileGroupAdapter dedupFileGroupAdapter;
     private final PopupWindow popupWindow;
@@ -76,18 +81,42 @@ public class DedupPopup {
         dedupFileGroupAdapter = new DedupFileGroupAdapter(startDirectory, selectionBar.selectedFiles);
         dedupFileGroupAdapter.whenItemFileToggled(selectionBar::invalidate);
 
-        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            if (onDelete != null) {
-                onDelete.accept(selectionBar.copySelectedFiles(), false);
+        selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
+            if (selectionBar.selectedFiles.size() == 1) {
+                File file = selectionBar.selectedFiles.iterator().next();
+                if (onJump != null) {
+                    onJump.accept(file);
+                }
+                dismiss();
+            }
+        });
+
+        selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
+            if (onCopy != null) {
+                onCopy.accept(selectionBar.copySelectedFiles());
             }
             dismiss();
         });
 
-        selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
-            if (onDelete != null) {
-                onDelete.accept(selectionBar.copySelectedFiles(), true);
+        selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
+            if (onCut != null) {
+                onCut.accept(selectionBar.copySelectedFiles());
             }
             dismiss();
+        });
+
+        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
+            if (onDelete != null) {
+                List<File> selected = selectionBar.copySelectedFiles();
+                onDelete.accept(selected, false);
+                dedupFileGroupAdapter.fileGroups.removeIf(group -> {
+                    group.files.removeIf(f -> selected.contains(f));
+                    return group.numFiles() < 2;
+                });
+            }
+            selectionBar.clear();
+            dedupFileGroupAdapter.notifyDataSetChanged();
+            selectionBar.invalidate();
         });
 
         selectionBar.addButton(R.layout.selection_button_smart_select, c -> c > 0, v -> {
@@ -117,6 +146,18 @@ public class DedupPopup {
         popupWindow.setOutsideTouchable(false);
         popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         popupWindow.setElevation(24);
+    }
+
+    public void whenJumpClicked(Consumer<File> onJump) {
+        this.onJump = onJump;
+    }
+
+    public void whenCopyClicked(Consumer<Collection<File>> onCopy) {
+        this.onCopy = onCopy;
+    }
+
+    public void whenCutClicked(Consumer<Collection<File>> onCut) {
+        this.onCut = onCut;
     }
 
     public void whenDeleteClicked(BiConsumer<Collection<File>, Boolean> onDelete) {

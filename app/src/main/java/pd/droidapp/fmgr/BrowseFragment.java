@@ -268,7 +268,9 @@ public class BrowseFragment extends Fragment {
 
     private void showSearchPopup() {
         SearchPopup searchPopup = new SearchPopup(getView(), pathBar.getCurrentDirectory());
-        searchPopup.whenSearchResultFileClicked(this::jumpToFile);
+        searchPopup.whenJumpClicked(this::jumpToFile);
+        searchPopup.whenCopyClicked(this::copyToClipboard);
+        searchPopup.whenCutClicked(this::cutToClipboard);
         searchPopup.whenDeleteClicked(files -> deleteItems(files, false));
         searchPopup.show();
     }
@@ -430,6 +432,18 @@ public class BrowseFragment extends Fragment {
         }
     }
 
+    private void copyToClipboard(Collection<File> files) {
+        clipboard.setCopy(new ArrayList<>(files));
+        Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
+        actionBar.invalidate();
+    }
+
+    private void cutToClipboard(Collection<File> files) {
+        clipboard.setCut(new ArrayList<>(files));
+        Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
+        actionBar.invalidate();
+    }
+
     private void showPastePopup() {
         String op;
         List<File> srcFiles;
@@ -540,6 +554,7 @@ public class BrowseFragment extends Fragment {
 
     private void showDeleteEmptyDialog() {
         DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), pathBar.getCurrentDirectory());
+        popup.whenJumpClicked(this::jumpToFile);
         popup.whenDeleteClicked(this::deleteItems);
         popup.show();
     }
@@ -586,6 +601,9 @@ public class BrowseFragment extends Fragment {
                 actionPopup.whenDeleteEmptyClicked(BrowseFragment.this::showDeleteEmptyDialog);
                 actionPopup.whenDedupFilesClicked(() -> {
                     DedupPopup popup = new DedupPopup(getView(), pathBar.getCurrentDirectory());
+                    popup.whenJumpClicked(BrowseFragment.this::jumpToFile);
+                    popup.whenCopyClicked(BrowseFragment.this::copyToClipboard);
+                    popup.whenCutClicked(BrowseFragment.this::cutToClipboard);
                     popup.whenDeleteClicked(BrowseFragment.this::deleteItems);
                     popup.show();
                 });
