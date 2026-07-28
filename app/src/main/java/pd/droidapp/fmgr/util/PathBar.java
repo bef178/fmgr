@@ -15,19 +15,21 @@ import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
 
+import static pd.droidapp.fmgr.util.Util.getDisplayPath;
+
 public class PathBar {
 
     private final FavItemStore favItemStore;
     private File directory;
     private Consumer<File> onBreadcrumbClickedListener;
 
-    private final LinearLayout breadcrumbLayout;
+    private final LinearLayout breadcrumbsContainerView;
     private final ImageButton favIcon;
 
     public PathBar(View selfView) {
         favItemStore = new FavItemStore(selfView.getContext());
 
-        breadcrumbLayout = selfView.findViewById(R.id.breadcrumb_layout);
+        breadcrumbsContainerView = selfView.findViewById(R.id.breadcrumb_container);
 
         favIcon = selfView.findViewById(R.id.fav_icon);
         favIcon.setOnClickListener(v -> toggleFavorite());
@@ -41,22 +43,23 @@ public class PathBar {
     }
 
     public void invalidate() {
-        breadcrumbLayout.removeAllViews();
+        breadcrumbsContainerView.removeAllViews();
 
         favIcon.setSelected(favItemStore.contains(directory));
 
-        Context context = breadcrumbLayout.getContext();
+        Context context = breadcrumbsContainerView.getContext();
         LayoutInflater inflater = LayoutInflater.from(context);
         File f = directory;
         while (f != null) {
-            if (f.getName().isEmpty()) {
-                // the root directory deserves a breadcrumb
-                breadcrumbLayout.addView(createBreadcrumbItemView(inflater, f), 0);
+            if (getDisplayPath(f).equals("/") || f.getName().isEmpty()) {
+                // the root deserves a breadcrumb
+                breadcrumbsContainerView.addView(createBreadcrumbView(inflater, f, "/"), 0);
+                break;
             } else {
-                if (breadcrumbLayout.getChildCount() > 0) {
-                    breadcrumbLayout.addView(createSeparatorTextView(context), 0);
+                if (breadcrumbsContainerView.getChildCount() > 0) {
+                    breadcrumbsContainerView.addView(createSeparatorTextView(context), 0);
                 }
-                breadcrumbLayout.addView(createBreadcrumbItemView(inflater, f), 0);
+                breadcrumbsContainerView.addView(createBreadcrumbView(inflater, f, f.getName()), 0);
             }
             f = f.getParentFile();
         }
@@ -82,9 +85,9 @@ public class PathBar {
         favIcon.setSelected(favItemStore.contains(directory));
     }
 
-    private TextView createBreadcrumbItemView(LayoutInflater inflater, File f) {
-        TextView textView = (TextView) inflater.inflate(R.layout.breadcrumb_item, breadcrumbLayout, false);
-        textView.setText(f.getName().isEmpty() ? "/" : f.getName());
+    private TextView createBreadcrumbView(LayoutInflater inflater, File f, String displayName) {
+        TextView textView = (TextView) inflater.inflate(R.layout.breadcrumb, breadcrumbsContainerView, false);
+        textView.setText(displayName);
         textView.setOnClickListener(v -> {
             if (onBreadcrumbClickedListener != null) {
                 onBreadcrumbClickedListener.accept(f);

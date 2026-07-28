@@ -10,12 +10,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import android.os.Environment;
 
 import pd.util.DigestCodec;
-import pd.util.PathExtension;
 
 import static pd.util.FileExtension.copyRecursively;
 import static pd.util.FileExtension.moveRecursively;
 import static pd.util.FileExtension.removeRecursively;
-import static pd.util.PathExtension.relativize;
 
 public class Util {
 
@@ -136,19 +134,22 @@ public class Util {
     }
 
     /**
-     * Returns a user-friendly path, stripping the shared storage root
-     * (e.g. /storage/emulated/0) so that paths read as /Download/xxx.
+     * display path for UI
+     * `/storage/emulated/0` => `/`
+     * `/storage/emulated/0/xxx` => `/xxx`
      */
-    public static String getFriendlyPath(File path) {
+    public static String getDisplayPath(File path) {
         if (path == null) {
             return "";
         }
         File root = Environment.getExternalStorageDirectory();
         String rootPath = root.getAbsolutePath();
         String absPath = path.getAbsolutePath();
-        if (absPath.startsWith(rootPath)) {
-            String relative = absPath.substring(rootPath.length());
-            return relative.isEmpty() ? "/" : relative;
+        if (absPath.equals(rootPath)) {
+            return "/";
+        }
+        if (absPath.startsWith(rootPath + File.separator)) {
+            return absPath.substring(rootPath.length());
         }
         return absPath;
     }

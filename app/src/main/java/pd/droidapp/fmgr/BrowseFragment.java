@@ -254,7 +254,8 @@ public class BrowseFragment extends Fragment {
     public File getParentDirectory(File directory) {
         if (directory != null) {
             File parent = directory.getParentFile();
-            if (parent != null && parent.exists()) {
+            if (parent != null && parent.exists()
+                    && !Environment.getExternalStorageDirectory().equals(directory)) {
                 return parent;
             }
         }

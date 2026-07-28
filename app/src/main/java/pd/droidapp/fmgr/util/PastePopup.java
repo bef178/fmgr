@@ -26,7 +26,6 @@ import pd.droidapp.fmgr.R;
 
 import static pd.droidapp.fmgr.util.Util.copySafeReplace;
 import static pd.droidapp.fmgr.util.Util.getAlternativeFile;
-import static pd.droidapp.fmgr.util.Util.getFriendlyPath;
 import static pd.droidapp.fmgr.util.Util.moveSafeReplace;
 
 public class PastePopup {
