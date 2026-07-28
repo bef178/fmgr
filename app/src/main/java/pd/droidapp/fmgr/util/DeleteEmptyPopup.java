@@ -75,27 +75,25 @@ public class DeleteEmptyPopup {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
                 onDelete.accept(selected, false);
-                itemAdapter.items.removeAll(selected);
+                itemAdapter.removeAll(selected);
             }
             selectionBar.clear();
             selectionBar.invalidate();
-            itemAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
                 onDelete.accept(selected, true);
-                itemAdapter.items.removeAll(selected);
+                itemAdapter.removeAll(selected);
             }
             selectionBar.clear();
             selectionBar.invalidate();
-            itemAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.selectedFiles.addAll(itemAdapter.items);
+            selectionBar.selectedFiles.addAll(itemAdapter.copyItems());
             selectionBar.invalidate();
             itemAdapter.notifyDataSetChanged();
         });
@@ -142,10 +140,6 @@ public class DeleteEmptyPopup {
         scanner.start(startDirectory);
     }
 
-    void updateResults() {
-        itemAdapter.invalidate(scanner.copyResults());
-    }
-
     public void dismiss() {
         if (scanner != null) {
             scanner.cancel();
@@ -173,7 +167,7 @@ public class DeleteEmptyPopup {
         @Override
         protected void onScanUpdated(int numFilesScanned) {
             containerView.post(() -> {
-                updateResults();
+                itemAdapter.invalidate(scanner.copyResults());
                 selectionBar.invalidate();
                 if (isCompleted()) {
                     statusBar.markDone();

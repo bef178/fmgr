@@ -151,14 +151,14 @@ public class SearchPopup {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
                 onDelete.accept(selected);
-                itemAdapter.items.removeAll(selected);
+                itemAdapter.removeAll(selected);
             }
             clearSelection();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addAll(itemAdapter.items);
+            selectionBar.addAll(itemAdapter.copyItems());
             selectionBar.invalidate();
             itemAdapter.notifyDataSetChanged();
         });
@@ -219,7 +219,7 @@ public class SearchPopup {
         if (query.isEmpty()) {
             cancelSearch();
             clearSelection();
-            clearResults();
+            itemAdapter.clear();
             lastQuery = "";
             statusBar.hide();
             return;
@@ -231,7 +231,7 @@ public class SearchPopup {
 
         cancelSearch();
         clearSelection();
-        clearResults();
+        itemAdapter.clear();
 
         lastQuery = query;
         scanner = new Scanner();
@@ -243,11 +243,6 @@ public class SearchPopup {
             scanner.cancel();
             scanner = null;
         }
-    }
-
-    private void clearResults() {
-        itemAdapter.items.clear();
-        itemAdapter.notifyDataSetChanged();
     }
 
     private void clearSelection() {

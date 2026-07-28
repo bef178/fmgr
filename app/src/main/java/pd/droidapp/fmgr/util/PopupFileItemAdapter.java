@@ -5,9 +5,11 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -19,7 +21,7 @@ public class PopupFileItemAdapter extends RecyclerView.Adapter<PopupFileItemAdap
 
     private final File startDirectory;
     private final Set<File> selectedFiles;
-    final List<File> items = new LinkedList<>();
+    private final List<File> items = new LinkedList<>();
     private Runnable onItemFileToggled;
 
     public PopupFileItemAdapter(File startDirectory, Set<File> selectedFiles) {
@@ -31,10 +33,51 @@ public class PopupFileItemAdapter extends RecyclerView.Adapter<PopupFileItemAdap
         this.onItemFileToggled = onItemFileToggled;
     }
 
-    public void invalidate(List<File> files) {
+    public void invalidate(List<File> newFiles) {
+        List<File> oldFiles = new LinkedList<>(items);
         items.clear();
-        items.addAll(files);
-        notifyDataSetChanged();
+        items.addAll(newFiles);
+        diffAndDispatch(oldFiles);
+    }
+
+    public void removeAll(Collection<File> filesToRemove) {
+        List<File> oldFiles = new LinkedList<>(items);
+        items.removeAll(filesToRemove);
+        diffAndDispatch(oldFiles);
+    }
+
+    public void clear() {
+        int oldSize = items.size();
+        items.clear();
+        notifyItemRangeRemoved(0, oldSize);
+    }
+
+    private void diffAndDispatch(List<File> oldFiles) {
+        DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() {
+                return oldFiles.size();
+            }
+
+            @Override
+            public int getNewListSize() {
+                return items.size();
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldPos, int newPos) {
+                return oldFiles.get(oldPos).equals(items.get(newPos));
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldPos, int newPos) {
+                return oldFiles.get(oldPos).equals(items.get(newPos));
+            }
+        }).dispatchUpdatesTo(this);
+    }
+
+    public List<File> copyItems() {
+        return new LinkedList<>(items);
     }
 
     @NonNull
@@ -90,7 +133,7 @@ public class PopupFileItemAdapter extends RecyclerView.Adapter<PopupFileItemAdap
         return items.size();
     }
 
-    static class ItemViewHolder extends RecyclerView.ViewHolder {
+    public static class ItemViewHolder extends RecyclerView.ViewHolder {
 
         final PopupFileItem fileItem;
 
