@@ -33,16 +33,18 @@ public class PopupFileItemAdapter extends RecyclerView.Adapter<PopupFileItemAdap
         this.onItemFileToggled = onItemFileToggled;
     }
 
-    public void invalidate(List<File> newFiles) {
-        List<File> oldFiles = new LinkedList<>(items);
-        items.clear();
-        items.addAll(newFiles);
-        diffAndDispatch(oldFiles);
+    public void addAll(List<File> files) {
+        if (files.isEmpty()) {
+            return;
+        }
+        int start = items.size();
+        items.addAll(files);
+        notifyItemRangeInserted(start, files.size());
     }
 
-    public void removeAll(Collection<File> filesToRemove) {
+    public void removeAll(Collection<File> files) {
         List<File> oldFiles = new LinkedList<>(items);
-        items.removeAll(filesToRemove);
+        items.removeAll(files);
         diffAndDispatch(oldFiles);
     }
 

@@ -24,12 +24,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -46,12 +46,12 @@ public class SearchPopup {
     private Consumer<Collection<File>> onCut;
     private Consumer<Collection<File>> onDelete;
 
-    private final PopupWindow popupWindow;
     private final EditText searchEdit;
     private final ImageButton searchEditClearButton;
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private final PopupFileItemAdapter itemAdapter;
+    private final PopupWindow popupWindow;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable searchRunnable = this::doSearch;
@@ -255,77 +255,69 @@ public class SearchPopup {
 
         private String query;
         private FileScanner nameScanner;
+        private int nameScanned;
         private FileScanner contentScanner;
-        final List<File> results = Collections.synchronizedList(new LinkedList<>());
+        private int contentScanned;
+        private final Set<String> results = Collections.synchronizedSet(new HashSet<>());
 
         void start(String query) {
             this.query = query;
             results.clear();
 
-            nameScanner = new FileScanner() {
-                @Override
-                protected void onFile(File file) {
-                    if (file.getName().contains(Scanner.this.query)) {
-                        addResult(file);
-                    }
-                }
-
-                @Override
-                protected boolean onDirectory(File directory) {
-                    if (directory.getName().contains(Scanner.this.query)) {
-                        addResult(directory);
-                    }
+            nameScanner = new FileScanner();
+            nameScanner.whenDirectoryReached(directory -> {
+                if (directory.getName().contains(Scanner.this.query)) {
+                    results.add(directory.getPath());
                     return true;
                 }
-
-                @Override
-                protected void onScanStarted() {
-                    containerView.post(() -> {
-                        statusBar.markRunning();
-                        statusBar.setText(context.getString(R.string.search_status_searching));
-                    });
+                return false;
+            });
+            nameScanner.whenFileReached(file -> {
+                if (file.getName().contains(Scanner.this.query)) {
+                    results.add(file.getPath());
+                    return true;
                 }
-
-                @Override
-                protected void onScanUpdated(int n) {
-                    containerView.post(() -> {
-                        itemAdapter.invalidate(copyResults());
-                        if (isCompleted()) {
-                            startContentScan();
-                        } else {
-                            statusBar.setText(context.getString(R.string.search_status_searching));
-                        }
-                    });
+                return false;
+            });
+            nameScanner.whenScanStarted(() -> containerView.post(() -> {
+                statusBar.markRunning();
+                statusBar.setText(context.getString(R.string.search_status_searching));
+            }));
+            nameScanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
+                nameScanned += scanned;
+                itemAdapter.addAll(delta);
+                statusBar.setText(context.getString(R.string.search_status_searching));
+            }));
+            nameScanner.whenScanStopped(() -> containerView.post(() -> {
+                if (nameScanner.isCompleted()) {
+                    scanContent();
                 }
-            };
+            }));
             nameScanner.start(startDirectory);
         }
 
-        private void startContentScan() {
-            int nameScanned = nameScanner.numFilesScanned.get();
-
-            contentScanner = new FileScanner() {
-                @Override
-                protected void onFile(File file) {
-                    if (!isSettled(file)
-                            && (isTextFile(file) || isSmallAnonymousFile(file))
-                            && fileContainsText(file, query)) {
-                        addResult(file);
-                    }
+        private void scanContent() {
+            contentScanner = new FileScanner();
+            contentScanner.whenFileReached(file -> {
+                if (!results.contains(file.getPath())
+                        && (isTextFile(file) || isSmallAnonymousFile(file))
+                        && fileContainsText(file, query)) {
+                    results.add(file.getPath());
+                    return true;
                 }
-
-                @Override
-                protected void onScanUpdated(int n) {
-                    containerView.post(() -> {
-                        itemAdapter.invalidate(copyResults());
-                        if (isCompleted()) {
-                            statusBar.markDone();
-                        }
-                        statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                                nameScanned + n, results.size()));
-                    });
+                return false;
+            });
+            contentScanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
+                contentScanned += scanned;
+                itemAdapter.addAll(delta);
+                statusBar.setText(context.getString(R.string.x_scanned_y_found,
+                        nameScanned + contentScanned, itemAdapter.getItemCount()));
+            }));
+            contentScanner.whenScanStopped(() -> containerView.post(() -> {
+                if (contentScanner.isCompleted()) {
+                    statusBar.markDone();
                 }
-            };
+            }));
             contentScanner.start(startDirectory);
         }
 
@@ -336,21 +328,6 @@ public class SearchPopup {
             if (contentScanner != null) {
                 contentScanner.cancel();
             }
-        }
-
-        private void addResult(File result) {
-            results.add(result);
-        }
-
-        private boolean isSettled(File file) {
-            synchronized (results) {
-                for (File item : results) {
-                    if (item.getPath().equals(file.getPath())) {
-                        return true;
-                    }
-                }
-            }
-            return false;
         }
 
         private boolean isTextFile(File file) {
@@ -380,12 +357,6 @@ public class SearchPopup {
                 // Ignore errors
             }
             return false;
-        }
-
-        List<File> copyResults() {
-            synchronized (results) {
-                return new ArrayList<>(results);
-            }
         }
     }
 }

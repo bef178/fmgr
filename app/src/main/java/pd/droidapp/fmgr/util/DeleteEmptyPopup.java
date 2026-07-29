@@ -12,11 +12,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -30,11 +29,12 @@ public class DeleteEmptyPopup {
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private Consumer<File> onJump;
-    private OnDelete onDelete;
+    private BiConsumer<Collection<File>, Boolean> onDelete;
     private final PopupFileItemAdapter itemAdapter;
     private final PopupWindow popupWindow;
 
-    private Scanner scanner;
+    private FileScanner scanner;
+    private int totalScanned;
 
     public DeleteEmptyPopup(View containerView, File startDirectory) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
@@ -124,7 +124,7 @@ public class DeleteEmptyPopup {
         this.onJump = onJump;
     }
 
-    public void whenDeleteClicked(OnDelete onDelete) {
+    public void whenDeleteClicked(BiConsumer<Collection<File>, Boolean> onDelete) {
         this.onDelete = onDelete;
     }
 
@@ -136,7 +136,25 @@ public class DeleteEmptyPopup {
     }
 
     private void doScan() {
-        scanner = new Scanner();
+        scanner = new FileScanner();
+        scanner.whenDirectoryReached(directory -> {
+            File[] children = directory.listFiles();
+            return children == null || children.length == 0;
+        });
+        scanner.whenFileReached(file -> file.length() == 0);
+        scanner.whenScanStarted(() -> containerView.post(() -> {
+            statusBar.markRunning();
+            statusBar.setText(context.getString(R.string.scanning));
+            selectionBar.invalidate();
+        }));
+        scanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
+            totalScanned += scanned;
+            itemAdapter.addAll(delta);
+            selectionBar.invalidate();
+            statusBar.setText(context.getString(R.string.x_scanned_y_found,
+                    totalScanned, itemAdapter.getItemCount()));
+        }));
+        scanner.whenScanStopped(() -> containerView.post(statusBar::markDone));
         scanner.start(startDirectory);
     }
 
@@ -145,60 +163,5 @@ public class DeleteEmptyPopup {
             scanner.cancel();
         }
         popupWindow.dismiss();
-    }
-
-    public interface OnDelete {
-
-        void accept(Collection<File> files, boolean parents);
-    }
-
-    class Scanner extends FileScanner {
-
-        final List<File> results = Collections.synchronizedList(new ArrayList<>());
-
-        @Override
-        protected void onScanStarted() {
-            containerView.post(() -> {
-                statusBar.markRunning();
-                statusBar.setText(context.getString(R.string.scanning));
-                selectionBar.invalidate();
-            });
-        }
-
-        @Override
-        protected void onScanUpdated(int numFilesScanned) {
-            containerView.post(() -> {
-                itemAdapter.invalidate(scanner.copyResults());
-                selectionBar.invalidate();
-                if (isCompleted()) {
-                    statusBar.markDone();
-                }
-                statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                        numFilesScanned, itemAdapter.getItemCount()));
-            });
-        }
-
-        @Override
-        protected void onFile(File file) {
-            if (file.length() == 0) {
-                results.add(file);
-            }
-        }
-
-        @Override
-        protected boolean onDirectory(File directory) {
-            File[] children = directory.listFiles();
-            if (children == null || children.length == 0) {
-                results.add(directory);
-                return false;
-            }
-            return true;
-        }
-
-        List<File> copyResults() {
-            synchronized (results) {
-                return new ArrayList<>(results);
-            }
-        }
     }
 }
