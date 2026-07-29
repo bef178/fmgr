@@ -254,9 +254,9 @@ public class SearchPopup {
     class Scanner {
 
         private String query;
-        private FileScanner nameScanner;
+        private FileScanUpdater nameScanner;
         private int nameScanned;
-        private FileScanner contentScanner;
+        private FileScanUpdater contentScanner;
         private int contentScanned;
         private final Set<String> results = Collections.synchronizedSet(new HashSet<>());
 
@@ -264,7 +264,7 @@ public class SearchPopup {
             this.query = query;
             results.clear();
 
-            nameScanner = new FileScanner();
+            nameScanner = new FileScanUpdater();
             nameScanner.whenDirectoryReached(directory -> {
                 if (directory.getName().contains(Scanner.this.query)) {
                     results.add(directory.getPath());
@@ -283,7 +283,7 @@ public class SearchPopup {
                 statusBar.markRunning();
                 statusBar.setText(context.getString(R.string.search_status_searching));
             }));
-            nameScanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
+            nameScanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
                 nameScanned += scanned;
                 itemAdapter.addAll(delta);
                 statusBar.setText(context.getString(R.string.search_status_searching));
@@ -297,7 +297,7 @@ public class SearchPopup {
         }
 
         private void scanContent() {
-            contentScanner = new FileScanner();
+            contentScanner = new FileScanUpdater();
             contentScanner.whenFileReached(file -> {
                 if (!results.contains(file.getPath())
                         && (isTextFile(file) || isSmallAnonymousFile(file))
@@ -307,7 +307,7 @@ public class SearchPopup {
                 }
                 return false;
             });
-            contentScanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
+            contentScanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
                 contentScanned += scanned;
                 itemAdapter.addAll(delta);
                 statusBar.setText(context.getString(R.string.x_scanned_y_found,

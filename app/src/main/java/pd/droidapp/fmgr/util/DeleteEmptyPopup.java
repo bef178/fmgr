@@ -33,7 +33,7 @@ public class DeleteEmptyPopup {
     private final PopupFileItemAdapter itemAdapter;
     private final PopupWindow popupWindow;
 
-    private FileScanner scanner;
+    private FileScanUpdater scanner;
     private int totalScanned;
 
     public DeleteEmptyPopup(View containerView, File startDirectory) {
@@ -136,7 +136,7 @@ public class DeleteEmptyPopup {
     }
 
     private void doScan() {
-        scanner = new FileScanner();
+        scanner = new FileScanUpdater();
         scanner.whenDirectoryReached(directory -> {
             File[] children = directory.listFiles();
             return children == null || children.length == 0;
@@ -147,7 +147,7 @@ public class DeleteEmptyPopup {
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
         }));
-        scanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
+        scanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
             totalScanned += scanned;
             itemAdapter.addAll(delta);
             selectionBar.invalidate();

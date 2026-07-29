@@ -53,7 +53,7 @@ public class DedupPopup {
     private final FileGrouper fileGrouper = new FileGrouper();
     private int totalScanned;
 
-    private FileScanner fileScanner;
+    private FileScanUpdater fileScanUpdater;
 
     public DedupPopup(View containerView, File startDirectory) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
@@ -168,19 +168,19 @@ public class DedupPopup {
     }
 
     private void doScan() {
-        fileScanner = new FileScanner();
-        fileScanner.whenFileReached(file -> {
+        fileScanUpdater = new FileScanUpdater();
+        fileScanUpdater.whenFileReached(file -> {
             if (file.length() != 0) {
                 fileGrouper.add(file);
             }
             return false;
         });
-        fileScanner.whenScanStarted(() -> containerView.post(() -> {
+        fileScanUpdater.whenScanStarted(() -> containerView.post(() -> {
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
         }));
-        fileScanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
+        fileScanUpdater.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
             totalScanned += scanned;
             dedupFileGroupAdapter.setFileGroups(getFileGroups());
             selectionBar.invalidate();
@@ -189,12 +189,12 @@ public class DedupPopup {
             statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
                     totalScanned, totalFiles, dedupFileGroupAdapter.getGroupCount()));
         }));
-        fileScanner.whenScanStopped(() -> containerView.post(() -> {
-            if (fileScanner.isCompleted()) {
+        fileScanUpdater.whenScanStopped(() -> containerView.post(() -> {
+            if (fileScanUpdater.isCompleted()) {
                 statusBar.markDone();
             }
         }));
-        fileScanner.start(startDirectory);
+        fileScanUpdater.start(startDirectory);
     }
 
     private List<FileGroup> getFileGroups() {
@@ -262,8 +262,8 @@ public class DedupPopup {
     }
 
     public void dismiss() {
-        if (fileScanner != null) {
-            fileScanner.cancel();
+        if (fileScanUpdater != null) {
+            fileScanUpdater.cancel();
         }
         popupWindow.dismiss();
     }

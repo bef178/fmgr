@@ -2,39 +2,25 @@ package pd.droidapp.fmgr.util;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Stack;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
+import java.util.function.Consumer;
 
 import pd.util.PathExtension;
 
 public class FileScanner {
 
-    private final int updateInterval;
     private final int maxDepth;
-    private final AtomicBoolean started = new AtomicBoolean(false);
-    private final AtomicBoolean cancelled = new AtomicBoolean(false);
-    private final AtomicBoolean completed = new AtomicBoolean(false);
-    private Thread scanThread;
-    private Timer scanTimer;
-    private final AtomicInteger scanned = new AtomicInteger(0);
-    private List<File> accumulated = new LinkedList<>();
-    private final Object lock = started;
 
-    private Function<File, Boolean> onDirectoryReached;
-    private Function<File, Boolean> onFileReached;
-    private Runnable onScanStarted;
-    private BiConsumer<Integer, List<File>> onScanUpdated;
-    private Runnable onScanStopped;
+    private Consumer<File> onFile;
+    private Consumer<File> onDirectory;
+
+    private final AtomicBoolean started = new AtomicBoolean(false);
+    private final AtomicBoolean completed = new AtomicBoolean(false);
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+    private Thread scanThread;
 
     public FileScanner() {
-        this.updateInterval = 1000;
         this.maxDepth = 32;
     }
 
@@ -43,32 +29,18 @@ public class FileScanner {
      * The file will be accumulated if the callback returns `true`.
      * Follows symlinks.
      */
-    public void whenFileReached(Function<File, Boolean> onFileReached) {
-        this.onFileReached = onFileReached;
+    public void whenFileReached(Consumer<File> onFile) {
+        this.onFile = onFile;
     }
 
-    public void whenDirectoryReached(Function<File, Boolean> onDirectoryReached) {
-        this.onDirectoryReached = onDirectoryReached;
-    }
-
-    public void whenScanStarted(Runnable onScanStarted) {
-        this.onScanStarted = onScanStarted;
-    }
-
-    public void whenScanUpdated(BiConsumer<Integer, List<File>> onScanUpdated) {
-        this.onScanUpdated = onScanUpdated;
-    }
-
-    public void whenScanStopped(Runnable onScanStopped) {
-        this.onScanStopped = onScanStopped;
+    public void whenDirectoryReached(Consumer<File> onDirectory) {
+        this.onDirectory = onDirectory;
     }
 
     public boolean start(File startDirectory) {
         if (!started.compareAndSet(false, true)) {
             return false;
         }
-
-        startTimer();
 
         scanThread = new Thread(() -> {
             doScan(startDirectory);
@@ -99,10 +71,8 @@ public class FileScanner {
                 }
                 File child = children[i];
                 if (child.isDirectory() && frame.depth < maxDepth) {
-                    if (onDirectoryReached != null && onDirectoryReached.apply(child)) {
-                        synchronized (lock) {
-                            accumulated.add(child);
-                        }
+                    if (onDirectory != null) {
+                        onDirectory.accept(child);
                     }
                     stack.push(new Frame(child, frame.depth + 1));
                 }
@@ -112,57 +82,16 @@ public class FileScanner {
                     return;
                 }
                 if (child.isFile()) {
-                    scanned.incrementAndGet();
-                    if (onFileReached != null && onFileReached.apply(child)) {
-                        synchronized (lock) {
-                            accumulated.add(child);
-                        }
+                    if (onFile != null) {
+                        onFile.accept(child);
                     }
                 }
             }
         }
     }
 
-    private List<File> dump() {
-        synchronized (lock) {
-            List<File> batch = accumulated;
-            accumulated = new LinkedList<>();
-            return batch;
-        }
-    }
-
-    private void startTimer() {
-        scanTimer = new Timer();
-        if (onScanStarted != null) {
-            scanTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    onScanStarted.run();
-                }
-            }, 0);
-        }
-        scanTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (onScanUpdated != null) {
-                    onScanUpdated.accept(scanned.getAndSet(0), dump());
-                }
-                if (cancelled.get() || completed.get()) {
-                    clearTimer();
-                    if (onScanStopped != null) {
-                        onScanStopped.run();
-                    }
-                }
-            }
-        }, updateInterval, updateInterval);
-    }
-
-    private void clearTimer() {
-        if (scanTimer != null) {
-            scanTimer.cancel();
-            scanTimer.purge();
-            scanTimer = null;
-        }
+    public boolean isCompleted() {
+        return completed.get();
     }
 
     public void cancel() {
@@ -172,8 +101,8 @@ public class FileScanner {
         }
     }
 
-    public boolean isCompleted() {
-        return completed.get();
+    public boolean isCancelled() {
+        return cancelled.get();
     }
 
     private static class Frame {
