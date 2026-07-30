@@ -12,8 +12,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -30,6 +30,8 @@ public class DeleteEmptyPopup {
     private final SelectionBar selectionBar;
     private Consumer<File> onJump;
     private BiConsumer<Collection<File>, Boolean> onDelete;
+    private PopupOnClosed onClosed;
+    private final Collection<File> removedFiles = new ArrayList<>();
     private final PopupFileItemAdapter itemAdapter;
     private final PopupWindow popupWindow;
 
@@ -73,22 +75,14 @@ public class DeleteEmptyPopup {
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
-                List<File> selected = selectionBar.copySelectedFiles();
-                onDelete.accept(selected, false);
-                itemAdapter.removeAll(selected);
+                onDelete.accept(selectionBar.copySelectedFiles(), false);
             }
-            selectionBar.clear();
-            selectionBar.invalidate();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
             if (onDelete != null) {
-                List<File> selected = selectionBar.copySelectedFiles();
-                onDelete.accept(selected, true);
-                itemAdapter.removeAll(selected);
+                onDelete.accept(selectionBar.copySelectedFiles(), true);
             }
-            selectionBar.clear();
-            selectionBar.invalidate();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
@@ -128,6 +122,19 @@ public class DeleteEmptyPopup {
         this.onDelete = onDelete;
     }
 
+    public void whenClosed(PopupOnClosed onClosed) {
+        this.onClosed = onClosed;
+    }
+
+    public void notifyClosed(Collection<File> removedFiles) {
+        if (!removedFiles.isEmpty()) {
+            this.removedFiles.addAll(removedFiles);
+            itemAdapter.removeAll(removedFiles);
+            selectionBar.clear();
+            selectionBar.invalidate();
+        }
+    }
+
     public void show() {
         containerView.post(() -> {
             popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
@@ -161,6 +168,9 @@ public class DeleteEmptyPopup {
     public void dismiss() {
         if (scanner != null) {
             scanner.cancel();
+        }
+        if (onClosed != null) {
+            onClosed.onClosed(removedFiles);
         }
         popupWindow.dismiss();
     }

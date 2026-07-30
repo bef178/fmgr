@@ -39,9 +39,9 @@ public class PastePopup {
     private final PopupTitleBar titleBar;
     private final TextView resolutionTitleTextView;
     private final RadioGroup resolutionOptionsGroup;
-    private final TextView progressCountTextView;
     private final ProgressBar progressView;
-    private final TextView progressCurrentTextView;
+    private final TextView progressBarTextView;
+    private final TextView progressBarSideTextView;
     private final TextView progressSummary;
     private final Button startButton;
     private final Button abortButton;
@@ -67,9 +67,9 @@ public class PastePopup {
         titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
         resolutionTitleTextView = popupView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = popupView.findViewById(R.id.resolution_options);
-        progressCountTextView = popupView.findViewById(R.id.progress_count);
-        progressView = popupView.findViewById(R.id.progress_view);
-        progressCurrentTextView = popupView.findViewById(R.id.progress_current);
+        progressView = popupView.findViewById(R.id.progress_bar);
+        progressBarTextView = popupView.findViewById(R.id.progress_bar_text);
+        progressBarSideTextView = popupView.findViewById(R.id.progress_bar_side_text);
         progressSummary = popupView.findViewById(R.id.progress_summary);
         startButton = popupView.findViewById(R.id.button_start);
         abortButton = popupView.findViewById(R.id.button_abort);
@@ -85,8 +85,8 @@ public class PastePopup {
 
         resolutionTitleTextView.setText(R.string.select_resolution);
 
-        progressCountTextView.setText(context.getString(R.string.paste_progress_count, 0, this.srcFiles.size()));
-        progressCurrentTextView.setText(R.string.paste_progress_pending);
+        progressBarTextView.setText(context.getString(R.string.progress_text, 0, this.srcFiles.size()));
+        progressBarSideTextView.setText(R.string.progress_pending);
 
         titleBar.whenCloseButtonClicked(v -> dismiss());
         startButton.setOnClickListener(v -> start(isCopyAction));
@@ -169,22 +169,22 @@ public class PastePopup {
 
         paster = new Paster();
         paster.whenPasteStarted(() -> containerView.post(() -> {
-            progressCountTextView.setText(context.getString(R.string.paste_progress_count, 0, total));
+            progressBarTextView.setText(context.getString(R.string.progress_text, 0, total));
             progressView.setProgress(0);
         }));
         paster.whenPasteUpdated((added, overwritten, skipped, failed, currentFile) -> containerView.post(() -> {
             int n = paster.getCurrentProcessingIndex();
-            progressCountTextView.setText(context.getString(R.string.paste_progress_count, n, total));
+            progressBarTextView.setText(context.getString(R.string.progress_text, n, total));
             progressView.setProgress(n * 100 / total);
-            progressCurrentTextView.setText(currentFile.getAbsolutePath());
+            progressBarSideTextView.setText(currentFile.getAbsolutePath());
         }));
         paster.whenPasteCompleted((added, overwritten, skipped, failed, currentFile) -> containerView.post(() -> {
             if (paster.getAborted()) {
-                progressCurrentTextView.setText(R.string.paste_progress_aborted);
+                progressBarSideTextView.setText(R.string.progress_aborted);
             } else {
-                progressCurrentTextView.setText(R.string.paste_progress_completed);
+                progressBarSideTextView.setText(R.string.progress_completed);
             }
-            progressSummary.setText(context.getString(R.string.paste_progress_summary,
+            progressSummary.setText(context.getString(R.string.progress_summary,
                     added, overwritten, skipped, failed));
 
             abortButton.setVisibility(View.GONE);

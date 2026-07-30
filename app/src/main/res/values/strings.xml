@@ -85,10 +85,14 @@
     <string name="resolution_option_overwrite">Overwrite existing</string>
     <string name="resolution_option_skip_incoming">Keep existing, skip incoming</string>
     <string name="resolution_option_rename_incoming">Keep existing, rename incoming</string>
-    <string name="paste_progress_count">%d / %d</string>
-    <string name="paste_progress_pending">Pending</string>
-    <string name="paste_progress_completed">Completed</string>
-    <string name="paste_progress_aborted">Aborted</string>
-    <string name="paste_progress_summary">%d added, %d overwritten, %d skipped, %d failed</string>
+    <string name="progress_text">%d / %d</string>
+    <string name="progress_pending">Pending</string>
+    <string name="progress_completed">Completed</string>
+    <string name="progress_aborted">Aborted</string>
+    <string name="progress_summary">%d added, %d overwritten, %d skipped, %d failed</string>
+
+    <!-- delete popup -->
+    <string name="delete_x_items">Delete %d item(s)</string>
+    <string name="delete_progress_summary">%d deleted, %d failed</string>
 
 </resources>

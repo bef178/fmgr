@@ -24,10 +24,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -45,6 +45,8 @@ public class SearchPopup {
     private Consumer<Collection<File>> onCopy;
     private Consumer<Collection<File>> onCut;
     private Consumer<Collection<File>> onDelete;
+    private PopupOnClosed onClosed;
+    private final Collection<File> removedFiles = new ArrayList<>();
 
     private final EditText searchEdit;
     private final ImageButton searchEditClearButton;
@@ -149,11 +151,8 @@ public class SearchPopup {
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
-                List<File> selected = selectionBar.copySelectedFiles();
-                onDelete.accept(selected);
-                itemAdapter.removeAll(selected);
+                onDelete.accept(selectionBar.copySelectedFiles());
             }
-            clearSelection();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
@@ -195,6 +194,18 @@ public class SearchPopup {
         this.onDelete = onDelete;
     }
 
+    public void whenClosed(PopupOnClosed onClosed) {
+        this.onClosed = onClosed;
+    }
+
+    public void notifyClosed(Collection<File> removedFiles) {
+        if (!removedFiles.isEmpty()) {
+            this.removedFiles.addAll(removedFiles);
+            itemAdapter.removeAll(removedFiles);
+            clearSelection();
+        }
+    }
+
     public void show() {
         containerView.post(() -> {
             popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
@@ -211,6 +222,9 @@ public class SearchPopup {
 
     public void dismiss() {
         cancelSearch();
+        if (onClosed != null) {
+            onClosed.onClosed(removedFiles);
+        }
         popupWindow.dismiss();
     }
 

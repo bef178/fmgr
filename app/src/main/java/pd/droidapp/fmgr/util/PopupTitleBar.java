@@ -33,4 +33,8 @@ public class PopupTitleBar {
     public void enableCloseButton(boolean enabled) {
         closeButton.setEnabled(enabled);
     }
+
+    public boolean isCloseButtonEnabled() {
+        return closeButton.isEnabled();
+    }
 }

@@ -46,6 +46,8 @@ public class DedupPopup {
     private Consumer<Collection<File>> onCopy;
     private Consumer<Collection<File>> onCut;
     private BiConsumer<Collection<File>, Boolean> onDelete;
+    private PopupOnClosed onClosed;
+    private final Collection<File> removedFiles = new ArrayList<>();
     private final DedupFileGroupAdapter dedupFileGroupAdapter;
     private final PopupWindow popupWindow;
 
@@ -106,13 +108,8 @@ public class DedupPopup {
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
-                List<File> selected = selectionBar.copySelectedFiles();
-                onDelete.accept(selected, false);
-                fileGrouper.removeAll(selected);
-                dedupFileGroupAdapter.setFileGroups(getFileGroups());
+                onDelete.accept(selectionBar.copySelectedFiles(), false);
             }
-            selectionBar.clear();
-            selectionBar.invalidate();
         });
 
         selectionBar.addButton(R.layout.selection_button_smart_select, c -> c > 0, v -> {
@@ -158,6 +155,20 @@ public class DedupPopup {
 
     public void whenDeleteClicked(BiConsumer<Collection<File>, Boolean> onDelete) {
         this.onDelete = onDelete;
+    }
+
+    public void whenClosed(PopupOnClosed onClosed) {
+        this.onClosed = onClosed;
+    }
+
+    public void notifyClosed(Collection<File> removedFiles) {
+        if (!removedFiles.isEmpty()) {
+            this.removedFiles.addAll(removedFiles);
+            fileGrouper.removeAll(removedFiles);
+            dedupFileGroupAdapter.setFileGroups(getFileGroups());
+            selectionBar.clear();
+            selectionBar.invalidate();
+        }
     }
 
     public void show() {
@@ -264,6 +275,9 @@ public class DedupPopup {
     public void dismiss() {
         if (fileScanUpdater != null) {
             fileScanUpdater.cancel();
+        }
+        if (onClosed != null) {
+            onClosed.onClosed(removedFiles);
         }
         popupWindow.dismiss();
     }
