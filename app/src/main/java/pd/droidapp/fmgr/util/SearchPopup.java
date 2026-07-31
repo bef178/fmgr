@@ -27,6 +27,7 @@ import java.io.FileReader;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -42,51 +43,81 @@ public class SearchPopup {
     private final Context context;
     private final View containerView;
     private final File startDirectory;
-    private Consumer<File> onJump;
-    private Consumer<Collection<File>> onCopy;
-    private Consumer<Collection<File>> onCut;
-    private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
 
+    // views
+    private final View selfView;
+    private final PopupWindow selfWindow;
+    private final LinearLayout mainAreaView;
+    private final PopupTitleBar titleBar;
     private final EditText searchEdit;
     private final ImageButton searchEditClearButton;
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
-    private final PopupFileItemAdapter itemAdapter;
-    private final PopupWindow popupWindow;
+    private final RecyclerView itemsView;
+    private final PopupFileItemsAdapter itemsAdapter;
 
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Runnable searchRunnable = this::doSearch;
+    // callbacks
+    private Consumer<File> onJump;
+    private Consumer<Collection<File>> onCopy;
+    private Consumer<Collection<File>> onCut;
+    private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
+    private PopupOnDismissListener onDismiss;
+
     private Scanner scanner;
     private String lastQuery = "";
+    private final Collection<File> removedFiles = new LinkedList<>();
 
     public SearchPopup(View containerView, File startDirectory) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
         this.startDirectory = startDirectory;
 
-        View popupView = LayoutInflater.from(context).inflate(
+        selfView = LayoutInflater.from(context).inflate(
                 R.layout.search_popup,
                 (ViewGroup) containerView,
                 false);
+        selfWindow = new PopupWindow(selfView,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                true);
+        mainAreaView = selfView.findViewById(R.id.popup_area);
 
-        LinearLayout popupArea = popupView.findViewById(R.id.popup_area);
-        searchEdit = popupView.findViewById(R.id.search_edit);
-        searchEditClearButton = popupView.findViewById(R.id.search_edit_clear);
-        PopupTitleBar titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
-        titleBar.setTitle(R.string.search_files);
-        titleBar.whenCloseButtonClicked(v -> dismiss());
-        statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
+        titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
+        searchEdit = mainAreaView.findViewById(R.id.search_edit);
+        searchEditClearButton = mainAreaView.findViewById(R.id.search_edit_clear);
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
+        itemsView = mainAreaView.findViewById(R.id.files_list);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedFiles);
 
-        selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));
+        initPopupWindow();
+        enableClosePopupOnOutsideTouch();
+        initPopupTitleBar();
+        initSearchEdit();
+        initSelectionBar();
+        initItemsView();
+    }
 
-        RecyclerView searchResultItemsList = popupView.findViewById(R.id.files_list);
+    private void initPopupWindow() {
+        selfWindow.setOutsideTouchable(false);
+        selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        selfWindow.setElevation(24);
+        selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        selfWindow.setOnDismissListener(() -> {
+            cancelSearch();
+            if (onDismiss != null) {
+                onDismiss.accept(removedFiles);
+            }
+        });
+    }
 
-        itemAdapter = new PopupFileItemAdapter(startDirectory, selectionBar.selectedFiles);
-        itemAdapter.whenItemFileToggled(selectionBar::invalidate);
-        searchResultItemsList.setLayoutManager(new LinearLayoutManager(context));
-        searchResultItemsList.setAdapter(itemAdapter);
+    private void enableClosePopupOnOutsideTouch() {
+        selfView.setOnClickListener(v -> selfWindow.dismiss());
+        mainAreaView.setOnClickListener(v -> {});
+    }
 
-
+    private void initSearchEdit() {
+        Handler handler = new Handler(Looper.getMainLooper());
         searchEdit.addTextChangedListener(new TextWatcher() {
 
             @Override
@@ -99,21 +130,21 @@ public class SearchPopup {
 
             @Override
             public void afterTextChanged(Editable s) {
-                handler.removeCallbacks(searchRunnable);
+                handler.removeCallbacks(SearchPopup.this::doSearch);
                 searchEditClearButton.setEnabled(!s.toString().isEmpty());
-                handler.postDelayed(searchRunnable, SEARCH_START_DELAY_IN_MILLISECONDS);
+                handler.postDelayed(SearchPopup.this::doSearch, SEARCH_START_DELAY_IN_MILLISECONDS);
             }
         });
 
         searchEditClearButton.setOnClickListener(v -> {
             searchEdit.setText("");
-            handler.removeCallbacks(searchRunnable);
+            handler.removeCallbacks(SearchPopup.this::doSearch);
             doSearch();
         });
 
         searchEdit.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                handler.removeCallbacks(searchRunnable);
+                handler.removeCallbacks(SearchPopup.this::doSearch);
                 doSearch();
                 InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (imm != null) {
@@ -123,14 +154,21 @@ public class SearchPopup {
             }
             return false;
         });
+    }
 
+    private void initPopupTitleBar() {
+        titleBar.setTitle(R.string.search_files);
+        titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
+    }
+
+    private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.selectedFiles.size() == 1) {
                 File file = selectionBar.selectedFiles.iterator().next();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
-                dismiss();
+                selfWindow.dismiss();
             }
         });
 
@@ -138,46 +176,40 @@ public class SearchPopup {
             if (onCopy != null) {
                 onCopy.accept(selectionBar.copySelectedFiles());
             }
-            dismiss();
+            selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
                 onCut.accept(selectionBar.copySelectedFiles());
             }
-            dismiss();
+            selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
                 Collection<File> removed = onDelete.apply(selected, false);
-                itemAdapter.removeAll(removed);
+                removedFiles.addAll(removed);
+                itemsAdapter.removeAll(removed);
             }
             clearSelection();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addAll(itemAdapter.copyItems());
+            selectionBar.addAll(itemsAdapter.copyItems());
             selectionBar.invalidate();
-            itemAdapter.notifyDataSetChanged();
+            itemsAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> clearSelection());
+    }
 
-        popupView.setOnClickListener(v -> dismiss());
-        popupArea.setOnClickListener(v -> {});
-
-        popupWindow = new PopupWindow(popupView,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                true);
-        popupWindow.setFocusable(true);
-        popupWindow.setOutsideTouchable(false);
-        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        popupWindow.setElevation(24);
-        popupWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    private void initItemsView() {
+        itemsView.setLayoutManager(new LinearLayoutManager(context));
+        itemsView.setAdapter(itemsAdapter);
+        itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
     }
 
     public void whenJumpClicked(Consumer<File> onJump) {
@@ -196,9 +228,13 @@ public class SearchPopup {
         this.onDelete = onDelete;
     }
 
+    public void whenDismissClicked(PopupOnDismissListener onDismiss) {
+        this.onDismiss = onDismiss;
+    }
+
     public void show() {
         containerView.post(() -> {
-            popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
+            selfWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
             searchEdit.requestFocus();
             searchEditClearButton.setEnabled(false);
             searchEdit.postDelayed(() -> {
@@ -210,17 +246,12 @@ public class SearchPopup {
         });
     }
 
-    public void dismiss() {
-        cancelSearch();
-        popupWindow.dismiss();
-    }
-
     private void doSearch() {
         String query = searchEdit.getText().toString();
         if (query.isEmpty()) {
             cancelSearch();
             clearSelection();
-            itemAdapter.clear();
+            itemsAdapter.clear();
             lastQuery = "";
             statusBar.hide();
             return;
@@ -232,7 +263,7 @@ public class SearchPopup {
 
         cancelSearch();
         clearSelection();
-        itemAdapter.clear();
+        itemsAdapter.clear();
 
         lastQuery = query;
         scanner = new Scanner();
@@ -249,7 +280,7 @@ public class SearchPopup {
     private void clearSelection() {
         selectionBar.clear();
         selectionBar.invalidate();
-        itemAdapter.notifyDataSetChanged();
+        itemsAdapter.notifyDataSetChanged();
     }
 
     class Scanner {
@@ -286,7 +317,7 @@ public class SearchPopup {
             }));
             nameScanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
                 nameScanned += scanned;
-                itemAdapter.addAll(delta);
+                itemsAdapter.addAll(delta);
                 statusBar.setText(context.getString(R.string.search_status_searching));
             }));
             nameScanner.whenScanStopped(() -> containerView.post(() -> {
@@ -310,9 +341,9 @@ public class SearchPopup {
             });
             contentScanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
                 contentScanned += scanned;
-                itemAdapter.addAll(delta);
+                itemsAdapter.addAll(delta);
                 statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                        nameScanned + contentScanned, itemAdapter.getItemCount()));
+                        nameScanned + contentScanned, itemsAdapter.getItemCount()));
             }));
             contentScanner.whenScanStopped(() -> containerView.post(() -> {
                 if (contentScanner.isCompleted()) {

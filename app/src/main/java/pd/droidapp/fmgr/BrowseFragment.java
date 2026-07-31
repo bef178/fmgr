@@ -60,8 +60,8 @@ public class BrowseFragment extends Fragment {
     private ActionBar actionBar;
     private PathBar pathBar;
     private SelectionBar selectionBar;
-    private RecyclerView filesView;
-    private FileItemAdapter itemAdapter;
+    private RecyclerView itemsView;
+    private FileItemsAdapter itemsAdapter;
 
     private final Stack<File> backStack = new Stack<>();
     private final Stack<File> forwardStack = new Stack<>();
@@ -80,11 +80,11 @@ public class BrowseFragment extends Fragment {
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
-        itemAdapter = new FileItemAdapter();
+        itemsAdapter = new FileItemsAdapter();
 
-        filesView = view.findViewById(R.id.file_list);
-        filesView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        filesView.setAdapter(itemAdapter);
+        itemsView = view.findViewById(R.id.file_list);
+        itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        itemsView.setAdapter(itemsAdapter);
 
         selectionBar.addButton(R.layout.selection_button_rename, c -> c == 1, v -> {
             if (selectionBar.selectedFiles.size() == 1) {
@@ -95,22 +95,22 @@ public class BrowseFragment extends Fragment {
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> markSelectedItemsForCut());
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             Collection<File> removed = deleteItems(selectionBar.copySelectedFiles(), false);
-            itemAdapter.removeAll(removed);
+            itemsAdapter.removeAll(removed);
             selectionBar.clear();
             selectionBar.invalidate();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addAll(itemAdapter.getFiles());
+            selectionBar.addAll(itemsAdapter.getFiles());
             selectionBar.invalidate();
-            itemAdapter.notifyDataSetChanged();
+            itemsAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
             selectionBar.clear();
             selectionBar.invalidate();
-            itemAdapter.notifyDataSetChanged();
+            itemsAdapter.notifyDataSetChanged();
         });
 
         doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
@@ -129,7 +129,7 @@ public class BrowseFragment extends Fragment {
     public void onResume() {
         super.onResume();
         pathBar.invalidate();
-        itemAdapter.invalidate(pathBar.getCurrentDirectory());
+        itemsAdapter.invalidate(pathBar.getCurrentDirectory());
         askForAllFilesAccessIfNecessary();
     }
 
@@ -172,7 +172,7 @@ public class BrowseFragment extends Fragment {
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemAdapter.invalidate(directory);
+        itemsAdapter.invalidate(directory);
     }
 
     public void navigateToDirectory(File target) {
@@ -286,11 +286,11 @@ public class BrowseFragment extends Fragment {
         doChangeCurrentDirectory(parent);
 
         // scroll to and highlight the file
-        filesView.post(() -> {
-            int position = itemAdapter.indexOf(file);
+        itemsView.post(() -> {
+            int position = itemsAdapter.indexOf(file);
             if (position >= 0) {
-                filesView.scrollToPosition(position);
-                filesView.postDelayed(() -> itemAdapter.highlightFile(file), 400);
+                itemsView.scrollToPosition(position);
+                itemsView.postDelayed(() -> itemsAdapter.highlightFile(file), 400);
             }
         });
     }
@@ -356,7 +356,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        itemAdapter.invalidate(pathBar.getCurrentDirectory());
+        itemsAdapter.invalidate(pathBar.getCurrentDirectory());
         return true;
     }
 
@@ -400,9 +400,9 @@ public class BrowseFragment extends Fragment {
         selectionBar.clear();
         selectionBar.invalidate();
         for (File file : files) {
-            int i = itemAdapter.indexOf(file);
+            int i = itemsAdapter.indexOf(file);
             if (i >= 0) {
-                itemAdapter.notifyItemChanged(i);
+                itemsAdapter.notifyItemChanged(i);
             }
         }
     }
@@ -415,9 +415,9 @@ public class BrowseFragment extends Fragment {
         selectionBar.clear();
         selectionBar.invalidate();
         for (File file : files) {
-            int i = itemAdapter.indexOf(file);
+            int i = itemsAdapter.indexOf(file);
             if (i >= 0) {
-                itemAdapter.notifyItemChanged(i);
+                itemsAdapter.notifyItemChanged(i);
             }
         }
     }
@@ -452,7 +452,7 @@ public class BrowseFragment extends Fragment {
             if (everExecuted) {
                 clipboard.clear();
                 actionBar.invalidate();
-                itemAdapter.invalidate(pathBar.getCurrentDirectory());
+                itemsAdapter.invalidate(pathBar.getCurrentDirectory());
             }
         });
         pastePopup.show();
@@ -554,7 +554,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        itemAdapter.invalidate(pathBar.getCurrentDirectory());
+        itemsAdapter.invalidate(pathBar.getCurrentDirectory());
         return true;
     }
 
@@ -564,6 +564,7 @@ public class BrowseFragment extends Fragment {
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
         popup.whenDeleteClicked(this::deleteItems);
+        popup.whenDismissClicked(this::onPopupDismissed);
         popup.show();
     }
 
@@ -581,6 +582,15 @@ public class BrowseFragment extends Fragment {
         popup.whenCutClicked(this::cutToClipboard);
         popup.whenDeleteClicked(this::deleteItems);
         popup.show();
+    }
+
+    private void onPopupDismissed(Collection<File> removedFiles) {
+        if (removedFiles.isEmpty()) {
+            return;
+        }
+        itemsAdapter.removeAll(removedFiles);
+        selectionBar.selectedFiles.removeAll(removedFiles);
+        selectionBar.invalidate();
     }
 
     public class ActionBar {
@@ -634,7 +644,7 @@ public class BrowseFragment extends Fragment {
         }
     }
 
-    private class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.FileItemViewHolder> {
+    private class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.FileItemViewHolder> {
 
         private final Comparator<File> fileComparator = (f1, f2) -> {
             if (f1.isDirectory() && !f2.isDirectory()) {
@@ -666,7 +676,7 @@ public class BrowseFragment extends Fragment {
             progressor.start(file, 1500, new AccelerateDecelerateInterpolator(), (distance, velocity) -> {
                 int position = indexOf(file);
                 if (position >= 0) {
-                    RecyclerView.ViewHolder viewHolder = filesView.findViewHolderForAdapterPosition(position);
+                    RecyclerView.ViewHolder viewHolder = itemsView.findViewHolderForAdapterPosition(position);
                     if (viewHolder != null) {
                         FileItem item = fileItems.get(position);
                         if (item.getFile().equals(file)) {

@@ -17,14 +17,14 @@ import java.util.Set;
 import pd.droidapp.fmgr.R;
 import pd.util.PathExtension;
 
-public class PopupFileItemAdapter extends RecyclerView.Adapter<PopupFileItemAdapter.ItemViewHolder> {
+public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.ItemViewHolder> {
 
     private final File startDirectory;
     private final Set<File> selectedFiles;
     private final List<File> items = new LinkedList<>();
     private Runnable onItemFileToggled;
 
-    public PopupFileItemAdapter(File startDirectory, Set<File> selectedFiles) {
+    public PopupFileItemsAdapter(File startDirectory, Set<File> selectedFiles) {
         this.startDirectory = startDirectory;
         this.selectedFiles = selectedFiles;
     }

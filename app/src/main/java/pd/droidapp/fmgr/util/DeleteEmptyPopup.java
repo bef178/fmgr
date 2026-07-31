@@ -30,7 +30,7 @@ public class DeleteEmptyPopup {
     private final SelectionBar selectionBar;
     private Consumer<File> onJump;
     private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
-    private final PopupFileItemAdapter itemAdapter;
+    private final PopupFileItemsAdapter itemsAdapter;
     private final PopupWindow popupWindow;
 
     private FileScanUpdater scanner;
@@ -58,8 +58,8 @@ public class DeleteEmptyPopup {
 
         selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));
 
-        itemAdapter = new PopupFileItemAdapter(startDirectory, selectionBar.selectedFiles);
-        itemAdapter.whenItemFileToggled(selectionBar::invalidate);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedFiles);
+        itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
 
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.selectedFiles.size() == 1) {
@@ -75,7 +75,7 @@ public class DeleteEmptyPopup {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
                 Collection<File> removed = onDelete.apply(selected, false);
-                itemAdapter.removeAll(removed);
+                itemsAdapter.removeAll(removed);
             }
             selectionBar.clear();
             selectionBar.invalidate();
@@ -85,7 +85,7 @@ public class DeleteEmptyPopup {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
                 Collection<File> removed = onDelete.apply(selected, true);
-                itemAdapter.removeAll(removed);
+                itemsAdapter.removeAll(removed);
             }
             selectionBar.clear();
             selectionBar.invalidate();
@@ -93,19 +93,19 @@ public class DeleteEmptyPopup {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.selectedFiles.addAll(itemAdapter.copyItems());
+            selectionBar.selectedFiles.addAll(itemsAdapter.copyItems());
             selectionBar.invalidate();
-            itemAdapter.notifyDataSetChanged();
+            itemsAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
             selectionBar.clear();
             selectionBar.invalidate();
-            itemAdapter.notifyDataSetChanged();
+            itemsAdapter.notifyDataSetChanged();
         });
 
         filesListView.setLayoutManager(new LinearLayoutManager(context));
-        filesListView.setAdapter(itemAdapter);
+        filesListView.setAdapter(itemsAdapter);
 
         popupView.setOnClickListener(v -> dismiss());
         popupArea.setOnClickListener(v -> {});
@@ -149,10 +149,10 @@ public class DeleteEmptyPopup {
         }));
         scanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
             totalScanned += scanned;
-            itemAdapter.addAll(delta);
+            itemsAdapter.addAll(delta);
             selectionBar.invalidate();
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                    totalScanned, itemAdapter.getItemCount()));
+                    totalScanned, itemsAdapter.getItemCount()));
         }));
         scanner.whenScanStopped(() -> containerView.post(statusBar::markDone));
         scanner.start(startDirectory);
