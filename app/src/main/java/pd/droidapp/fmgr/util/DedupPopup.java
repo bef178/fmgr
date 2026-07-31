@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -45,7 +45,7 @@ public class DedupPopup {
     private Consumer<File> onJump;
     private Consumer<Collection<File>> onCopy;
     private Consumer<Collection<File>> onCut;
-    private BiConsumer<Collection<File>, Boolean> onDelete;
+    private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
     private final DedupFileGroupAdapter dedupFileGroupAdapter;
     private final PopupWindow popupWindow;
 
@@ -107,9 +107,9 @@ public class DedupPopup {
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
-                onDelete.accept(selected, false);
-                fileGrouper.removeAll(selected);
-                dedupFileGroupAdapter.setFileGroups(getFileGroups());
+                Collection<File> removed = onDelete.apply(selected, false);
+                fileGrouper.removeAll(removed);
+                dedupFileGroupAdapter.invalidate(buildFileGroups());
             }
             selectionBar.clear();
             selectionBar.invalidate();
@@ -156,7 +156,7 @@ public class DedupPopup {
         this.onCut = onCut;
     }
 
-    public void whenDeleteClicked(BiConsumer<Collection<File>, Boolean> onDelete) {
+    public void whenDeleteClicked(BiFunction<Collection<File>, Boolean, Collection<File>> onDelete) {
         this.onDelete = onDelete;
     }
 
@@ -182,7 +182,7 @@ public class DedupPopup {
         }));
         fileScanUpdater.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
             totalScanned += scanned;
-            dedupFileGroupAdapter.setFileGroups(getFileGroups());
+            dedupFileGroupAdapter.invalidate(buildFileGroups());
             selectionBar.invalidate();
             int totalFiles = dedupFileGroupAdapter.getFileGroups().stream()
                     .mapToInt(g -> g.getFiles().size()).sum();
@@ -197,8 +197,8 @@ public class DedupPopup {
         fileScanUpdater.start(startDirectory);
     }
 
-    private List<FileGroup> getFileGroups() {
-        List<FileGroup> fileGroups = new ArrayList<>();
+    private List<FileGroup> buildFileGroups() {
+        List<FileGroup> newFileGroups = new ArrayList<>();
         for (List<FileGrouper.FileProperties> group : fileGrouper.getDupGroups()) {
             List<File> a = new ArrayList<>();
             for (FileGrouper.FileProperties props : group) {
@@ -207,10 +207,10 @@ public class DedupPopup {
                 }
             }
             if (a.size() > 1) {
-                fileGroups.add(new FileGroup(group.get(0).size, group.get(0).md5sum, a));
+                newFileGroups.add(new FileGroup(group.get(0).size, group.get(0).md5sum, a));
             }
         }
-        return fileGroups;
+        return newFileGroups;
     }
 
     /**
@@ -306,7 +306,7 @@ public class DedupPopup {
             this.onItemFileToggled = onItemFileToggled;
         }
 
-        void setFileGroups(List<FileGroup> newGroups) {
+        void invalidate(List<FileGroup> newGroups) {
             List<FileGroup> oldGroups = new LinkedList<>(fileGroups);
             fileGroups.clear();
             fileGroups.addAll(newGroups);

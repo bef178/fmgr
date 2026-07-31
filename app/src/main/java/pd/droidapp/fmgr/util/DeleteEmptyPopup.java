@@ -15,7 +15,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -29,7 +29,7 @@ public class DeleteEmptyPopup {
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private Consumer<File> onJump;
-    private BiConsumer<Collection<File>, Boolean> onDelete;
+    private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
     private final PopupFileItemAdapter itemAdapter;
     private final PopupWindow popupWindow;
 
@@ -74,8 +74,8 @@ public class DeleteEmptyPopup {
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
-                onDelete.accept(selected, false);
-                itemAdapter.removeAll(selected);
+                Collection<File> removed = onDelete.apply(selected, false);
+                itemAdapter.removeAll(removed);
             }
             selectionBar.clear();
             selectionBar.invalidate();
@@ -84,8 +84,8 @@ public class DeleteEmptyPopup {
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
-                onDelete.accept(selected, true);
-                itemAdapter.removeAll(selected);
+                Collection<File> removed = onDelete.apply(selected, true);
+                itemAdapter.removeAll(removed);
             }
             selectionBar.clear();
             selectionBar.invalidate();
@@ -124,7 +124,7 @@ public class DeleteEmptyPopup {
         this.onJump = onJump;
     }
 
-    public void whenDeleteClicked(BiConsumer<Collection<File>, Boolean> onDelete) {
+    public void whenDeleteClicked(BiFunction<Collection<File>, Boolean, Collection<File>> onDelete) {
         this.onDelete = onDelete;
     }
 

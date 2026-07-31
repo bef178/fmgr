@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -44,7 +45,7 @@ public class SearchPopup {
     private Consumer<File> onJump;
     private Consumer<Collection<File>> onCopy;
     private Consumer<Collection<File>> onCut;
-    private Consumer<Collection<File>> onDelete;
+    private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
 
     private final EditText searchEdit;
     private final ImageButton searchEditClearButton;
@@ -150,8 +151,8 @@ public class SearchPopup {
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
-                onDelete.accept(selected);
-                itemAdapter.removeAll(selected);
+                Collection<File> removed = onDelete.apply(selected, false);
+                itemAdapter.removeAll(removed);
             }
             clearSelection();
         });
@@ -191,7 +192,7 @@ public class SearchPopup {
         this.onCut = onCut;
     }
 
-    public void whenDeleteClicked(Consumer<Collection<File>> onDelete) {
+    public void whenDeleteClicked(BiFunction<Collection<File>, Boolean, Collection<File>> onDelete) {
         this.onDelete = onDelete;
     }
 
