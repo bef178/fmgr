@@ -190,7 +190,11 @@ public class DeleteEmptyPopup {
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));
-        scanner.whenScanStopped(() -> containerView.post(statusBar::markDone));
+        scanner.whenScanStopped(() -> containerView.post(() -> {
+            if (scanner.isCompleted()) {
+                statusBar.markDone();
+            }
+        }));
         scanner.start(startDirectory);
     }
 }

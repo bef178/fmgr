@@ -97,10 +97,15 @@ public class FileScanUpdater {
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                if (onScanUpdated != null) {
-                    onScanUpdated.accept(dump(), scanned.getAndSet(0));
-                }
-                if (isCompleted() || isCancelled()) {
+                // note the race condition
+                if (fileScanner.isRunning()) {
+                    if (onScanUpdated != null) {
+                        onScanUpdated.accept(dump(), scanned.getAndSet(0));
+                    }
+                } else {
+                    if (onScanUpdated != null) {
+                        onScanUpdated.accept(dump(), scanned.getAndSet(0));
+                    }
                     clearTimer();
                     if (onScanStopped != null) {
                         onScanStopped.run();

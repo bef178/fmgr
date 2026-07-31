@@ -118,6 +118,10 @@ public class FileRemoveUpdater {
         }
     }
 
+    public boolean isCompleted() {
+        return fileRemover.isCompleted();
+    }
+
     public void cancel() {
         fileRemover.cancel();
     }

@@ -115,7 +115,14 @@ public class FileRemover {
         return workerThread != null && workerThread.isAlive();
     }
 
+    public boolean isCompleted() {
+        return started.get() && !cancelled.get() && !isRunning();
+    }
+
     public void cancel() {
+        if (!started.get() || !isRunning()) {
+            return;
+        }
         cancelled.set(true);
         if (workerThread != null) {
             workerThread.interrupt();

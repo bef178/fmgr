@@ -16,9 +16,8 @@ public class FileScanner {
     private Consumer<File> onDirectory;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
-    private final AtomicBoolean completed = new AtomicBoolean(false);
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
-    private Thread scanThread;
+    private volatile Thread workerThread;
 
     public FileScanner() {
         this.maxDepth = 32;
@@ -42,13 +41,8 @@ public class FileScanner {
             return false;
         }
 
-        scanThread = new Thread(() -> {
-            doScan(startDirectory);
-            if (!cancelled.get()) {
-                completed.set(true);
-            }
-        });
-        scanThread.start();
+        workerThread = new Thread(() -> doScan(startDirectory));
+        workerThread.start();
         return true;
     }
 
@@ -90,14 +84,21 @@ public class FileScanner {
         }
     }
 
+    public boolean isRunning() {
+        return workerThread != null && workerThread.isAlive();
+    }
+
     public boolean isCompleted() {
-        return completed.get();
+        return started.get() && !cancelled.get() && !isRunning();
     }
 
     public void cancel() {
+        if (!started.get() || !isRunning()) {
+            return;
+        }
         cancelled.set(true);
-        if (scanThread != null) {
-            scanThread.interrupt();
+        if (workerThread != null) {
+            workerThread.interrupt();
         }
     }
 
