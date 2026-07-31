@@ -582,6 +582,7 @@ public class BrowseFragment extends Fragment {
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
         popup.whenDeleteClicked(this::deleteItems);
+        popup.whenDismissClicked(this::onPopupDismissed);
         popup.show();
     }
 
