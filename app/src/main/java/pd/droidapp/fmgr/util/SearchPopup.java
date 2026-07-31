@@ -116,6 +116,11 @@ public class SearchPopup {
         mainAreaView.setOnClickListener(v -> {});
     }
 
+    private void initPopupTitleBar() {
+        titleBar.setTitle(R.string.search_files);
+        titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
+    }
+
     private void initSearchEdit() {
         Handler handler = new Handler(Looper.getMainLooper());
         searchEdit.addTextChangedListener(new TextWatcher() {
@@ -154,11 +159,6 @@ public class SearchPopup {
             }
             return false;
         });
-    }
-
-    private void initPopupTitleBar() {
-        titleBar.setTitle(R.string.search_files);
-        titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
     }
 
     private void initSelectionBar() {

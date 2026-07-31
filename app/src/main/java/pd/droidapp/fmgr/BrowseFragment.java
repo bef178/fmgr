@@ -572,6 +572,7 @@ public class BrowseFragment extends Fragment {
         DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), pathBar.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenDeleteClicked(this::deleteItems);
+        popup.whenDismissClicked(this::onPopupDismissed);
         popup.show();
     }
 

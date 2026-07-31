@@ -7,12 +7,14 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -26,48 +28,85 @@ public class DeleteEmptyPopup {
     private final View containerView;
     private final File startDirectory;
 
+    // views
+    private final View selfView;
+    private final PopupWindow selfWindow;
+    private final LinearLayout mainAreaView;
+    private final PopupTitleBar titleBar;
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
+    private final RecyclerView itemsView;
+    private final PopupFileItemsAdapter itemsAdapter;
+
+    // callbacks
     private Consumer<File> onJump;
     private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
-    private final PopupFileItemsAdapter itemsAdapter;
-    private final PopupWindow popupWindow;
+    private PopupOnDismissListener onDismiss;
 
     private FileScanUpdater scanner;
     private int totalScanned;
+    private final Collection<File> removedFiles = new LinkedList<>();
 
     public DeleteEmptyPopup(View containerView, File startDirectory) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
         this.startDirectory = startDirectory;
 
-        View popupView = LayoutInflater.from(context).inflate(
+        selfView = LayoutInflater.from(context).inflate(
                 R.layout.delete_empty_popup,
                 (ViewGroup) containerView,
                 false);
+        selfWindow = new PopupWindow(selfView,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                true);
+        mainAreaView = selfView.findViewById(R.id.popup_area);
 
-        View popupArea = popupView.findViewById(R.id.popup_area);
-
-        PopupTitleBar titleBar = new PopupTitleBar(popupView.findViewById(R.id.popup_title_bar));
-        titleBar.setTitle(R.string.delete_empty_files);
-        titleBar.whenCloseButtonClicked(v -> dismiss());
-
-        RecyclerView filesListView = popupView.findViewById(R.id.files_list);
-
-        statusBar = new StatusBar(popupView.findViewById(R.id.status_bar));
-
-        selectionBar = new SelectionBar(popupView.findViewById(R.id.selection_bar));
-
+        titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
+        itemsView = mainAreaView.findViewById(R.id.files_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedFiles);
-        itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
 
+        initPopupWindow();
+        enableClosePopupOnOutsideTouch();
+        initPopupTitleBar();
+        initSelectionBar();
+        initItemsView();
+    }
+
+    private void initPopupWindow() {
+        selfWindow.setOutsideTouchable(false);
+        selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        selfWindow.setElevation(24);
+        selfWindow.setOnDismissListener(() -> {
+            if (scanner != null) {
+                scanner.cancel();
+            }
+            if (onDismiss != null) {
+                onDismiss.accept(removedFiles);
+            }
+        });
+    }
+
+    private void enableClosePopupOnOutsideTouch() {
+        selfView.setOnClickListener(v -> selfWindow.dismiss());
+        mainAreaView.setOnClickListener(v -> {});
+    }
+
+    private void initPopupTitleBar() {
+        titleBar.setTitle(R.string.delete_empty_files);
+        titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
+    }
+
+    private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.selectedFiles.size() == 1) {
                 File file = selectionBar.selectedFiles.iterator().next();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
-                dismiss();
+                selfWindow.dismiss();
             }
         });
 
@@ -75,6 +114,7 @@ public class DeleteEmptyPopup {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
                 Collection<File> removed = onDelete.apply(selected, false);
+                removedFiles.addAll(removed);
                 itemsAdapter.removeAll(removed);
             }
             selectionBar.clear();
@@ -85,6 +125,7 @@ public class DeleteEmptyPopup {
             if (onDelete != null) {
                 List<File> selected = selectionBar.copySelectedFiles();
                 Collection<File> removed = onDelete.apply(selected, true);
+                removedFiles.addAll(removed);
                 itemsAdapter.removeAll(removed);
             }
             selectionBar.clear();
@@ -103,21 +144,12 @@ public class DeleteEmptyPopup {
             selectionBar.invalidate();
             itemsAdapter.notifyDataSetChanged();
         });
+    }
 
-        filesListView.setLayoutManager(new LinearLayoutManager(context));
-        filesListView.setAdapter(itemsAdapter);
-
-        popupView.setOnClickListener(v -> dismiss());
-        popupArea.setOnClickListener(v -> {});
-
-        popupWindow = new PopupWindow(popupView,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                true);
-        popupWindow.setFocusable(true);
-        popupWindow.setOutsideTouchable(false);
-        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        popupWindow.setElevation(24);
+    private void initItemsView() {
+        itemsView.setLayoutManager(new LinearLayoutManager(context));
+        itemsView.setAdapter(itemsAdapter);
+        itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
     }
 
     public void whenJumpClicked(Consumer<File> onJump) {
@@ -128,9 +160,13 @@ public class DeleteEmptyPopup {
         this.onDelete = onDelete;
     }
 
+    public void whenDismissClicked(PopupOnDismissListener onDismiss) {
+        this.onDismiss = onDismiss;
+    }
+
     public void show() {
         containerView.post(() -> {
-            popupWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
+            selfWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
             doScan();
         });
     }
@@ -156,12 +192,5 @@ public class DeleteEmptyPopup {
         }));
         scanner.whenScanStopped(() -> containerView.post(statusBar::markDone));
         scanner.start(startDirectory);
-    }
-
-    public void dismiss() {
-        if (scanner != null) {
-            scanner.cancel();
-        }
-        popupWindow.dismiss();
     }
 }
