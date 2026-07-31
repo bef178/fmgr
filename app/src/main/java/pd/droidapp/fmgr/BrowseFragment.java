@@ -28,17 +28,16 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.util.ActionPopup;
@@ -46,13 +45,12 @@ import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.DedupPopup;
 import pd.droidapp.fmgr.util.DeleteEmptyPopup;
 import pd.droidapp.fmgr.util.EditPopup;
+import pd.droidapp.fmgr.util.FileRemoveUpdater;
 import pd.droidapp.fmgr.util.PastePopup;
 import pd.droidapp.fmgr.util.PathBar;
 import pd.droidapp.fmgr.util.Progressor;
 import pd.droidapp.fmgr.util.SearchPopup;
 import pd.droidapp.fmgr.util.SelectionBar;
-
-import static pd.util.FileExtension.removeRecursively;
 
 public class BrowseFragment extends Fragment {
 
@@ -459,61 +457,42 @@ public class BrowseFragment extends Fragment {
     }
 
     private Collection<File> deleteItems(Collection<File> files, boolean prune) {
-        Set<File> filesToDelete = new HashSet<>(files);
-        Collection<File> removed = new LinkedList<>();
-        int okCount = 0;
-        int failedCount = 0;
-        Deque<File> pruneCandidates = new ArrayDeque<>();
+        AtomicInteger okCount = new AtomicInteger(0);
+        AtomicInteger failedCount = new AtomicInteger(0);
+        Collection<File> removed = Collections.synchronizedList(new LinkedList<>());
+        CountDownLatch latch = new CountDownLatch(1);
 
-        for (File file : filesToDelete) {
-            if (removeRecursively(file, null)) {
-                okCount++;
+        FileRemoveUpdater updater = new FileRemoveUpdater();
+        updater.whenFileRemoved((file, isFailed) -> {
+            if (!isFailed) {
+                okCount.incrementAndGet();
                 removed.add(file);
-                if (prune) {
-                    File parent = file.getParentFile();
-                    if (parent != null) {
-                        pruneCandidates.add(parent);
-                    }
-                }
             } else {
-                failedCount++;
+                failedCount.incrementAndGet();
             }
+        });
+        updater.whenDirectoryRemoved((directory, isFailed) -> {
+            if (!isFailed) {
+                okCount.incrementAndGet();
+                removed.add(directory);
+            } else {
+                failedCount.incrementAndGet();
+            }
+        });
+        updater.whenRemoveStopped(latch::countDown);
+        updater.start(files, prune ? pathBar.getCurrentDirectory() : null);
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            updater.cancel();
+            Thread.currentThread().interrupt();
         }
 
-        File root = pathBar.getCurrentDirectory();
-        while (!pruneCandidates.isEmpty()) {
-            File dir = pruneCandidates.poll();
-            // never delete the browsed root; only prune directories that became empty
-            if (dir == null || dir.equals(root) || !isEmpty(dir)) {
-                continue;
-            }
-            if (dir.delete()) {
-                okCount++;
-                removed.add(dir);
-                File parent = dir.getParentFile();
-                if (parent != null && !parent.equals(root)) {
-                    pruneCandidates.add(parent);
-                }
-            } else {
-                failedCount++;
-            }
-        }
+        clipboard.removeAllIfSameAsOrDescendantOf(removed);
 
-        clipboard.removeAllIfSameAsOrDescendantOf(filesToDelete);
-
-        Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount, failedCount), Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount.get(), failedCount.get()), Toast.LENGTH_SHORT).show();
         return removed;
-    }
-
-    private static boolean isEmpty(File file) {
-        if (file.isFile()) {
-            return file.length() == 0;
-        }
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            return children == null || children.length == 0;
-        }
-        return false;
     }
 
     private void showRenamePopup(File file) {
