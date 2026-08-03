@@ -47,24 +47,24 @@ public class Util {
         if (!src.exists()) {
             return false;
         }
-        File sflDst = null;
+        File tmpDst = null;
         try {
             if (dst.exists()) {
-                sflDst = getAlternativeFile(dst.getParentFile(), ".tmp_" + dst.getName());
-                if (!moveRecursively(dst, sflDst, abortRequested)) {
+                tmpDst = getAlternativeFile(dst.getParentFile(), ".tmp_" + dst.getName());
+                if (!moveRecursively(dst, tmpDst, abortRequested)) {
                     return false;
                 }
             }
             if (!copyRecursively(src, dst, abortRequested)) {
                 throw new RuntimeException("failed to copy src to dst, rollback");
             }
-            if (sflDst != null) {
-                boolean ignored = removeRecursively(sflDst, abortRequested);
+            if (tmpDst != null) {
+                boolean ignored = removeRecursively(tmpDst, abortRequested);
             }
             return true;
         } catch (Exception e) {
-            if (sflDst != null && sflDst.exists()) {
-                boolean ignored = moveRecursively(sflDst, dst, abortRequested);
+            if (tmpDst != null && tmpDst.exists()) {
+                boolean ignored = moveRecursively(tmpDst, dst, abortRequested);
             }
         }
         return false;

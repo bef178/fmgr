@@ -85,7 +85,7 @@
     <string name="resolution_option_overwrite">Overwrite existing</string>
     <string name="resolution_option_skip_incoming">Keep existing, skip incoming</string>
     <string name="resolution_option_rename_incoming">Keep existing, rename incoming</string>
-    <string name="paste_progress_count">%d / %d</string>
+    <string name="paste_progress_text">%d / %d</string>
     <string name="paste_progress_pending">Pending</string>
     <string name="paste_progress_completed">Completed</string>
     <string name="paste_progress_aborted">Aborted</string>
