@@ -6,7 +6,7 @@ import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
-import pd.util.PathExtension;
+import pd.util.PathOps;
 
 public class FileRemover {
 
@@ -55,7 +55,7 @@ public class FileRemover {
                     continue;
                 }
 
-                Arrays.sort(children, (a, b) -> PathExtension.compare(a.getPath(), b.getPath()));
+                Arrays.sort(children, (a, b) -> PathOps.singleton.compare(a.getPath(), b.getPath()));
 
                 frame.reached = true;
                 stack.push(frame);

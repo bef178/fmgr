@@ -30,7 +30,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
-import pd.util.PathExtension;
+import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.getSizeString;
 
@@ -432,7 +432,7 @@ public class DedupPopup {
                 PopupFileItem fileItem = new PopupFileItem(fileView);
                 fileItem.setIndex(startIndex + i);
                 fileItem.setIcon(R.drawable.i_file_24);
-                fileItem.setPath(PathExtension.relativize(startDirectory.getPath(), file.getPath()));
+                fileItem.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
                 fileItem.setSelected(selectedFiles.contains(file));
 
                 fileView.setOnClickListener(v -> {

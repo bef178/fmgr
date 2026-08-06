@@ -1,29 +1,15 @@
 package pd.droidapp.fmgr.util;
 
+import android.os.Environment;
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import android.os.Environment;
-
-import pd.util.DigestCodec;
-
-import static pd.util.FileExtension.copyRecursively;
-import static pd.util.FileExtension.moveRecursively;
-import static pd.util.FileExtension.removeRecursively;
+import pd.util.FileOps;
 
 public class Util {
-
-    public static String getFileMd5(File file) {
-        try (FileInputStream inputStream = new FileInputStream(file)) {
-            return DigestCodec.md5().checksum(inputStream);
-        } catch (IOException ignored) {
-            return null;
-        }
-    }
 
     public static String getSizeString(long size) {
         if (size < 1024) {
@@ -131,6 +117,27 @@ public class Util {
         } while (candidate.exists());
 
         return candidate;
+    }
+
+    private static boolean copyRecursively(File src, File dst, AtomicBoolean abortRequested) {
+        if (src.isDirectory()) {
+            return FileOps.singleton.copyDirectory(src.getAbsolutePath(), dst.getAbsolutePath(), abortRequested, null);
+        }
+        return FileOps.singleton.copyFile(src.getAbsolutePath(), dst.getAbsolutePath(), abortRequested);
+    }
+
+    private static boolean moveRecursively(File src, File dst, AtomicBoolean abortRequested) {
+        if (src.isDirectory()) {
+            return FileOps.singleton.moveDirectory(src.getAbsolutePath(), dst.getAbsolutePath(), abortRequested, null, null, null);
+        }
+        return FileOps.singleton.moveFile(src.getAbsolutePath(), dst.getAbsolutePath(), abortRequested);
+    }
+
+    private static boolean removeRecursively(File file, AtomicBoolean abortRequested) {
+        if (file.isDirectory()) {
+            return FileOps.singleton.removeDirectory(file.getAbsolutePath(), true, false, abortRequested, null);
+        }
+        return FileOps.singleton.removeFile(file.getAbsolutePath());
     }
 
     /**

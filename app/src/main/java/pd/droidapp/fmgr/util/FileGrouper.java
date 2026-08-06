@@ -1,6 +1,8 @@
 package pd.droidapp.fmgr.util;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -8,6 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import pd.util.DigestCodec;
 
 public class FileGrouper {
 
@@ -37,7 +41,7 @@ public class FileGrouper {
                 FileProperties fProps = fileProperties.get(f);
                 Objects.requireNonNull(fProps);
                 if (fProps.md5sum == null) {
-                    fProps.md5sum = Util.getFileMd5(f);
+                    fProps.md5sum = md5checksum(f);
                 }
             }
 
@@ -46,9 +50,17 @@ public class FileGrouper {
                 FileProperties fileProps = new FileProperties();
                 fileProps.file = file;
                 fileProps.size = size;
-                fileProps.md5sum = Util.getFileMd5(file);
+                fileProps.md5sum = md5checksum(file);
                 return fileProps;
             });
+        }
+    }
+
+    private String md5checksum(File file) {
+        try (FileInputStream inputStream = new FileInputStream(file)) {
+            return DigestCodec.md5().checksum(inputStream);
+        } catch (IOException ignored) {
+            return null;
         }
     }
 

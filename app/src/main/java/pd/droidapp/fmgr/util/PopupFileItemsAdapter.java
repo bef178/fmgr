@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 import pd.droidapp.fmgr.R;
-import pd.util.PathExtension;
+import pd.util.PathOps;
 
 public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.ItemViewHolder> {
 
@@ -102,7 +102,7 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
 
         viewHolder.fileItem.setSelected(selectedFiles.contains(file));
 
-        viewHolder.fileItem.setPath(PathExtension.relativize(startDirectory.getPath(), file.getPath()));
+        viewHolder.fileItem.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
 
         viewHolder.fileItem.setIndex(position + 1);
 

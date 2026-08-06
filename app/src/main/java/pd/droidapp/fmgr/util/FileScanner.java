@@ -6,7 +6,7 @@ import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import pd.util.PathExtension;
+import pd.util.PathOps;
 
 public class FileScanner {
 
@@ -56,7 +56,7 @@ public class FileScanner {
                 continue;
             }
 
-            Arrays.sort(children, (a, b) -> PathExtension.compare(a.getPath(), b.getPath()));
+            Arrays.sort(children, (a, b) -> PathOps.singleton.compare(a.getPath(), b.getPath()));
 
             // push directories in reverse so they are visited in sorted order
             for (int i = children.length - 1; i >= 0; i--) {
