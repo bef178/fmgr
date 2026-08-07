@@ -433,26 +433,20 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showPastePopup() {
-        String op;
+        boolean isCopy;
         List<File> srcFiles;
         if (clipboard.toCut()) {
-            op = "move";
+            isCopy = false;
             srcFiles = clipboard.getFilesToCut();
         } else if (clipboard.toCopy()) {
-            op = "copy";
+            isCopy = true;
             srcFiles = clipboard.getFilesToCopy();
         } else {
             return;
         }
 
-        PastePopup pastePopup = new PastePopup(getView(), op, srcFiles, pathBar.getCurrentDirectory());
-        pastePopup.whenDismissed(everExecuted -> {
-            if (everExecuted) {
-                clipboard.clear();
-                actionBar.invalidate();
-                itemsAdapter.invalidate(pathBar.getCurrentDirectory());
-            }
-        });
+        PastePopup pastePopup = new PastePopup(getView(), isCopy, srcFiles, pathBar.getCurrentDirectory());
+        pastePopup.whenDismissClicked(this::onPopupDismissed);
         pastePopup.show();
     }
 
@@ -462,8 +456,8 @@ public class BrowseFragment extends Fragment {
         Collection<File> removed = Collections.synchronizedList(new LinkedList<>());
         CountDownLatch latch = new CountDownLatch(1);
 
-        FileRemoveUpdater updater = new FileRemoveUpdater();
-        updater.whenFileRemoved((file, isFailed) -> {
+        FileRemoveUpdater remover = new FileRemoveUpdater();
+        remover.whenFileRemoved((file, isFailed) -> {
             if (!isFailed) {
                 okCount.incrementAndGet();
                 removed.add(file);
@@ -471,7 +465,7 @@ public class BrowseFragment extends Fragment {
                 failedCount.incrementAndGet();
             }
         });
-        updater.whenDirectoryRemoved((directory, isFailed) -> {
+        remover.whenDirectoryRemoved((directory, isFailed) -> {
             if (!isFailed) {
                 okCount.incrementAndGet();
                 removed.add(directory);
@@ -479,13 +473,13 @@ public class BrowseFragment extends Fragment {
                 failedCount.incrementAndGet();
             }
         });
-        updater.whenRemoveStopped(latch::countDown);
-        updater.start(files, prune ? pathBar.getCurrentDirectory() : null);
+        remover.whenRemoveStopped(latch::countDown);
+        remover.start(files, prune ? pathBar.getCurrentDirectory() : null);
 
         try {
             latch.await();
         } catch (InterruptedException e) {
-            updater.cancel();
+            remover.cancel();
             Thread.currentThread().interrupt();
         }
 
@@ -566,6 +560,13 @@ public class BrowseFragment extends Fragment {
     }
 
     private void onPopupDismissed(Collection<File> removedFiles) {
+        if (removedFiles == null) {
+            // TODO refactor this trick
+            clipboard.clear();
+            actionBar.invalidate();
+            itemsAdapter.invalidate(pathBar.getCurrentDirectory());
+            return;
+        }
         if (removedFiles.isEmpty()) {
             return;
         }

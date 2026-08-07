@@ -17,17 +17,11 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
-
-import static pd.droidapp.fmgr.util.Util.copySafeReplace;
-import static pd.droidapp.fmgr.util.Util.getAlternativeFile;
-import static pd.droidapp.fmgr.util.Util.moveSafeReplace;
 
 public class PastePopup {
 
@@ -54,15 +48,14 @@ public class PastePopup {
     private final Button closeButton;
 
     // callbacks
-    private Consumer<Boolean> onDismissed;
+    private PopupOnDismissListener onDismiss;
 
-    private Paster paster;
-    private boolean everExecuted;
+    private FilePasteUpdater paster;
 
-    public PastePopup(View containerView, String op, List<File> srcFiles, File dstRoot) {
+    public PastePopup(View containerView, boolean isCopy, List<File> srcFiles, File dstRoot) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
-        this.isCopy = "copy".equals(op);
+        this.isCopy = isCopy;
         this.dstRoot = dstRoot;
         this.srcFiles = new ArrayList<>(srcFiles);
 
@@ -104,8 +97,8 @@ public class PastePopup {
             if (paster != null) {
                 paster.cancel();
             }
-            if (onDismissed != null) {
-                onDismissed.accept(everExecuted);
+            if (onDismiss != null) {
+                onDismiss.accept(paster == null ? Collections.emptyList() : null);
             }
         });
     }
@@ -144,8 +137,8 @@ public class PastePopup {
         closeButton.setOnClickListener(v -> selfWindow.dismiss());
     }
 
-    public void whenDismissed(Consumer<Boolean> callback) {
-        this.onDismissed = callback;
+    public void whenDismissClicked(PopupOnDismissListener onDismiss) {
+        this.onDismiss = onDismiss;
     }
 
     public void show() {
@@ -153,7 +146,6 @@ public class PastePopup {
     }
 
     private void start() {
-        everExecuted = true;
         final ConflictResolution resolution = getSelectedResolution();
         final int total = srcFiles.size();
 
@@ -173,7 +165,7 @@ public class PastePopup {
         abortButton.setVisibility(View.VISIBLE);
         titleBar.enableCloseButton(false);
 
-        paster = new Paster();
+        paster = new FilePasteUpdater();
         paster.whenPasteStarted(() -> containerView.post(() -> {
             progressArea.setVisibility(View.VISIBLE);
             progressBarTextView.setText(context.getString(R.string.paste_progress_text, 0, total));
@@ -185,7 +177,7 @@ public class PastePopup {
             progressBarView.setProgress(n * 100 / total);
             progressBarSideTextView.setText(currentFile.getAbsolutePath());
         }));
-        paster.whenPasteCompleted((added, overwritten, skipped, failed, currentFile) -> containerView.post(() -> {
+        paster.whenPasteStopped((added, overwritten, skipped, failed, currentFile) -> containerView.post(() -> {
             if (paster.getAborted()) {
                 progressBarSideTextView.setText(R.string.paste_progress_aborted);
             } else {
@@ -221,158 +213,7 @@ public class PastePopup {
 
     enum ConflictResolution {
         OVERWRITE,
+        RENAME_INCOMING,
         SKIP_INCOMING,
-        RENAME_INCOMING
-    }
-
-    static class Paster {
-
-        private Runnable onPasteStarted;
-        private OnPasteUpdateListener onPasteUpdated;
-        private OnPasteUpdateListener onPasteCompleted;
-        private Thread pasteThread;
-
-        private final AtomicBoolean completed = new AtomicBoolean(false);
-        private final AtomicBoolean aborted = new AtomicBoolean(false);
-
-        private final AtomicInteger currentProcessingIndex = new AtomicInteger(0);
-        private final AtomicInteger addedCount = new AtomicInteger(0);
-        private final AtomicInteger overwrittenCount = new AtomicInteger(0);
-        private final AtomicInteger skippedCount = new AtomicInteger(0);
-        private final AtomicInteger failedCount = new AtomicInteger(0);
-
-        void whenPasteStarted(Runnable onPasteStarted) {
-            this.onPasteStarted = onPasteStarted;
-        }
-
-        void whenPasteUpdated(OnPasteUpdateListener onPasteUpdated) {
-            this.onPasteUpdated = onPasteUpdated;
-        }
-
-        void whenPasteCompleted(OnPasteUpdateListener onPasteCompleted) {
-            this.onPasteCompleted = onPasteCompleted;
-        }
-
-        int getCurrentProcessingIndex() {
-            return currentProcessingIndex.get();
-        }
-
-        void start(List<File> srcFiles, File dstDirectory, boolean isCopyAction, ConflictResolution resolution) {
-            if (getAborted() || isCompleted()) {
-                return;
-            }
-
-            pasteThread = new Thread(() -> {
-                if (onPasteStarted != null) {
-                    onPasteStarted.run();
-                }
-
-                for (File src : srcFiles) {
-                    if (aborted.get()) {
-                        break;
-                    }
-
-                    currentProcessingIndex.incrementAndGet();
-
-                    if (onPasteUpdated != null) {
-                        onPasteUpdated.accept(addedCount.get(), overwrittenCount.get(), skippedCount.get(), failedCount.get(), src);
-                    }
-
-                    File dst = new File(dstDirectory, src.getName());
-                    boolean isSameFile = src.getAbsolutePath().equals(dst.getAbsolutePath());
-                    if (isCopyAction) {
-                        if (!dst.exists()) {
-                            if (copySafeReplace(src, dst, aborted)) {
-                                addedCount.incrementAndGet();
-                            } else {
-                                failedCount.incrementAndGet();
-                            }
-                        } else if (resolution == ConflictResolution.OVERWRITE) {
-                            if (isSameFile) {
-                                // overwrite itself doom to fail
-                                failedCount.incrementAndGet();
-                            } else if (copySafeReplace(src, dst, aborted)) {
-                                overwrittenCount.incrementAndGet();
-                            } else {
-                                failedCount.incrementAndGet();
-                            }
-                        } else if (resolution == ConflictResolution.SKIP_INCOMING) {
-                            if (isSameFile) {
-                                failedCount.incrementAndGet();
-                            } else {
-                                skippedCount.incrementAndGet();
-                            }
-                        } else if (resolution == ConflictResolution.RENAME_INCOMING) {
-                            if (copySafeReplace(src, getAlternativeFile(dst.getParentFile(), dst.getName()), aborted)) {
-                                addedCount.incrementAndGet();
-                            } else {
-                                failedCount.incrementAndGet();
-                            }
-                        }
-                    } else {
-                        if (!dst.exists()) {
-                            if (moveSafeReplace(src, dst, aborted)) {
-                                addedCount.incrementAndGet();
-                            } else {
-                                failedCount.incrementAndGet();
-                            }
-                        } else if (resolution == ConflictResolution.OVERWRITE) {
-                            if (isSameFile) {
-                                failedCount.incrementAndGet();
-                            } else if (moveSafeReplace(src, dst, aborted)) {
-                                overwrittenCount.incrementAndGet();
-                            } else {
-                                failedCount.incrementAndGet();
-                            }
-                        } else if (resolution == ConflictResolution.SKIP_INCOMING) {
-                            if (isSameFile) {
-                                failedCount.incrementAndGet();
-                            } else {
-                                skippedCount.incrementAndGet();
-                            }
-                        } else if (resolution == ConflictResolution.RENAME_INCOMING) {
-                            if (isSameFile) {
-                                failedCount.incrementAndGet();
-                            } else {
-                                if (moveSafeReplace(src, getAlternativeFile(dst.getParentFile(), dst.getName()), aborted)) {
-                                    addedCount.incrementAndGet();
-                                } else {
-                                    failedCount.incrementAndGet();
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (!aborted.get()) {
-                    completed.set(true);
-                }
-
-                if (onPasteCompleted != null) {
-                    onPasteCompleted.accept(addedCount.get(), overwrittenCount.get(), skippedCount.get(), failedCount.get(), null);
-                }
-            });
-            pasteThread.start();
-        }
-
-        void cancel() {
-            aborted.set(true);
-            if (pasteThread != null) {
-                pasteThread.interrupt();
-            }
-        }
-
-        boolean getAborted() {
-            return aborted.get();
-        }
-
-        boolean isCompleted() {
-            return completed.get();
-        }
-
-        interface OnPasteUpdateListener {
-
-            void accept(int added, int overwritten, int skipped, int failed, File current);
-        }
     }
 }

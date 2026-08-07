@@ -49,18 +49,6 @@
                     android:textSize="14sp" />
 
                 <RadioButton
-                    android:id="@+id/resolution_option_skip_incoming"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:button="@null"
-                    android:drawableStart="@drawable/radio_button"
-                    android:minHeight="32dp"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="12dp"
-                    android:text="@string/resolution_option_skip_incoming" />
-
-                <RadioButton
                     android:id="@+id/resolution_option_rename_incoming"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -72,6 +60,18 @@
                     android:paddingStart="24dp"
                     android:paddingEnd="12dp"
                     android:text="@string/resolution_option_rename_incoming" />
+
+                <RadioButton
+                    android:id="@+id/resolution_option_skip_incoming"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:button="@null"
+                    android:drawableStart="@drawable/radio_button"
+                    android:minHeight="32dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/resolution_option_skip_incoming" />
 
             </RadioGroup>
 
