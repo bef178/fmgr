@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+
+    <!-- filled rounded square (copied from i_check_16, inset to leave padding) -->
+    <path
+        android:strokeWidth="2"
+        android:pathData="M 11,6 h 10 a 5,5 0 0,1 5,5 v 10 a 5,5 0 0,1 -5,5 h -10 a 5,5 0 0,1 -5,-5 v -10 a 5,5 0 0,1 5,-5 z">
+        <aapt:attr name="android:fillColor">
+            <selector>
+                <item android:state_checked="true" android:state_enabled="false" android:alpha="0.38" android:color="?attr/colorPrimary" />
+                <item android:state_checked="true" android:color="?attr/colorPrimary" />
+                <item android:color="@android:color/transparent" />
+            </selector>
+        </aapt:attr>
+        <aapt:attr name="android:strokeColor">
+            <selector>
+                <item android:state_enabled="false" android:alpha="0.38" android:color="?attr/colorOnSurface" />
+                <item android:state_checked="true" android:state_enabled="true" android:color="?attr/colorPrimary" />
+                <item android:color="?attr/colorOnSurfaceVariant" />
+            </selector>
+        </aapt:attr>
+    </path>
+
+    <!-- check (copied from i_check_16, scaled into the inset box), visible only when checked -->
+    <path
+        android:pathData="M 10.4,16 l 3.75,3.75 7.5,-7.5"
+        android:strokeWidth="3"
+        android:strokeLineCap="square">
+        <aapt:attr name="android:strokeColor">
+            <selector>
+                <item android:state_checked="true" android:state_enabled="false" android:alpha="0.38" android:color="?attr/colorOnPrimary" />
+                <item android:state_checked="true" android:color="?attr/colorOnPrimary" />
+                <item android:color="@android:color/transparent" />
+            </selector>
+        </aapt:attr>
+    </path>
+
+</vector>

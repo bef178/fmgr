@@ -1,161 +1,143 @@
 package pd.droidapp.fmgr.util;
 
 import java.io.File;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static pd.droidapp.fmgr.util.Util.copySafeReplace;
-import static pd.droidapp.fmgr.util.Util.getAlternativeFile;
-import static pd.droidapp.fmgr.util.Util.moveSafeReplace;
+import java.util.concurrent.atomic.AtomicReference;
 
 class FilePasteUpdater {
 
+    private final FilePaster filePaster;
+    private final int updateInterval;
+
     private Runnable onPasteStarted;
     private OnPasteUpdateListener onPasteUpdated;
-    private OnPasteUpdateListener onPasteStopped;
-    private Thread workerThread;
+    private Runnable onPasteStopped;
 
-    private final AtomicBoolean completed = new AtomicBoolean(false);
-    private final AtomicBoolean aborted = new AtomicBoolean(false);
+    private final AtomicBoolean started = new AtomicBoolean(false);
+    private Timer updateTimer;
+    private final AtomicInteger added = new AtomicInteger(0);
+    private final AtomicInteger deleted = new AtomicInteger(0);
+    private final AtomicInteger renamed = new AtomicInteger(0);
+    private final AtomicInteger failed = new AtomicInteger(0);
+    private final AtomicInteger processed = new AtomicInteger(0);
+    private final AtomicReference<String> currentFile = new AtomicReference<>();
 
-    private final AtomicInteger currentProcessingIndex = new AtomicInteger(0);
-    private final AtomicInteger addedCount = new AtomicInteger(0);
-    private final AtomicInteger overwrittenCount = new AtomicInteger(0);
-    private final AtomicInteger skippedCount = new AtomicInteger(0);
-    private final AtomicInteger failedCount = new AtomicInteger(0);
+    public FilePasteUpdater() {
+        this.filePaster = new FilePaster();
+        this.updateInterval = 200;
+    }
 
-    void whenPasteStarted(Runnable onPasteStarted) {
+    public void whenPasteStarted(Runnable onPasteStarted) {
         this.onPasteStarted = onPasteStarted;
     }
 
-    void whenPasteUpdated(OnPasteUpdateListener onPasteUpdated) {
+    public void whenPasteUpdated(OnPasteUpdateListener onPasteUpdated) {
         this.onPasteUpdated = onPasteUpdated;
     }
 
-    void whenPasteStopped(OnPasteUpdateListener onPasteStopped) {
+    public void whenPasteStopped(Runnable onPasteStopped) {
         this.onPasteStopped = onPasteStopped;
     }
 
-    int getCurrentProcessingIndex() {
-        return currentProcessingIndex.get();
-    }
-
-    void start(List<File> srcFiles, File dstDirectory, boolean isCopyAction, PastePopup.ConflictResolution resolution) {
-        if (getAborted() || isCompleted()) {
+    public void start(boolean isCopy, List<File> srcFiles, File dstDirectory, FilePaster.ConflictResolution resolution, boolean mergeDirectories) {
+        if (!started.compareAndSet(false, true)) {
             return;
         }
 
-        workerThread = new Thread(() -> {
-            if (onPasteStarted != null) {
-                onPasteStarted.run();
-            }
-
-            for (File src : srcFiles) {
-                if (aborted.get()) {
-                    break;
+        filePaster.whenPasteAction((action, src, dst, succeeded) -> {
+            if (succeeded) {
+                switch (action) {
+                    case ADD:
+                        added.incrementAndGet();
+                        break;
+                    case DELETE:
+                        deleted.incrementAndGet();
+                        break;
+                    case RENAME:
+                        renamed.incrementAndGet();
+                        break;
                 }
-
-                currentProcessingIndex.incrementAndGet();
-
-                if (onPasteUpdated != null) {
-                    onPasteUpdated.accept(addedCount.get(), overwrittenCount.get(), skippedCount.get(), failedCount.get(), src);
-                }
-
-                File dst = new File(dstDirectory, src.getName());
-                boolean isSameFile = src.getAbsolutePath().equals(dst.getAbsolutePath());
-                if (isCopyAction) {
-                    if (!dst.exists()) {
-                        if (copySafeReplace(src, dst, aborted)) {
-                            addedCount.incrementAndGet();
-                        } else {
-                            failedCount.incrementAndGet();
-                        }
-                    } else if (resolution == PastePopup.ConflictResolution.OVERWRITE) {
-                        if (isSameFile) {
-                            // overwrite itself doom to fail
-                            failedCount.incrementAndGet();
-                        } else if (copySafeReplace(src, dst, aborted)) {
-                            overwrittenCount.incrementAndGet();
-                        } else {
-                            failedCount.incrementAndGet();
-                        }
-                    } else if (resolution == PastePopup.ConflictResolution.SKIP_INCOMING) {
-                        if (isSameFile) {
-                            failedCount.incrementAndGet();
-                        } else {
-                            skippedCount.incrementAndGet();
-                        }
-                    } else if (resolution == PastePopup.ConflictResolution.RENAME_INCOMING) {
-                        if (copySafeReplace(src, getAlternativeFile(dst.getParentFile(), dst.getName()), aborted)) {
-                            addedCount.incrementAndGet();
-                        } else {
-                            failedCount.incrementAndGet();
-                        }
-                    }
-                } else {
-                    if (!dst.exists()) {
-                        if (moveSafeReplace(src, dst, aborted)) {
-                            addedCount.incrementAndGet();
-                        } else {
-                            failedCount.incrementAndGet();
-                        }
-                    } else if (resolution == PastePopup.ConflictResolution.OVERWRITE) {
-                        if (isSameFile) {
-                            failedCount.incrementAndGet();
-                        } else if (moveSafeReplace(src, dst, aborted)) {
-                            overwrittenCount.incrementAndGet();
-                        } else {
-                            failedCount.incrementAndGet();
-                        }
-                    } else if (resolution == PastePopup.ConflictResolution.SKIP_INCOMING) {
-                        if (isSameFile) {
-                            failedCount.incrementAndGet();
-                        } else {
-                            skippedCount.incrementAndGet();
-                        }
-                    } else if (resolution == PastePopup.ConflictResolution.RENAME_INCOMING) {
-                        if (isSameFile) {
-                            failedCount.incrementAndGet();
-                        } else {
-                            if (moveSafeReplace(src, getAlternativeFile(dst.getParentFile(), dst.getName()), aborted)) {
-                                addedCount.incrementAndGet();
-                            } else {
-                                failedCount.incrementAndGet();
-                            }
-                        }
-                    }
-                }
+            } else {
+                failed.incrementAndGet();
             }
-
-            if (!aborted.get()) {
-                completed.set(true);
+            if (action == FilePaster.PasteAction.PROGRESS) {
+                processed.incrementAndGet();
             }
-
-            if (onPasteStopped != null) {
-                onPasteStopped.accept(addedCount.get(), overwrittenCount.get(), skippedCount.get(), failedCount.get(), null);
+            if (src != null) {
+                currentFile.set(src);
+            } else if (dst != null) {
+                currentFile.set(dst);
             }
         });
-        workerThread.start();
+
+        List<String> paths = new LinkedList<>();
+        for (File src : srcFiles) {
+            paths.add(src.getPath());
+        }
+        filePaster.start(isCopy, paths, dstDirectory.getPath(), resolution, mergeDirectories);
+        startTimer();
     }
 
-    void cancel() {
-        aborted.set(true);
-        if (workerThread != null) {
-            workerThread.interrupt();
+    private void startTimer() {
+        updateTimer = new Timer();
+        if (onPasteStarted != null) {
+            updateTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    onPasteStarted.run();
+                }
+            }, 0);
+        }
+        updateTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                // note the race condition
+                if (onPasteUpdated != null) {
+                    onPasteUpdated.accept(
+                            added.getAndSet(0),
+                            deleted.getAndSet(0),
+                            renamed.getAndSet(0),
+                            failed.getAndSet(0),
+                            processed.getAndSet(0),
+                            currentFile.get());
+                }
+                if (!filePaster.isRunning()) {
+                    clearTimer();
+                    if (onPasteStopped != null) {
+                        onPasteStopped.run();
+                    }
+                }
+            }
+        }, updateInterval, updateInterval);
+    }
+
+    private void clearTimer() {
+        if (updateTimer != null) {
+            updateTimer.cancel();
+            updateTimer.purge();
+            updateTimer = null;
         }
     }
 
-    boolean getAborted() {
-        return aborted.get();
+    public boolean isCompleted() {
+        return filePaster.isCompleted();
     }
 
-    boolean isCompleted() {
-        return completed.get();
+    public void cancel() {
+        filePaster.cancel();
+    }
+
+    public boolean isCancelled() {
+        return filePaster.isCancelled();
     }
 
     interface OnPasteUpdateListener {
 
-        void accept(int added, int overwritten, int skipped, int failed, File current);
+        void accept(int added, int removed, int renamed, int failed, int progressed, String current);
     }
 }

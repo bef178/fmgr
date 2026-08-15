@@ -3,11 +3,8 @@ package pd.droidapp.fmgr.util;
 import android.os.Environment;
 
 import java.io.File;
-import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import pd.util.FileOps;
 
 public class Util {
 
@@ -29,61 +26,12 @@ public class Util {
         return (float) (amplitude * Math.exp(exponent));
     }
 
-    public static boolean copySafeReplace(File src, File dst, AtomicBoolean abortRequested) {
-        if (!src.exists()) {
-            return false;
-        }
-        File tmpDst = null;
-        try {
-            if (dst.exists()) {
-                tmpDst = getAlternativeFile(dst.getParentFile(), ".tmp_" + dst.getName());
-                if (!moveRecursively(dst, tmpDst, abortRequested)) {
-                    return false;
-                }
-            }
-            if (!copyRecursively(src, dst, abortRequested)) {
-                throw new RuntimeException("failed to copy src to dst, rollback");
-            }
-            if (tmpDst != null) {
-                boolean ignored = removeRecursively(tmpDst, abortRequested);
-            }
-            return true;
-        } catch (Exception e) {
-            if (tmpDst != null && tmpDst.exists()) {
-                boolean ignored = moveRecursively(tmpDst, dst, abortRequested);
-            }
-        }
-        return false;
+    public static Path getAlternativeFile(Path directory, String basename) {
+        return getAlternativeFile(directory != null ? directory.toFile() : null, basename).toPath();
     }
 
-    public static boolean moveSafeReplace(File src, File dst, AtomicBoolean abortRequested) {
-        if (!src.exists()) {
-            return false;
-        }
-        File sflDst = null;
-        try {
-            if (dst.exists()) {
-                if (Files.isSameFile(src.toPath(), dst.toPath())) {
-                    return true;
-                }
-                sflDst = getAlternativeFile(dst.getParentFile(), ".tmp_" + dst.getName());
-                if (!moveRecursively(dst, sflDst, abortRequested)) {
-                    return false;
-                }
-            }
-            if (!moveRecursively(src, dst, abortRequested)) {
-                throw new RuntimeException("failed to rename src to dst, rollback");
-            }
-            if (sflDst != null) {
-                boolean ignored = removeRecursively(sflDst, abortRequested);
-            }
-            return true;
-        } catch (Exception e) {
-            if (sflDst != null && sflDst.exists()) {
-                boolean ignored = moveRecursively(sflDst, dst, abortRequested);
-            }
-        }
-        return false;
+    public static File getAlternativeFile(String directory, String basename) {
+        return getAlternativeFile(new File(directory), basename);
     }
 
     public static File getAlternativeFile(File directory, String basename) {
@@ -119,25 +67,11 @@ public class Util {
         return candidate;
     }
 
-    private static boolean copyRecursively(File src, File dst, AtomicBoolean abortRequested) {
-        if (src.isDirectory()) {
-            return FileOps.singleton.copyDirectory(src.getAbsolutePath(), dst.getAbsolutePath(), abortRequested, null);
+    public static String getDisplayPath(String path) {
+        if (path == null) {
+            return null;
         }
-        return FileOps.singleton.copyFile(src.getAbsolutePath(), dst.getAbsolutePath(), abortRequested);
-    }
-
-    private static boolean moveRecursively(File src, File dst, AtomicBoolean abortRequested) {
-        if (src.isDirectory()) {
-            return FileOps.singleton.moveDirectory(src.getAbsolutePath(), dst.getAbsolutePath(), abortRequested, null, null, null);
-        }
-        return FileOps.singleton.moveFile(src.getAbsolutePath(), dst.getAbsolutePath(), abortRequested);
-    }
-
-    private static boolean removeRecursively(File file, AtomicBoolean abortRequested) {
-        if (file.isDirectory()) {
-            return FileOps.singleton.removeDirectory(file.getAbsolutePath(), true, false, abortRequested, null);
-        }
-        return FileOps.singleton.removeFile(file.getAbsolutePath());
+        return getDisplayPath(new File(path));
     }
 
     /**

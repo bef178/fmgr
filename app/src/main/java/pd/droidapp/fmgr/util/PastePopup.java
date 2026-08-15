@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -22,6 +23,9 @@ import java.util.List;
 import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.FilePaster.ConflictResolution;
+
+import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
 public class PastePopup {
 
@@ -29,7 +33,7 @@ public class PastePopup {
     private final View containerView;
     private final boolean isCopy;
     private final List<File> srcFiles;
-    private final File dstRoot;
+    private final File dstDirectory;
 
     // views
     private final View selfView;
@@ -38,6 +42,7 @@ public class PastePopup {
     private final PopupTitleBar titleBar;
     private final TextView resolutionTitleTextView;
     private final RadioGroup resolutionOptionsGroup;
+    private final CheckBox mergeDirectoriesCheckBox;
     private final LinearLayout progressArea;
     private final ProgressBar progressBarView;
     private final TextView progressBarTextView;
@@ -52,11 +57,11 @@ public class PastePopup {
 
     private FilePasteUpdater paster;
 
-    public PastePopup(View containerView, boolean isCopy, List<File> srcFiles, File dstRoot) {
+    public PastePopup(View containerView, boolean isCopy, List<File> srcFiles, File dstDirectory) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
         this.isCopy = isCopy;
-        this.dstRoot = dstRoot;
+        this.dstDirectory = dstDirectory;
         this.srcFiles = new ArrayList<>(srcFiles);
 
         selfView = LayoutInflater.from(context).inflate(
@@ -72,6 +77,7 @@ public class PastePopup {
         titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
         resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
+        mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
         progressArea = mainAreaView.findViewById(R.id.progress_area);
         progressBarView = mainAreaView.findViewById(R.id.progress_bar);
         progressBarTextView = mainAreaView.findViewById(R.id.progress_bar_text);
@@ -160,6 +166,7 @@ public class PastePopup {
         resolutionTitleTextView.setText(
                 context.getString(R.string.on_conflict_x, context.getString(shortId)));
         resolutionOptionsGroup.setVisibility(View.GONE);
+        mergeDirectoriesCheckBox.setVisibility(View.GONE);
 
         startButton.setVisibility(View.GONE);
         abortButton.setVisibility(View.VISIBLE);
@@ -168,29 +175,44 @@ public class PastePopup {
         paster = new FilePasteUpdater();
         paster.whenPasteStarted(() -> containerView.post(() -> {
             progressArea.setVisibility(View.VISIBLE);
-            progressBarTextView.setText(context.getString(R.string.paste_progress_text, 0, total));
             progressBarView.setProgress(0);
+            progressBarTextView.setText(context.getString(R.string.paste_progress_text, 0, total));
         }));
-        paster.whenPasteUpdated((added, overwritten, skipped, failed, currentFile) -> containerView.post(() -> {
-            int n = paster.getCurrentProcessingIndex();
-            progressBarTextView.setText(context.getString(R.string.paste_progress_text, n, total));
-            progressBarView.setProgress(n * 100 / total);
-            progressBarSideTextView.setText(currentFile.getAbsolutePath());
-        }));
-        paster.whenPasteStopped((added, overwritten, skipped, failed, currentFile) -> containerView.post(() -> {
-            if (paster.getAborted()) {
+        paster.whenPasteUpdated(new FilePasteUpdater.OnPasteUpdateListener() {
+            private int totalAdded;
+            private int totalDeleted;
+            private int totalRenamed;
+            private int totalFailed;
+            private int totalProcessed;
+
+            @Override
+            public void accept(int added, int deleted, int renamed, int failed, int progressed, String current) {
+                totalAdded += added;
+                totalDeleted += deleted;
+                totalRenamed += renamed;
+                totalFailed += failed;
+                totalProcessed += progressed;
+
+                containerView.post(() -> {
+                    progressBarView.setProgress(totalProcessed * 100 / total);
+                    progressBarTextView.setText(context.getString(R.string.paste_progress_text, totalProcessed, total));
+                    progressBarSideTextView.setText(getDisplayPath(current));
+                    progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
+                            totalAdded, totalDeleted, totalRenamed, totalFailed));
+                });
+            }
+        });
+        paster.whenPasteStopped(() -> containerView.post(() -> {
+            if (paster.isCancelled()) {
                 progressBarSideTextView.setText(R.string.paste_progress_aborted);
             } else {
                 progressBarSideTextView.setText(R.string.paste_progress_completed);
             }
-            progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
-                    added, overwritten, skipped, failed));
-
             abortButton.setVisibility(View.GONE);
             closeButton.setVisibility(View.VISIBLE);
             titleBar.enableCloseButton(true);
         }));
-        paster.start(srcFiles, dstRoot, isCopy, resolution);
+        paster.start(isCopy, srcFiles, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
     }
 
     private ConflictResolution getSelectedResolution() {
@@ -209,11 +231,5 @@ public class PastePopup {
         if (paster != null) {
             paster.cancel();
         }
-    }
-
-    enum ConflictResolution {
-        OVERWRITE,
-        RENAME_INCOMING,
-        SKIP_INCOMING,
     }
 }

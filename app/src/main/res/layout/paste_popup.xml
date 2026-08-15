@@ -75,6 +75,20 @@
 
             </RadioGroup>
 
+            <CheckBox
+                android:id="@+id/merge_directories_checkbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:button="@null"
+                android:checked="true"
+                android:drawableStart="@drawable/ic_check_24"
+                android:minHeight="32dp"
+                android:paddingStart="24dp"
+                android:paddingEnd="12dp"
+                android:text="@string/merge_directories_check"
+                android:textSize="14sp" />
+
         </LinearLayout>
 
         <!-- progressing -->
