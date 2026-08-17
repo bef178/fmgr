@@ -6,6 +6,17 @@ android {
     namespace 'pd.droidapp.fmgr'
     compileSdk 35
 
+    sourceSets {
+        main {
+            java.srcDirs = ['src/java']
+            res.srcDirs = ['src/res']
+            manifest.srcFile('src/AndroidManifest.xml')
+        }
+        test {
+            java.srcDirs = ['src/java-test']
+        }
+    }
+
     defaultConfig {
         applicationId "pd.droidapp.fmgr"
         minSdk 29
