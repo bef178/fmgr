@@ -8,41 +8,35 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
-import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.FilePaster.ConflictResolution;
 
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
-public class PastePopup {
+public class DeletePopup {
 
     private final Context context;
     private final View containerView;
-    private final boolean isCopy;
     private final List<File> srcFiles;
-    private final File dstDirectory;
+    private final boolean prune;
 
     // views
     private final View selfView;
     private final PopupWindow selfWindow;
     private final View mainAreaView;
     private final PopupTitleBar titleBar;
-    private final TextView resolutionTitleTextView;
-    private final RadioGroup resolutionOptionsGroup;
-    private final CheckBox mergeDirectoriesCheckBox;
     private final LinearLayout progressArea;
     private final ProgressBar progressBarView;
     private final TextView progressBarTextView;
@@ -55,17 +49,17 @@ public class PastePopup {
     // callbacks
     private PopupOnDismissListener onDismiss;
 
-    private FilePasteUpdater paster;
+    private FileRemoveUpdater remover;
+    private final Collection<File> totalDeleted = Collections.synchronizedList(new LinkedList<>());
 
-    public PastePopup(View containerView, boolean isCopy, List<File> srcFiles, File dstDirectory) {
+    public DeletePopup(View containerView, List<File> srcFiles, boolean prune) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
-        this.isCopy = isCopy;
-        this.dstDirectory = dstDirectory;
         this.srcFiles = new LinkedList<>(srcFiles);
+        this.prune = prune;
 
         selfView = LayoutInflater.from(context).inflate(
-                R.layout.paste_popup,
+                R.layout.delete_popup,
                 (ViewGroup) containerView,
                 false);
         selfWindow = new PopupWindow(selfView,
@@ -74,7 +68,7 @@ public class PastePopup {
                 true) {
             @Override
             public void dismiss() {
-                if (paster != null && !paster.isStopped()) {
+                if (remover != null && !remover.isStopped()) {
                     return;
                 }
                 super.dismiss();
@@ -83,9 +77,6 @@ public class PastePopup {
         mainAreaView = selfView.findViewById(R.id.popup_area);
 
         titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
-        resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
-        resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
-        mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
         progressArea = mainAreaView.findViewById(R.id.progress_area);
         progressBarView = mainAreaView.findViewById(R.id.progress_bar);
         progressBarTextView = mainAreaView.findViewById(R.id.progress_bar_text);
@@ -98,7 +89,6 @@ public class PastePopup {
         initPopupWindow();
         enableClosePopupOnOutsideTouch();
         initPopupTitleBar();
-        initConflictResolution();
         initProgress();
         initBottomButtons();
     }
@@ -109,7 +99,7 @@ public class PastePopup {
         selfWindow.setElevation(24);
         selfWindow.setOnDismissListener(() -> {
             if (onDismiss != null) {
-                onDismiss.accept(paster == null ? Collections.emptyList() : null);
+                onDismiss.accept(totalDeleted);
             }
         });
     }
@@ -120,14 +110,8 @@ public class PastePopup {
     }
 
     private void initPopupTitleBar() {
-        titleBar.setTitle(context.getString(
-                isCopy ? R.string.copy_x_items : R.string.move_x_items,
-                srcFiles.size()));
+        titleBar.setTitle(context.getString(R.string.delete_x_items, srcFiles.size()));
         titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
-    }
-
-    private void initConflictResolution() {
-        resolutionTitleTextView.setText(R.string.select_resolution);
     }
 
     private void initProgress() {
@@ -153,58 +137,39 @@ public class PastePopup {
     }
 
     private void start() {
-        final ConflictResolution resolution = getSelectedResolution();
         final int total = srcFiles.size();
-
-        int shortId;
-        if (resolution == ConflictResolution.OVERWRITE) {
-            shortId = R.string.resolution_short_overwrite;
-        } else if (resolution == ConflictResolution.SKIP_INCOMING) {
-            shortId = R.string.resolution_short_skip;
-        } else {
-            shortId = R.string.resolution_short_rename;
-        }
-        resolutionTitleTextView.setText(
-                context.getString(R.string.on_conflict_x, context.getString(shortId)));
-        resolutionOptionsGroup.setVisibility(View.GONE);
-        mergeDirectoriesCheckBox.setVisibility(View.GONE);
 
         startButton.setVisibility(View.GONE);
         abortButton.setVisibility(View.VISIBLE);
         titleBar.enableCloseButton(false);
 
-        paster = new FilePasteUpdater();
-        paster.whenPasteStarted(() -> containerView.post(() -> {
+        remover = new FileRemoveUpdater();
+        remover.whenRemoveStarted(() -> containerView.post(() -> {
             progressArea.setVisibility(View.VISIBLE);
             progressBarView.setProgress(0);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 0, total));
         }));
-        paster.whenPasteUpdated(new FilePasteUpdater.OnPasteUpdateListener() {
-            private int totalAdded;
-            private int totalDeleted;
-            private int totalRenamed;
+        remover.whenRemoveUpdated(new FileRemoveUpdater.OnRemoveUpdateListener() {
             private int totalFailed;
-            private int totalProcessed;
+            private int totalProgressed;
 
             @Override
-            public void accept(int added, int deleted, int renamed, int failed, int progressed, String current) {
-                totalAdded += added;
-                totalDeleted += deleted;
-                totalRenamed += renamed;
+            public void accept(List<File> deleted, int failed, int progressed, String current) {
+                totalDeleted.addAll(deleted);
                 totalFailed += failed;
-                totalProcessed += progressed;
+                totalProgressed += progressed;
 
                 containerView.post(() -> {
-                    progressBarView.setProgress(totalProcessed * 100 / total);
-                    progressBarTextView.setText(context.getString(R.string.popup_progress_text, totalProcessed, total));
+                    progressBarView.setProgress(totalProgressed * 100 / total);
+                    progressBarTextView.setText(context.getString(R.string.popup_progress_text, totalProgressed, total));
                     progressBarSideTextView.setText(getDisplayPath(current));
-                    progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
-                            totalAdded, totalDeleted, totalRenamed, totalFailed));
+                    progressSummaryTextView.setText(context.getString(R.string.delete_progress_summary,
+                            totalDeleted.size(), totalFailed));
                 });
             }
         });
-        paster.whenPasteStopped(() -> containerView.post(() -> {
-            if (paster.isCancelled()) {
+        remover.whenRemoveStopped(() -> containerView.post(() -> {
+            if (remover.isCancelled()) {
                 progressBarSideTextView.setText(R.string.popup_progress_aborted);
             } else {
                 progressBarSideTextView.setText(R.string.popup_progress_completed);
@@ -213,24 +178,12 @@ public class PastePopup {
             closeButton.setVisibility(View.VISIBLE);
             titleBar.enableCloseButton(true);
         }));
-        paster.start(isCopy, srcFiles, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
-    }
-
-    private ConflictResolution getSelectedResolution() {
-        int selectedId = resolutionOptionsGroup.getCheckedRadioButtonId();
-        if (selectedId == R.id.resolution_option_overwrite) {
-            return ConflictResolution.OVERWRITE;
-        } else if (selectedId == R.id.resolution_option_skip_incoming) {
-            return ConflictResolution.SKIP_INCOMING;
-        } else if (selectedId == R.id.resolution_option_rename_incoming) {
-            return ConflictResolution.RENAME_INCOMING;
-        }
-        return null;
+        remover.start(srcFiles, prune);
     }
 
     private void abort() {
-        if (paster != null) {
-            paster.cancel();
+        if (remover != null) {
+            remover.cancel();
         }
     }
 }

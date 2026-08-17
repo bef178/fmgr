@@ -1,122 +1,71 @@
 package pd.droidapp.fmgr.util;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.Stack;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
 
-import pd.util.PathOps;
+import pd.util.FileOps;
 
 public class FileRemover {
 
-    private BiConsumer<File, Boolean> onFile;
-    private BiConsumer<File, Boolean> onDirectory;
+    private OnDeleteActionListener onDeleteAction;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
     private volatile Thread workerThread;
 
-    public void whenFileRemoved(BiConsumer<File, Boolean> onFile) {
-        this.onFile = onFile;
+    private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
+        if (succeeded == null) {
+            return;
+        }
+        switch (action) {
+            case DELETE:
+                callback(DeleteAction.DELETE, src, succeeded);
+                break;
+            default:
+                break;
+        }
+    };
+
+    private void callback(DeleteAction action, String src, boolean succeeded) {
+        if (onDeleteAction != null) {
+            onDeleteAction.accept(action, src, succeeded);
+        }
     }
 
-    public void whenDirectoryRemoved(BiConsumer<File, Boolean> onDirectory) {
-        this.onDirectory = onDirectory;
+    public void whenDeleteAction(OnDeleteActionListener onDeleteAction) {
+        this.onDeleteAction = onDeleteAction;
     }
 
-    public boolean start(Iterable<File> startFiles, File stopDirectory) {
+    public boolean start(Iterable<String> startFiles, boolean prune) {
         if (!started.compareAndSet(false, true)) {
             return false;
         }
+
         workerThread = new Thread(() -> {
-            for (File file : startFiles) {
-                doRemove(file, stopDirectory);
+            for (String s : startFiles) {
+                doRemove(s, prune);
+                if (cancelled.get()) {
+                    return;
+                }
+                callback(DeleteAction.PROGRESS, s, true);
             }
         });
         workerThread.start();
         return true;
     }
 
-    private void doRemove(File startFile, File stopDirectory) {
-        Stack<Frame> stack = new Stack<>();
-        stack.push(new Frame(startFile));
-
-        while (!cancelled.get() && !stack.isEmpty()) {
-            Frame frame = stack.pop();
-            if (frame.reached) {
-                removeEmptyDirectory(frame.file);
-                continue;
-            }
-            if (frame.file.isDirectory()) {
-                File[] children = frame.file.listFiles();
-                if (children == null || children.length == 0) {
-                    removeEmptyDirectory(frame.file);
-                    continue;
-                }
-
-                Arrays.sort(children, (a, b) -> PathOps.singleton.compare(a.getPath(), b.getPath()));
-
-                frame.reached = true;
-                stack.push(frame);
-                for (int i = children.length - 1; i >= 0; i--) {
-                    if (cancelled.get()) {
-                        return;
-                    }
-
-                    stack.push(new Frame(children[i]));
-                }
-            } else {
-                removeFile(frame.file);
-            }
-        }
-
-        // remove now-empty parent directories up to stopDirectory
-        if (stopDirectory == null || !isDescendantOf(startFile, stopDirectory)) {
-            return;
-        }
-        File parentFile = startFile.getParentFile();
-        while (!cancelled.get() && parentFile != null && !parentFile.equals(stopDirectory)) {
-            File[] children = parentFile.listFiles();
-            if (children != null && children.length > 0) {
-                return;
-            }
-            removeEmptyDirectory(parentFile);
-            parentFile = parentFile.getParentFile();
-        }
-    }
-
-    private static boolean isDescendantOf(File descendant, File ancestor) {
-        File parent = descendant.getParentFile();
-        while (parent != null) {
-            if (parent.equals(ancestor)) {
-                return true;
-            }
-            parent = parent.getParentFile();
-        }
-        return false;
-    }
-
-    private void removeEmptyDirectory(File directory) {
-        boolean isFailed = !directory.delete();
-        if (onDirectory != null) {
-            onDirectory.accept(directory, isFailed);
-        }
-    }
-
-    private void removeFile(File file) {
-        boolean isFailed = !file.delete();
-        if (onFile != null) {
-            onFile.accept(file, isFailed);
+    private void doRemove(String src, boolean prune) {
+        if (Files.isDirectory(Paths.get(src), LinkOption.NOFOLLOW_LINKS)) {
+            FileOps.singleton.deleteDirectory(src, true, prune, cancelled, onAction);
+        } else {
+            FileOps.singleton.deleteFile(src, onAction);
         }
     }
 
     public boolean isRunning() {
         return workerThread != null && workerThread.isAlive();
-    }
-
-    public boolean isCompleted() {
-        return started.get() && !cancelled.get() && !isRunning();
     }
 
     public void cancel() {
@@ -133,13 +82,13 @@ public class FileRemover {
         return cancelled.get();
     }
 
-    private static class Frame {
+    public interface OnDeleteActionListener {
 
-        final File file;
-        boolean reached;
+        void accept(DeleteAction action, String src, boolean succeeded);
+    }
 
-        Frame(File file) {
-            this.file = file;
-        }
+    public enum DeleteAction {
+        DELETE,
+        PROGRESS,
     }
 }

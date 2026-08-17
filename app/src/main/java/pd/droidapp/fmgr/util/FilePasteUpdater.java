@@ -19,13 +19,14 @@ class FilePasteUpdater {
     private Runnable onPasteStopped;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
     private Timer updateTimer;
     private final AtomicInteger added = new AtomicInteger(0);
     private final AtomicInteger deleted = new AtomicInteger(0);
     private final AtomicInteger renamed = new AtomicInteger(0);
     private final AtomicInteger failed = new AtomicInteger(0);
-    private final AtomicInteger processed = new AtomicInteger(0);
-    private final AtomicReference<String> currentFile = new AtomicReference<>();
+    private final AtomicInteger progressed = new AtomicInteger(0);
+    private final AtomicReference<String> current = new AtomicReference<>();
 
     public FilePasteUpdater() {
         this.filePaster = new FilePaster();
@@ -66,12 +67,12 @@ class FilePasteUpdater {
                 failed.incrementAndGet();
             }
             if (action == FilePaster.PasteAction.PROGRESS) {
-                processed.incrementAndGet();
+                progressed.incrementAndGet();
             }
             if (src != null) {
-                currentFile.set(src);
+                current.set(src);
             } else if (dst != null) {
-                currentFile.set(dst);
+                current.set(dst);
             }
         });
 
@@ -103,11 +104,12 @@ class FilePasteUpdater {
                             deleted.getAndSet(0),
                             renamed.getAndSet(0),
                             failed.getAndSet(0),
-                            processed.getAndSet(0),
-                            currentFile.get());
+                            progressed.getAndSet(0),
+                            current.get());
                 }
                 if (!filePaster.isRunning()) {
                     clearTimer();
+                    stopped.set(true);
                     if (onPasteStopped != null) {
                         onPasteStopped.run();
                     }
@@ -126,6 +128,10 @@ class FilePasteUpdater {
 
     public boolean isCompleted() {
         return filePaster.isCompleted();
+    }
+
+    public boolean isStopped() {
+        return started.get() && stopped.get();
     }
 
     public void cancel() {

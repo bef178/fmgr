@@ -20,6 +20,10 @@ public class FilePaster {
 
     private OnPasteActionListener onPasteAction;
 
+    private final AtomicBoolean started = new AtomicBoolean(false);
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+    private volatile Thread workerThread;
+
     private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
         if (succeeded == null) {
             return;
@@ -34,24 +38,28 @@ public class FilePaster {
             case RENAME:
                 callback(PasteAction.RENAME, src, dst, succeeded);
                 break;
+            default:
+                break;
         }
     };
 
-    private final AtomicBoolean started = new AtomicBoolean(false);
-    private final AtomicBoolean cancelled = new AtomicBoolean(false);
-    private volatile Thread workerThread;
+    private void callback(PasteAction action, String from, String to, boolean succeeded) {
+        if (onPasteAction != null) {
+            onPasteAction.accept(action, from, to, succeeded);
+        }
+    }
 
     public void whenPasteAction(OnPasteActionListener onPasteAction) {
         this.onPasteAction = onPasteAction;
     }
 
-    public boolean start(boolean isCopy, Collection<String> srcs, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
+    public boolean start(boolean isCopy, Iterable<String> srcFiles, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
         if (!started.compareAndSet(false, true)) {
             return false;
         }
 
         workerThread = new Thread(() -> {
-            for (String s : srcs) {
+            for (String s : srcFiles) {
                 Path src = Paths.get(s);
                 Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(s));
                 if (isCopy) {
@@ -158,12 +166,6 @@ public class FilePaster {
 
         if (!mv(tmp, getAlternativeFile(parent, dstName))) {
             rm(tmp);
-        }
-    }
-
-    private void callback(PasteAction action, String from, String to, boolean succeeded) {
-        if (onPasteAction != null) {
-            onPasteAction.accept(action, from, to, succeeded);
         }
     }
 

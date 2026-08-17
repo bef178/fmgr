@@ -31,7 +31,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -60,7 +59,6 @@ public class SearchPopup {
     private Consumer<File> onJump;
     private Consumer<Collection<File>> onCopy;
     private Consumer<Collection<File>> onCut;
-    private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
     private PopupOnDismissListener onDismiss;
 
     private Scanner scanner;
@@ -187,13 +185,14 @@ public class SearchPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            if (onDelete != null) {
-                List<File> selected = selectionBar.copySelectedFiles();
-                Collection<File> removed = onDelete.apply(selected, false);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedFiles(), false);
+            deletePopup.whenDismissClicked(removed -> {
                 removedFiles.addAll(removed);
                 itemsAdapter.removeAll(removed);
-            }
-            clearSelection();
+                selectionBar.selectedFiles.removeAll(removed);
+                selectionBar.invalidate();
+            });
+            deletePopup.show();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
@@ -222,10 +221,6 @@ public class SearchPopup {
 
     public void whenCutClicked(Consumer<Collection<File>> onCut) {
         this.onCut = onCut;
-    }
-
-    public void whenDeleteClicked(BiFunction<Collection<File>, Boolean, Collection<File>> onDelete) {
-        this.onDelete = onDelete;
     }
 
     public void whenDismissClicked(PopupOnDismissListener onDismiss) {

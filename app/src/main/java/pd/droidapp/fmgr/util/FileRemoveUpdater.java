@@ -1,47 +1,42 @@
 package pd.droidapp.fmgr.util;
 
 import java.io.File;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class FileRemoveUpdater {
 
     private final FileRemover fileRemover;
     private final int updateInterval;
 
-    private BiConsumer<File, Boolean> onFile;
-    private BiConsumer<File, Boolean> onDirectory;
-
     private Runnable onRemoveStarted;
-    private BiConsumer<Integer, Integer> onRemoveUpdated;
+    private OnRemoveUpdateListener onRemoveUpdated;
     private Runnable onRemoveStopped;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
     private Timer updateTimer;
-    private final AtomicInteger removed = new AtomicInteger(0);
+    private List<File> deleted = new LinkedList<>();
     private final AtomicInteger failed = new AtomicInteger(0);
+    private final AtomicInteger progressed = new AtomicInteger(0);
+    private final AtomicReference<String> current = new AtomicReference<>();
+    private final Object lock = started;
 
     public FileRemoveUpdater() {
         this.fileRemover = new FileRemover();
-        this.updateInterval = 1000;
-    }
-
-    public void whenFileRemoved(BiConsumer<File, Boolean> onFileRemoved) {
-        this.onFile = onFileRemoved;
-    }
-
-    public void whenDirectoryRemoved(BiConsumer<File, Boolean> onDirectoryRemoved) {
-        this.onDirectory = onDirectoryRemoved;
+        this.updateInterval = 200;
     }
 
     public void whenRemoveStarted(Runnable onRemoveStarted) {
         this.onRemoveStarted = onRemoveStarted;
     }
 
-    public void whenRemoveUpdated(BiConsumer<Integer, Integer> onRemoveUpdated) {
+    public void whenRemoveUpdated(OnRemoveUpdateListener onRemoveUpdated) {
         this.onRemoveUpdated = onRemoveUpdated;
     }
 
@@ -49,34 +44,38 @@ public class FileRemoveUpdater {
         this.onRemoveStopped = onRemoveStopped;
     }
 
-    public boolean start(Iterable<File> startFiles, File stopDirectory) {
+    public boolean start(Iterable<File> startFiles, boolean prune) {
         if (!started.compareAndSet(false, true)) {
             return false;
         }
 
-        fileRemover.whenDirectoryRemoved((directory, isFailed) -> {
-            count(isFailed);
-            if (onDirectory != null) {
-                onDirectory.accept(directory, isFailed);
+        fileRemover.whenDeleteAction((action, src, succeeded) -> {
+            switch (action) {
+                case DELETE:
+                    if (succeeded) {
+                        synchronized (lock) {
+                            deleted.add(new File(src));
+                        }
+                    } else {
+                        failed.incrementAndGet();
+                    }
+                    break;
+                case PROGRESS:
+                    progressed.incrementAndGet();
+                    break;
+                default:
+                    break;
             }
+            current.set(src);
         });
-        fileRemover.whenFileRemoved((file, isFailed) -> {
-            count(isFailed);
-            if (onFile != null) {
-                onFile.accept(file, isFailed);
-            }
-        });
-        fileRemover.start(startFiles, stopDirectory);
+
+        List<String> paths = new LinkedList<>();
+        for (File file : startFiles) {
+            paths.add(file.getPath());
+        }
+        fileRemover.start(paths, prune);
         startTimer();
         return true;
-    }
-
-    private void count(boolean isFailed) {
-        if (isFailed) {
-            failed.incrementAndGet();
-        } else {
-            removed.incrementAndGet();
-        }
     }
 
     private void startTimer() {
@@ -93,15 +92,16 @@ public class FileRemoveUpdater {
             @Override
             public void run() {
                 // note the race condition
-                if (fileRemover.isRunning()) {
-                    if (onRemoveUpdated != null) {
-                        onRemoveUpdated.accept(removed.getAndSet(0), failed.getAndSet(0));
-                    }
-                } else {
-                    if (onRemoveUpdated != null) {
-                        onRemoveUpdated.accept(removed.getAndSet(0), failed.getAndSet(0));
-                    }
+                if (onRemoveUpdated != null) {
+                    onRemoveUpdated.accept(
+                            dumpDeleted(),
+                            failed.getAndSet(0),
+                            progressed.getAndSet(0),
+                            current.get());
+                }
+                if (!fileRemover.isRunning()) {
                     clearTimer();
+                    stopped.set(true);
                     if (onRemoveStopped != null) {
                         onRemoveStopped.run();
                     }
@@ -118,8 +118,16 @@ public class FileRemoveUpdater {
         }
     }
 
-    public boolean isCompleted() {
-        return fileRemover.isCompleted();
+    private List<File> dumpDeleted() {
+        synchronized (lock) {
+            List<File> batch = deleted;
+            deleted = new LinkedList<>();
+            return batch;
+        }
+    }
+
+    public boolean isStopped() {
+        return started.get() && stopped.get();
     }
 
     public void cancel() {
@@ -128,5 +136,10 @@ public class FileRemoveUpdater {
 
     public boolean isCancelled() {
         return fileRemover.isCancelled();
+    }
+
+    public interface OnRemoveUpdateListener {
+
+        void accept(List<File> removed, int failed, int progressed, String current);
     }
 }

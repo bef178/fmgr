@@ -41,7 +41,6 @@
     <string name="x_selected">%d selected</string>
 
     <string name="delete">Delete</string>
-    <string name="deleted_report_format">%d deleted (%d failed)</string>
 
     <string name="rename">Rename</string>
     <string name="renamed">Renamed</string>
@@ -76,7 +75,6 @@
     <!-- paste popup -->
     <string name="copy_x_items">Copy %d item(s)</string>
     <string name="move_x_items">Move %d item(s)</string>
-
     <string name="select_resolution">Select a resolution for possible conflicts:</string>
     <string name="on_conflict_x">On conflict: %s</string>
     <string name="resolution_short_overwrite">overwrite</string>
@@ -86,10 +84,14 @@
     <string name="resolution_option_skip_incoming">Keep existing, skip incoming</string>
     <string name="resolution_option_rename_incoming">Keep existing, rename incoming</string>
     <string name="merge_directories_check">Merge into existing directories</string>
-    <string name="paste_progress_text">%d / %d</string>
-    <string name="paste_progress_pending">Pending</string>
-    <string name="paste_progress_completed">Completed</string>
-    <string name="paste_progress_aborted">Aborted</string>
+    <string name="popup_progress_text">%d / %d</string>
+    <string name="popup_progress_pending">Pending</string>
+    <string name="popup_progress_completed">Completed</string>
+    <string name="popup_progress_aborted">Aborted</string>
     <string name="paste_progress_summary">%d added, %d deleted, %d renamed, %d failed</string>
+
+    <!-- delete popup -->
+    <string name="delete_x_items">Delete %d item(s)</string>
+    <string name="delete_progress_summary">%d deleted, %d failed</string>
 
 </resources>

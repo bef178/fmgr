@@ -30,20 +30,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.util.ActionPopup;
 import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.DedupPopup;
 import pd.droidapp.fmgr.util.DeleteEmptyPopup;
+import pd.droidapp.fmgr.util.DeletePopup;
 import pd.droidapp.fmgr.util.EditPopup;
 import pd.droidapp.fmgr.util.FileRemoveUpdater;
 import pd.droidapp.fmgr.util.PastePopup;
@@ -91,12 +89,7 @@ public class BrowseFragment extends Fragment {
         });
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> markSelectedItemsForCopy());
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> markSelectedItemsForCut());
-        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            Collection<File> removed = deleteItems(selectionBar.copySelectedFiles(), false);
-            itemsAdapter.removeAll(removed);
-            selectionBar.clear();
-            selectionBar.invalidate();
-        });
+        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> showDeletePopup());
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
@@ -450,43 +443,10 @@ public class BrowseFragment extends Fragment {
         pastePopup.show();
     }
 
-    private Collection<File> deleteItems(Collection<File> files, boolean prune) {
-        AtomicInteger okCount = new AtomicInteger(0);
-        AtomicInteger failedCount = new AtomicInteger(0);
-        Collection<File> removed = Collections.synchronizedList(new LinkedList<>());
-        CountDownLatch latch = new CountDownLatch(1);
-
-        FileRemoveUpdater remover = new FileRemoveUpdater();
-        remover.whenFileRemoved((file, isFailed) -> {
-            if (!isFailed) {
-                okCount.incrementAndGet();
-                removed.add(file);
-            } else {
-                failedCount.incrementAndGet();
-            }
-        });
-        remover.whenDirectoryRemoved((directory, isFailed) -> {
-            if (!isFailed) {
-                okCount.incrementAndGet();
-                removed.add(directory);
-            } else {
-                failedCount.incrementAndGet();
-            }
-        });
-        remover.whenRemoveStopped(latch::countDown);
-        remover.start(files, prune ? pathBar.getCurrentDirectory() : null);
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            remover.cancel();
-            Thread.currentThread().interrupt();
-        }
-
-        clipboard.removeAllIfSameAsOrDescendantOf(removed);
-
-        Toast.makeText(requireContext(), getString(R.string.deleted_report_format, okCount.get(), failedCount.get()), Toast.LENGTH_SHORT).show();
-        return removed;
+    private void showDeletePopup() {
+        DeletePopup deletePopup = new DeletePopup(getView(), selectionBar.copySelectedFiles(), false);
+        deletePopup.whenDismissClicked(this::onPopupDismissed);
+        deletePopup.show();
     }
 
     private void showRenamePopup(File file) {
@@ -536,7 +496,6 @@ public class BrowseFragment extends Fragment {
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
-        popup.whenDeleteClicked(this::deleteItems);
         popup.whenDismissClicked(this::onPopupDismissed);
         popup.show();
     }
@@ -544,7 +503,6 @@ public class BrowseFragment extends Fragment {
     private void showDeleteEmptyPopup() {
         DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), pathBar.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpToFile);
-        popup.whenDeleteClicked(this::deleteItems);
         popup.whenDismissClicked(this::onPopupDismissed);
         popup.show();
     }
@@ -554,7 +512,6 @@ public class BrowseFragment extends Fragment {
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
-        popup.whenDeleteClicked(this::deleteItems);
         popup.whenDismissClicked(this::onPopupDismissed);
         popup.show();
     }
@@ -570,6 +527,7 @@ public class BrowseFragment extends Fragment {
         if (removedFiles.isEmpty()) {
             return;
         }
+        clipboard.removeAllIfSameAsOrDescendantOf(removedFiles);
         itemsAdapter.removeAll(removedFiles);
         selectionBar.selectedFiles.removeAll(removedFiles);
         selectionBar.invalidate();

@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -54,7 +53,6 @@ public class DedupPopup {
     private Consumer<File> onJump;
     private Consumer<Collection<File>> onCopy;
     private Consumer<Collection<File>> onCut;
-    private BiFunction<Collection<File>, Boolean, Collection<File>> onDelete;
     private PopupOnDismissListener onDismiss;
 
     // the single source of truth
@@ -141,15 +139,15 @@ public class DedupPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            if (onDelete != null) {
-                List<File> selected = selectionBar.copySelectedFiles();
-                Collection<File> removed = onDelete.apply(selected, false);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedFiles(), false);
+            deletePopup.whenDismissClicked(removed -> {
                 removedFiles.addAll(removed);
                 fileGrouper.removeAll(removed);
                 itemsAdapter.invalidate(buildFileGroups());
-            }
-            selectionBar.clear();
-            selectionBar.invalidate();
+                selectionBar.selectedFiles.removeAll(removed);
+                selectionBar.invalidate();
+            });
+            deletePopup.show();
         });
 
         selectionBar.addButton(R.layout.selection_button_smart_select, c -> c > 0, v -> {
@@ -182,10 +180,6 @@ public class DedupPopup {
 
     public void whenCutClicked(Consumer<Collection<File>> onCut) {
         this.onCut = onCut;
-    }
-
-    public void whenDeleteClicked(BiFunction<Collection<File>, Boolean, Collection<File>> onDelete) {
-        this.onDelete = onDelete;
     }
 
     public void whenDismissClicked(PopupOnDismissListener onDismiss) {
