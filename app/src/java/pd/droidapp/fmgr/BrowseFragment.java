@@ -43,7 +43,6 @@ import pd.droidapp.fmgr.util.DedupPopup;
 import pd.droidapp.fmgr.util.DeleteEmptyPopup;
 import pd.droidapp.fmgr.util.DeletePopup;
 import pd.droidapp.fmgr.util.EditPopup;
-import pd.droidapp.fmgr.util.FileRemoveUpdater;
 import pd.droidapp.fmgr.util.PastePopup;
 import pd.droidapp.fmgr.util.PathBar;
 import pd.droidapp.fmgr.util.Progressor;
