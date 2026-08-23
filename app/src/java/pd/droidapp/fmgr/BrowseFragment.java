@@ -63,6 +63,17 @@ public class BrowseFragment extends Fragment {
 
     private boolean askedAllFilesAccess;
 
+    private static final String STATE_CURRENT_DIRECTORY = "current_directory";
+    private static final String STATE_BACK_STACK = "back_stack";
+    private static final String STATE_FORWARD_STACK = "forward_stack";
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        MainActivity mainActivity = (MainActivity) requireActivity();
+        mainActivity.setBrowseFragment(this);
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -103,7 +114,39 @@ public class BrowseFragment extends Fragment {
             itemsAdapter.notifyDataSetChanged();
         });
 
+        if (savedInstanceState != null) {
+            restoreState(savedInstanceState);
+        }
+
         return view;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void restoreState(@NonNull Bundle savedInstanceState) {
+        File currentDirectory = (File) savedInstanceState.getSerializable(STATE_CURRENT_DIRECTORY);
+        if (validateDirectory(currentDirectory)) {
+            doChangeCurrentDirectory(currentDirectory);
+        }
+
+        List<File> savedBackStack = (List<File>) savedInstanceState.getSerializable(STATE_BACK_STACK);
+        if (savedBackStack != null) {
+            backStack.addAll(savedBackStack);
+        }
+
+        List<File> savedForwardStack = (List<File>) savedInstanceState.getSerializable(STATE_FORWARD_STACK);
+        if (savedForwardStack != null) {
+            forwardStack.addAll(savedForwardStack);
+        }
+
+        actionBar.invalidate();
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putSerializable(STATE_CURRENT_DIRECTORY, pathBar.getCurrentDirectory());
+        outState.putSerializable(STATE_BACK_STACK, new LinkedList<>(backStack));
+        outState.putSerializable(STATE_FORWARD_STACK, new LinkedList<>(forwardStack));
     }
 
     @Override
@@ -116,6 +159,11 @@ public class BrowseFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        MainActivity mainActivity = (MainActivity) requireActivity();
+        File pendingDirectory = mainActivity.consumePendingDirectory();
+        if (pendingDirectory != null) {
+            navigateToDirectory(pendingDirectory);
+        }
         if (pathBar.getCurrentDirectory() == null) {
             doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
         }

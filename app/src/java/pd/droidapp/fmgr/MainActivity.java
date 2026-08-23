@@ -2,7 +2,6 @@ package pd.droidapp.fmgr;
 
 import android.os.Bundle;
 import android.widget.Toast;
-
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,9 +9,9 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-
 import java.io.File;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,8 +40,7 @@ public class MainActivity extends AppCompatActivity {
             public Fragment createFragment(int position) {
                 switch (position) {
                     case 1:
-                        browseFragment = new BrowseFragment();
-                        return browseFragment;
+                        return new BrowseFragment();
                     case 2:
                         return new ProfileFragment();
                     default:
@@ -64,15 +62,13 @@ public class MainActivity extends AppCompatActivity {
                     case 1:
                         indexWithinHome = 1;
                         bottomNavigation.setSelectedItemId(R.id.navigation_home);
-                        if (pending != null && browseFragment != null) {
-                            browseFragment.navigateToDirectory(pending);
-                            pending = null;
-                        }
                         break;
                     case 2:
+                        pending = null;
                         bottomNavigation.setSelectedItemId(R.id.navigation_profile);
                         break;
                     default:
+                        pending = null;
                         indexWithinHome = 0;
                         bottomNavigation.setSelectedItemId(R.id.navigation_home);
                         break;
@@ -137,5 +133,15 @@ public class MainActivity extends AppCompatActivity {
     public void navigateToDirectory(File directory) {
         pending = directory;
         viewPager.setCurrentItem(1, true);
+    }
+
+    void setBrowseFragment(BrowseFragment fragment) {
+        this.browseFragment = fragment;
+    }
+
+    public File consumePendingDirectory() {
+        File directory = pending;
+        pending = null;
+        return directory;
     }
 }
