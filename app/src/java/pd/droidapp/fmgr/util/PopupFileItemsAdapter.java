@@ -116,6 +116,8 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
             toggleSelected(file, position);
             return true;
         });
+
+        viewHolder.fileItem.forwardPathViewClicksTo(viewHolder.itemView);
     }
 
     private void toggleSelected(File file, int position) {

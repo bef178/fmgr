@@ -752,6 +752,9 @@ public class BrowseFragment extends Fragment {
                 toggleSelected(file);
                 return true;
             });
+
+            viewHolder.fileNameTextView.setOnClickListener(v -> viewHolder.itemView.performClick());
+            viewHolder.fileNameTextView.setOnLongClickListener(v -> viewHolder.itemView.performLongClick());
         }
 
         private void toggleSelected(File file) {

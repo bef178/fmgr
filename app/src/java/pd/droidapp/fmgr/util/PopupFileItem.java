@@ -35,4 +35,9 @@ public class PopupFileItem {
     public void setPath(CharSequence path) {
         pathView.setText(path);
     }
+
+    public void forwardPathViewClicksTo(View itemView) {
+        pathView.setOnClickListener(v -> itemView.performClick());
+        pathView.setOnLongClickListener(v -> itemView.performLongClick());
+    }
 }
