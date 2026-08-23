@@ -93,6 +93,9 @@ public class FileGrouper {
             Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
             for (File file : bySize) {
                 FileProperties fileProps = Objects.requireNonNull(fileProperties.get(file));
+                if (fileProps.md5sum == null) {
+                    continue;
+                }
                 byChecksum.computeIfAbsent(fileProps.md5sum, k -> new LinkedList<>()).add(fileProps);
             }
             for (List<FileProperties> group : byChecksum.values()) {
