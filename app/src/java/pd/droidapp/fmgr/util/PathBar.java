@@ -19,7 +19,7 @@ import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
 public class PathBar {
 
-    private final FavItemStore favItemStore;
+    private final FavStore favStore;
     private File directory;
     private Consumer<File> onBreadcrumbClickedListener;
 
@@ -27,7 +27,7 @@ public class PathBar {
     private final ImageButton favIcon;
 
     public PathBar(View selfView) {
-        favItemStore = new FavItemStore(selfView.getContext());
+        favStore = new FavStore(selfView.getContext());
 
         breadcrumbsContainerView = selfView.findViewById(R.id.breadcrumb_container);
 
@@ -45,7 +45,7 @@ public class PathBar {
     public void invalidate() {
         breadcrumbsContainerView.removeAllViews();
 
-        favIcon.setSelected(favItemStore.contains(directory));
+        favIcon.setSelected(directory != null && favStore.contains(directory));
 
         Context context = breadcrumbsContainerView.getContext();
         LayoutInflater inflater = LayoutInflater.from(context);
@@ -74,15 +74,18 @@ public class PathBar {
     }
 
     private void toggleFavorite() {
+        if (directory == null) {
+            return;
+        }
         Context context = favIcon.getContext();
-        if (favItemStore.contains(directory)) {
-            favItemStore.remove(directory);
+        if (favStore.contains(directory)) {
+            favStore.remove(directory);
             Toast.makeText(context, R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();
         } else {
-            favItemStore.put(directory);
+            favStore.put(directory);
             Toast.makeText(context, R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
         }
-        favIcon.setSelected(favItemStore.contains(directory));
+        favIcon.setSelected(favStore.contains(directory));
     }
 
     private TextView createBreadcrumbView(LayoutInflater inflater, File f, String displayName) {

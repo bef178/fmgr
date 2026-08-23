@@ -19,7 +19,7 @@ import java.util.List;
 
 import pd.droidapp.fmgr.R;
 
-public class FavBox {
+public class FavoritesCollapsible {
 
     private final View selfView;
 
@@ -27,14 +27,14 @@ public class FavBox {
     private final TextView favTitle;
     private final RecyclerView favItemsView;
 
-    private final FavItemStore favItemStore;
+    private final FavStore favStore;
     private final FavItemAdapter favItemAdapter;
 
     private boolean isFavItemsViewCollapsed = false;
 
     private Consumer<File> onFavDirectoryClickedListener;
 
-    public FavBox(View selfView) {
+    public FavoritesCollapsible(View selfView) {
         this.selfView = selfView;
 
         favTriangle = selfView.findViewById(R.id.favorites_triangle);
@@ -42,19 +42,19 @@ public class FavBox {
         favItemsView = selfView.findViewById(R.id.favorites_list);
 
         Context context = selfView.getContext();
-        favItemStore = new FavItemStore(context);
+        favStore = new FavStore(context);
 
         favItemAdapter = new FavItemAdapter();
         favItemAdapter.whenFavItemClicked(favItem -> {
             File file = new File(favItem.path);
-            if (file.exists() && file.isDirectory()) {
+            if (file.isDirectory()) {
                 if (onFavDirectoryClickedListener != null) {
                     onFavDirectoryClickedListener.accept(file);
                 }
             }
         });
         favItemAdapter.whenFavIconClicked(favItem -> {
-            favItemStore.remove(favItem);
+            favStore.remove(favItem);
             invalidate();
         });
         favItemAdapter.whenFavEditClicked(favItem -> {
@@ -67,8 +67,8 @@ public class FavBox {
                         newName = newName.trim();
                         if (!newName.equals(favItem.getDisplayName())) {
                             favItem.setDisplayName(newName);
-                            favItemStore.put(favItem);
-                            favItemAdapter.invalidate(favItemStore.getAll());
+                            favStore.put(favItem);
+                            favItemAdapter.invalidate(favStore.getAll());
                         }
                         editPopup.dismiss();
                     });
@@ -85,7 +85,7 @@ public class FavBox {
     }
 
     public void invalidate() {
-        List<FavItem> favItems = favItemStore.getAll();
+        List<FavItem> favItems = favStore.getAll();
         if (favItems.isEmpty()) {
             selfView.setVisibility(View.GONE);
             return;
@@ -99,7 +99,7 @@ public class FavBox {
         isFavItemsViewCollapsed = !isFavItemsViewCollapsed;
         favItemsView.setVisibility(isFavItemsViewCollapsed ? View.GONE : View.VISIBLE);
 
-        // rotate the trangle
+        // rotate the triangle
         float targetRotation = isFavItemsViewCollapsed ? -90f : 0f;
         float currentRotation = favTriangle.getRotation();
         ValueAnimator animator = ValueAnimator.ofFloat(currentRotation, targetRotation);
@@ -192,7 +192,7 @@ public class FavBox {
         @Override
         public FavItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View itemView = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.fav_item, parent, false);
+                    .inflate(R.layout.favorite_item, parent, false);
             return new FavItemViewHolder(itemView);
         }
 
@@ -213,7 +213,7 @@ public class FavBox {
             FavItem favItem = favItems.get(position);
 
             viewHolder.nameText.setText(favItem.getDisplayName());
-            viewHolder.pathText.setText(favItem.path);
+            viewHolder.pathText.setText(Util.getDisplayPath(favItem.path));
 
             viewHolder.itemView.setOnClickListener(v -> {
                 if (onFavItemClickedListener != null) {

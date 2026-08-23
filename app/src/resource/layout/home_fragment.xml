@@ -35,6 +35,8 @@
 
     </LinearLayout>
 
-    <include layout="@layout/fav_box" />
+    <include layout="@layout/favorites_collapsible" />
+
+    <include layout="@layout/locations_collapsible" />
 
 </LinearLayout>

@@ -89,6 +89,10 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setCurrentItem(0);
     }
 
+    public void navigateToBrowse() {
+        viewPager.setCurrentItem(1);
+    }
+
     public void navigateToDirectory(File directory) {
         viewPager.setCurrentItem(1, true);
         viewPager.post(() -> {

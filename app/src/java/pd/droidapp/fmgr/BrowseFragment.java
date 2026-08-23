@@ -103,8 +103,6 @@ public class BrowseFragment extends Fragment {
             itemsAdapter.notifyDataSetChanged();
         });
 
-        doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
-
         return view;
     }
 
@@ -118,8 +116,9 @@ public class BrowseFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        pathBar.invalidate();
-        itemsAdapter.invalidate(pathBar.getCurrentDirectory());
+        if (pathBar.getCurrentDirectory() == null) {
+            doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+        }
         askForAllFilesAccessIfNecessary();
     }
 

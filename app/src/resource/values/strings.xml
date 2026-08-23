@@ -2,6 +2,8 @@
     <string name="app_name">File Manager for Android</string>
     <string name="home_title">Home</string>
     <string name="home_favorites_title">Favorites (%d)</string>
+    <string name="home_locations_title">Locations</string>
+    <string name="local_files">Local files</string>
     <string name="browse_title">Browse</string>
     <string name="profile_title">Profile</string>
 

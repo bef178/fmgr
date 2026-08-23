@@ -1,6 +1,6 @@
 package pd.droidapp.fmgr.util;
 
-import static pd.droidapp.fmgr.util.FavBox.FavItem;
+import static pd.droidapp.fmgr.util.FavoritesCollapsible.FavItem;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -11,14 +11,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 // TODO save to sqlite
-public class FavItemStore {
+public class FavStore {
 
     private static final String PREFS_FAV = "favorites";
     private static final String PREFS_ITEM_PREFIX = "fav_item_";
 
     private final SharedPreferences sharedPreferences;
 
-    public FavItemStore(Context context) {
+    public FavStore(Context context) {
         sharedPreferences = context.getSharedPreferences(PREFS_FAV, Context.MODE_PRIVATE);
     }
 

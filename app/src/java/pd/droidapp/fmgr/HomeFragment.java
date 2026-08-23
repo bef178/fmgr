@@ -9,23 +9,28 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import pd.droidapp.fmgr.util.FavBox;
+import pd.droidapp.fmgr.util.FavoritesCollapsible;
+import pd.droidapp.fmgr.util.LocationsCollapsible;
 
 public class HomeFragment extends Fragment {
 
-    private FavBox favBox;
+    private FavoritesCollapsible favoritesCollapsible;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.home_fragment, container, false);
 
-        favBox = new FavBox(view.findViewById(R.id.fav_box));
-        favBox.whenFavDirectoryClicked(file -> {
-            if (file.exists() && file.isDirectory()) {
-                MainActivity mainActivity = (MainActivity) requireActivity();
-                mainActivity.navigateToDirectory(file);
-            }
+        favoritesCollapsible = new FavoritesCollapsible(view.findViewById(R.id.favorites_collapsible));
+        favoritesCollapsible.whenFavDirectoryClicked(file -> {
+            MainActivity mainActivity = (MainActivity) requireActivity();
+            mainActivity.navigateToDirectory(file);
+        });
+
+        LocationsCollapsible locationsCollapsible = new LocationsCollapsible(view.findViewById(R.id.locations_collapsible));
+        locationsCollapsible.whenLocationClicked(() -> {
+            MainActivity mainActivity = (MainActivity) requireActivity();
+            mainActivity.navigateToBrowse();
         });
 
         return view;
@@ -34,6 +39,6 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        favBox.invalidate();
+        favoritesCollapsible.invalidate();
     }
 }
