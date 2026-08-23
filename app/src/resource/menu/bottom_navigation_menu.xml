@@ -6,11 +6,6 @@
         android:title="@string/home_title" />
 
     <item
-        android:id="@+id/navigation_browse"
-        android:icon="@drawable/nav_browse"
-        android:title="@string/browse_title" />
-
-    <item
         android:id="@+id/navigation_profile"
         android:icon="@drawable/nav_profile"
         android:title="@string/profile_title" />

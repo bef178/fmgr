@@ -18,6 +18,8 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigation;
 
     private BrowseFragment browseFragment;
+    private File pending;
+    private int indexWithinHome;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,12 +59,18 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageSelected(position);
                 switch (position) {
                     case 1:
-                        bottomNavigation.setSelectedItemId(R.id.navigation_browse);
+                        indexWithinHome = 1;
+                        bottomNavigation.setSelectedItemId(R.id.navigation_home);
+                        if (pending != null && browseFragment != null) {
+                            browseFragment.navigateToDirectory(pending);
+                            pending = null;
+                        }
                         break;
                     case 2:
                         bottomNavigation.setSelectedItemId(R.id.navigation_profile);
                         break;
                     default:
+                        indexWithinHome = 0;
                         bottomNavigation.setSelectedItemId(R.id.navigation_home);
                         break;
                 }
@@ -72,10 +80,9 @@ public class MainActivity extends AppCompatActivity {
         bottomNavigation.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.navigation_home) {
-                viewPager.setCurrentItem(0);
-                return true;
-            } else if (itemId == R.id.navigation_browse) {
-                viewPager.setCurrentItem(1);
+                if (viewPager.getCurrentItem() == 2) {
+                    viewPager.setCurrentItem(indexWithinHome);
+                }
                 return true;
             } else if (itemId == R.id.navigation_profile) {
                 viewPager.setCurrentItem(2);
@@ -94,11 +101,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void navigateToDirectory(File directory) {
+        pending = directory;
         viewPager.setCurrentItem(1, true);
-        viewPager.post(() -> {
-            if (browseFragment != null) {
-                browseFragment.navigateToDirectory(directory);
-            }
-        });
     }
 }
