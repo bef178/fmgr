@@ -1,7 +1,9 @@
 package pd.droidapp.fmgr;
 
 import android.os.Bundle;
+import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -20,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     private BrowseFragment browseFragment;
     private File pending;
     private int indexWithinHome;
+    private long lastBackPressedAt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +93,37 @@ public class MainActivity extends AppCompatActivity {
             }
             return false;
         });
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                onSystemBackPressed();
+            }
+        });
+    }
+
+    private void onSystemBackPressed() {
+        int current = viewPager.getCurrentItem();
+
+        // on browse fragment: try nav back
+        if (current == 1 && browseFragment != null && browseFragment.navigateBack()) {
+            return;
+        }
+
+        // fall back to home fragment
+        if (current != 0) {
+            viewPager.setCurrentItem(0);
+            return;
+        }
+
+        // already on home fragment: press again to exit
+        long now = System.currentTimeMillis();
+        if (now - lastBackPressedAt < 2000) {
+            finish();
+            return;
+        }
+        lastBackPressedAt = now;
+        Toast.makeText(this, R.string.press_back_again_to_exit, Toast.LENGTH_SHORT).show();
     }
 
     public void navigateToHome() {

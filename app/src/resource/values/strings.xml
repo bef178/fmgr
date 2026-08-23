@@ -21,6 +21,7 @@
     <string name="all_files_access_message">Grant \"All files access\" so the file manager can manage files created by other apps.</string>
     <string name="go_to_settings">Go to settings</string>
     <string name="not_now">Not now</string>
+    <string name="press_back_again_to_exit">Press back again to exit</string>
 
     <string name="error_directory_not_accessible">Directory not accessible</string>
     <string name="error_failed_to_handle">Failed to handle</string>

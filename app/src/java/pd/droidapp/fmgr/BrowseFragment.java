@@ -183,18 +183,19 @@ public class BrowseFragment extends Fragment {
         mainActivity.navigateToHome();
     }
 
-    private void navigateBack() {
+    public boolean navigateBack() {
         while (!backStack.isEmpty() && !validateDirectory(backStack.peek())) {
             backStack.pop();
         }
         if (backStack.isEmpty()) {
             actionBar.invalidate();
-            return;
+            return false;
         }
 
         File target = backStack.pop();
         forwardStack.push(pathBar.getCurrentDirectory());
         doChangeCurrentDirectory(target);
+        return true;
     }
 
     private void navigateForward() {
