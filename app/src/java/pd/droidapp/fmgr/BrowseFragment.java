@@ -184,34 +184,30 @@ public class BrowseFragment extends Fragment {
     }
 
     private void navigateBack() {
+        while (!backStack.isEmpty() && !validateDirectory(backStack.peek())) {
+            backStack.pop();
+        }
         if (backStack.isEmpty()) {
+            actionBar.invalidate();
             return;
         }
 
-        File target = backStack.peek();
-        if (!validateDirectory(target)) {
-            Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        backStack.pop();
+        File target = backStack.pop();
         forwardStack.push(pathBar.getCurrentDirectory());
         doChangeCurrentDirectory(target);
     }
 
     private void navigateForward() {
-        if (forwardStack.isEmpty()) {
-            return;
+        while (!forwardStack.isEmpty() && !validateDirectory(forwardStack.peek())) {
+            forwardStack.pop();
         }
-
-        File target = forwardStack.peek();
-        if (!validateDirectory(target)) {
-            Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
+        if (forwardStack.isEmpty()) {
+            actionBar.invalidate();
             return;
         }
 
         backStack.push(pathBar.getCurrentDirectory());
-        forwardStack.pop();
+        File target = forwardStack.pop();
         doChangeCurrentDirectory(target);
     }
 
