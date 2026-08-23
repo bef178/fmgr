@@ -33,7 +33,9 @@ public class FavStore {
     List<FavItem> getAll() {
         return sharedPreferences.getAll().entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith(PREFS_ITEM_PREFIX))
-                .map(entry -> FavItem.parse((String) entry.getValue()))
+                .map(entry -> new FavItem(
+                        entry.getKey().substring(PREFS_ITEM_PREFIX.length()),
+                        (String) entry.getValue()))
                 .sorted(Comparator.comparing(f -> f.path))
                 .collect(Collectors.toList());
     }
@@ -44,7 +46,7 @@ public class FavStore {
 
     void put(FavItem favItem) {
         sharedPreferences.edit()
-                .putString(buildPrefsKey(favItem.path), favItem.toString())
+                .putString(buildPrefsKey(favItem.path), favItem.getDisplayName())
                 .apply();
     }
 
