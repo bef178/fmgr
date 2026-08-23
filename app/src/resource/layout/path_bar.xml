@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/path_bar"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="36dp"
     android:background="?attr/colorSurfaceVariant"
     android:gravity="center_vertical"
     android:orientation="horizontal"
@@ -16,6 +16,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
         android:scrollbars="horizontal">
 
         <LinearLayout

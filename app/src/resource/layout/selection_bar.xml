@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/selection_bar"
     android:layout_width="match_parent"
-    android:layout_height="32dp"
+    android:layout_height="36dp"
     android:background="?attr/colorPrimary"
     android:gravity="center_vertical"
     android:orientation="horizontal"
