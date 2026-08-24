@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -64,7 +63,7 @@ public class DeleteEmptyPopup {
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.files_list);
-        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedFiles);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedItems);
 
         initPopupWindow();
         enableClosePopupOnOutsideTouch();
@@ -99,8 +98,8 @@ public class DeleteEmptyPopup {
 
     private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
-            if (selectionBar.selectedFiles.size() == 1) {
-                File file = selectionBar.selectedFiles.iterator().next();
+            if (selectionBar.selectedItems.size() == 1) {
+                File file = selectionBar.selectedItems.iterator().next();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
@@ -109,22 +108,22 @@ public class DeleteEmptyPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedFiles(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
             deletePopup.whenDismissClicked(removed -> {
                 removedFiles.addAll(removed);
                 itemsAdapter.removeAll(removed);
-                selectionBar.selectedFiles.removeAll(removed);
+                selectionBar.selectedItems.removeAll(removed);
                 selectionBar.invalidate();
             });
             deletePopup.show();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedFiles(), true);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), true);
             deletePopup.whenDismissClicked(removed -> {
                 removedFiles.addAll(removed);
                 itemsAdapter.removeAll(removed);
-                selectionBar.selectedFiles.removeAll(removed);
+                selectionBar.selectedItems.removeAll(removed);
                 selectionBar.invalidate();
             });
             deletePopup.show();
@@ -132,7 +131,7 @@ public class DeleteEmptyPopup {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.selectedFiles.addAll(itemsAdapter.copyItems());
+            selectionBar.selectedItems.addAll(itemsAdapter.copyItems());
             selectionBar.invalidate();
             itemsAdapter.notifyDataSetChanged();
         });

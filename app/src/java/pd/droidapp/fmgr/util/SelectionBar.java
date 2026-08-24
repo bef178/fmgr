@@ -24,7 +24,7 @@ public class SelectionBar {
 
     private final List<ActionButton> actionButtons = new ArrayList<>();
 
-    public final Set<File> selectedFiles = new HashSet<>();
+    public final Set<File> selectedItems = new HashSet<>();
 
     public SelectionBar(View selfView) {
         this.selfView = selfView;
@@ -40,44 +40,44 @@ public class SelectionBar {
     }
 
     public void invalidate() {
-        if (selectedFiles.isEmpty()) {
+        if (selectedItems.isEmpty()) {
             selfView.setVisibility(View.GONE);
         } else {
-            numSelectedTextView.setText(selfView.getContext().getString(R.string.x_selected, selectedFiles.size()));
+            numSelectedTextView.setText(selfView.getContext().getString(R.string.x_selected, selectedItems.size()));
             selfView.setVisibility(View.VISIBLE);
         }
-        int count = selectedFiles.size();
+        int count = selectedItems.size();
         for (ActionButton action : actionButtons) {
             action.view.setVisibility(action.visible.test(count) ? View.VISIBLE : View.GONE);
         }
     }
 
     public boolean isSelected(File file) {
-        return selectedFiles.contains(file);
+        return selectedItems.contains(file);
     }
 
     public boolean hasSelection() {
-        return !selectedFiles.isEmpty();
+        return !selectedItems.isEmpty();
     }
 
     public void toggleSelected(File file) {
-        if (selectedFiles.contains(file)) {
-            selectedFiles.remove(file);
+        if (selectedItems.contains(file)) {
+            selectedItems.remove(file);
         } else {
-            selectedFiles.add(file);
+            selectedItems.add(file);
         }
     }
 
     public void addAll(List<File> files) {
-        selectedFiles.addAll(files);
+        selectedItems.addAll(files);
     }
 
     public void clear() {
-        selectedFiles.clear();
+        selectedItems.clear();
     }
 
-    public List<File> copySelectedFiles() {
-        return new LinkedList<>(selectedFiles);
+    public List<File> copySelectedItems() {
+        return new LinkedList<>(selectedItems);
     }
 
     private static class ActionButton {

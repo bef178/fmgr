@@ -85,7 +85,7 @@ public class SearchPopup {
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.files_list);
-        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedFiles);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedItems);
 
         initPopupWindow();
         enableClosePopupOnOutsideTouch();
@@ -160,8 +160,8 @@ public class SearchPopup {
 
     private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
-            if (selectionBar.selectedFiles.size() == 1) {
-                File file = selectionBar.selectedFiles.iterator().next();
+            if (selectionBar.selectedItems.size() == 1) {
+                File file = selectionBar.selectedItems.iterator().next();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
@@ -171,24 +171,24 @@ public class SearchPopup {
 
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
             if (onCopy != null) {
-                onCopy.accept(selectionBar.copySelectedFiles());
+                onCopy.accept(selectionBar.copySelectedItems());
             }
             selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
-                onCut.accept(selectionBar.copySelectedFiles());
+                onCut.accept(selectionBar.copySelectedItems());
             }
             selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedFiles(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
             deletePopup.whenDismissClicked(removed -> {
                 removedFiles.addAll(removed);
                 itemsAdapter.removeAll(removed);
-                selectionBar.selectedFiles.removeAll(removed);
+                selectionBar.selectedItems.removeAll(removed);
                 selectionBar.invalidate();
             });
             deletePopup.show();

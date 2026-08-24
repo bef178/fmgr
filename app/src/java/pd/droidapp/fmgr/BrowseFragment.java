@@ -66,6 +66,7 @@ public class BrowseFragment extends Fragment {
     private static final String STATE_CURRENT_DIRECTORY = "current_directory";
     private static final String STATE_BACK_STACK = "back_stack";
     private static final String STATE_FORWARD_STACK = "forward_stack";
+    private static final String STATE_SELECTED_ITEMS = "selected_items";
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -93,8 +94,8 @@ public class BrowseFragment extends Fragment {
         itemsView.setAdapter(itemsAdapter);
 
         selectionBar.addButton(R.layout.selection_button_rename, c -> c == 1, v -> {
-            if (selectionBar.selectedFiles.size() == 1) {
-                showRenamePopup(selectionBar.selectedFiles.iterator().next());
+            if (selectionBar.selectedItems.size() == 1) {
+                showRenamePopup(selectionBar.selectedItems.iterator().next());
             }
         });
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> markSelectedItemsForCopy());
@@ -121,7 +122,6 @@ public class BrowseFragment extends Fragment {
         return view;
     }
 
-    @SuppressWarnings("unchecked")
     private void restoreState(@NonNull Bundle savedInstanceState) {
         File currentDirectory = (File) savedInstanceState.getSerializable(STATE_CURRENT_DIRECTORY);
         if (validateDirectory(currentDirectory)) {
@@ -138,6 +138,13 @@ public class BrowseFragment extends Fragment {
             forwardStack.addAll(savedForwardStack);
         }
 
+        List<File> savedSelectedItems = (List<File>) savedInstanceState.getSerializable(STATE_SELECTED_ITEMS);
+        if (savedSelectedItems != null) {
+            selectionBar.addAll(savedSelectedItems);
+            selectionBar.invalidate();
+            itemsAdapter.invalidateItems(selectionBar.selectedItems);
+        }
+
         actionBar.invalidate();
     }
 
@@ -147,13 +154,7 @@ public class BrowseFragment extends Fragment {
         outState.putSerializable(STATE_CURRENT_DIRECTORY, pathBar.getCurrentDirectory());
         outState.putSerializable(STATE_BACK_STACK, new LinkedList<>(backStack));
         outState.putSerializable(STATE_FORWARD_STACK, new LinkedList<>(forwardStack));
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        selectionBar.clear();
-        selectionBar.invalidate();
+        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.selectedItems));
     }
 
     @Override
@@ -427,7 +428,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCut() {
-        List<File> files = selectionBar.copySelectedFiles();
+        List<File> files = selectionBar.copySelectedItems();
         clipboard.setFilesToCut(files);
         Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
@@ -442,7 +443,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCopy() {
-        List<File> files = selectionBar.copySelectedFiles();
+        List<File> files = selectionBar.copySelectedItems();
         clipboard.setFilesToCopy(files);
         Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
@@ -487,7 +488,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeletePopup() {
-        DeletePopup deletePopup = new DeletePopup(getView(), selectionBar.copySelectedFiles(), false);
+        DeletePopup deletePopup = new DeletePopup(getView(), selectionBar.copySelectedItems(), false);
         deletePopup.whenDismissClicked(this::onPopupDismissed);
         deletePopup.show();
     }
@@ -572,7 +573,7 @@ public class BrowseFragment extends Fragment {
         }
         clipboard.removeAllIfSameAsOrDescendantOf(removedFiles);
         itemsAdapter.removeAll(removedFiles);
-        selectionBar.selectedFiles.removeAll(removedFiles);
+        selectionBar.selectedItems.removeAll(removedFiles);
         selectionBar.invalidate();
     }
 
@@ -805,11 +806,21 @@ public class BrowseFragment extends Fragment {
         private void toggleSelected(File file) {
             selectionBar.toggleSelected(file);
             selectionBar.invalidate();
+            invalidateItem(file);
+        }
+
+        private void invalidateItem(File item) {
             for (int i = 0; i < fileItems.size(); i++) {
-                if (fileItems.get(i).getFile().equals(file)) {
+                if (fileItems.get(i).getFile().equals(item)) {
                     notifyItemChanged(i);
                     break;
                 }
+            }
+        }
+
+        public void invalidateItems(Iterable<File> items) {
+            for (File item : items) {
+                invalidateItem(item);
             }
         }
 
