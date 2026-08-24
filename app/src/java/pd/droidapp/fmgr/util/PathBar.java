@@ -23,10 +23,12 @@ public class PathBar {
     private File directory;
     private Consumer<File> onBreadcrumbClickedListener;
 
+    private final View selfView;
     private final LinearLayout breadcrumbsContainerView;
     private final ImageButton favIcon;
 
     public PathBar(View selfView) {
+        this.selfView = selfView;
         favStore = new FavStore(selfView.getContext());
 
         breadcrumbsContainerView = selfView.findViewById(R.id.breadcrumb_container);
@@ -43,6 +45,7 @@ public class PathBar {
     }
 
     public void invalidate() {
+        selfView.setVisibility(directory != null ? View.VISIBLE : View.GONE);
         breadcrumbsContainerView.removeAllViews();
 
         favIcon.setSelected(directory != null && favStore.contains(directory));

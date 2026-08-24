@@ -10,7 +10,8 @@
     android:paddingStart="18dp"
     android:paddingTop="0dp"
     android:paddingEnd="12dp"
-    android:paddingBottom="0dp">
+    android:paddingBottom="0dp"
+    android:visibility="gone">
 
     <HorizontalScrollView
         android:layout_width="0dp"
