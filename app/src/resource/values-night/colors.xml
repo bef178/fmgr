@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- matches the bottom navigation bar background: colorSurface + M3 elevation overlay -->
+    <color name="path_bar_background">#211830</color>
+</resources>
