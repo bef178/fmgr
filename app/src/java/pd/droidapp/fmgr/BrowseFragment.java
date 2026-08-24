@@ -52,8 +52,8 @@ import pd.droidapp.fmgr.util.SelectionBar;
 public class BrowseFragment extends Fragment {
 
     private final Clipboard clipboard = new Clipboard();
-    private ActionBar actionBar;
     private PathBar pathBar;
+    private ActionBar actionBar;
     private SelectionBar selectionBar;
     private RecyclerView itemsView;
     private FileItemsAdapter itemsAdapter;
@@ -80,10 +80,12 @@ public class BrowseFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
-        actionBar = new ActionBar(view);
-
         pathBar = new PathBar(view.findViewById(R.id.path_bar));
         pathBar.whenBreadcrumbClicked(this::navigateToDirectory);
+
+        actionBar = new ActionBar(view);
+        // explicit redraw due to `android:enabled` is not honored by ImageButton
+        actionBar.invalidate();
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
@@ -160,11 +162,6 @@ public class BrowseFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        MainActivity mainActivity = (MainActivity) requireActivity();
-        File pendingDirectory = mainActivity.consumePendingDirectory();
-        if (pendingDirectory != null) {
-            navigateToDirectory(pendingDirectory);
-        }
         if (pathBar.getCurrentDirectory() == null) {
             doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
         }

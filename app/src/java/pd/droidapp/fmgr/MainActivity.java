@@ -19,7 +19,6 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigation;
 
     private BrowseFragment browseFragment;
-    private File pending;
     private int indexWithinHome;
     private long lastBackPressedAt;
 
@@ -54,6 +53,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // create BrowseFragment before it is ever navigated to
+        viewPager.setOffscreenPageLimit(1);
+
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -64,11 +66,9 @@ public class MainActivity extends AppCompatActivity {
                         bottomNavigation.setSelectedItemId(R.id.navigation_home);
                         break;
                     case 2:
-                        pending = null;
                         bottomNavigation.setSelectedItemId(R.id.navigation_profile);
                         break;
                     default:
-                        pending = null;
                         indexWithinHome = 0;
                         bottomNavigation.setSelectedItemId(R.id.navigation_home);
                         break;
@@ -131,17 +131,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void navigateToDirectory(File directory) {
-        pending = directory;
+        if (browseFragment != null && browseFragment.getView() != null) {
+            browseFragment.navigateToDirectory(directory);
+        }
         viewPager.setCurrentItem(1, true);
     }
 
     void setBrowseFragment(BrowseFragment fragment) {
         this.browseFragment = fragment;
-    }
-
-    public File consumePendingDirectory() {
-        File directory = pending;
-        pending = null;
-        return directory;
     }
 }
