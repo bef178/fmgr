@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -36,55 +35,7 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
-        <!-- action bar -->
-        <LinearLayout
-            android:id="@+id/action_bar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="end|center_vertical"
-            android:orientation="horizontal">
-
-            <ImageButton
-                android:id="@+id/action_back"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/action_back"
-                tools:ignore="ContentDescription" />
-
-            <ImageButton
-                android:id="@+id/action_forward"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/action_forward"
-                tools:ignore="ContentDescription" />
-
-            <ImageButton
-                android:id="@+id/action_up"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/action_up"
-                tools:ignore="ContentDescription" />
-
-            <ImageButton
-                android:id="@+id/action_refresh"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/baseline_refresh_24"
-                tools:ignore="ContentDescription" />
-
-            <ImageButton
-                android:id="@+id/action_more"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/action_more"
-                tools:ignore="ContentDescription" />
-
-        </LinearLayout>
+        <include layout="@layout/action_bar" />
 
     </LinearLayout>
 

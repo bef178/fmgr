@@ -37,7 +37,7 @@ import java.util.Locale;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
-import pd.droidapp.fmgr.util.ActionPopup;
+import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.DedupPopup;
 import pd.droidapp.fmgr.util.DeleteEmptyPopup;
@@ -83,9 +83,23 @@ public class BrowseFragment extends Fragment {
         pathBar = new PathBar(view.findViewById(R.id.path_bar));
         pathBar.whenBreadcrumbClicked(this::navigateToDirectory);
 
-        actionBar = new ActionBar(view);
-        // explicit redraw due to `android:enabled` is not honored by ImageButton
-        actionBar.invalidate();
+        ImageButton homeButton = view.findViewById(R.id.action_home);
+        homeButton.setOnClickListener(v -> navigateToHome());
+
+        actionBar = new ActionBar(view.findViewById(R.id.action_bar));
+        actionBar.addButton(R.drawable.action_back, () -> !backStack.isEmpty(), this::navigateBack);
+        actionBar.addButton(R.drawable.action_forward, () -> !forwardStack.isEmpty(), this::navigateForward);
+        actionBar.addButton(R.drawable.action_up, () -> getParentDirectory(pathBar.getCurrentDirectory()) != null,
+                () -> navigateToDirectory(getParentDirectory(pathBar.getCurrentDirectory())));
+        actionBar.addButton(R.drawable.baseline_refresh_24, () -> true,
+                () -> doChangeCurrentDirectory(pathBar.getCurrentDirectory()));
+        actionBar.addPopupButton(R.drawable.i_directory_add_24, this::showCreateDirectoryPopup);
+        actionBar.addPopupButton(R.drawable.i_file_add_24, this::showCreateFilePopup);
+        actionBar.addPopupButton(R.drawable.i_paste_go_24, clipboard::toCut, this::showPastePopup);
+        actionBar.addPopupButton(R.drawable.baseline_search_24, this::showSearchPopup);
+        actionBar.addPopupButton(R.drawable.i_paste_24, clipboard::toCopy, this::showPastePopup);
+        actionBar.addPopupButton(R.drawable.i_delete_empty_24, this::showDeleteEmptyPopup);
+        actionBar.addPopupButton(R.drawable.i_delete_copy_24, this::showDedupPopup);
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
@@ -572,57 +586,6 @@ public class BrowseFragment extends Fragment {
         itemsAdapter.removeAll(removedFiles);
         selectionBar.selectedItems.removeAll(removedFiles);
         selectionBar.invalidate();
-    }
-
-    public class ActionBar {
-
-        private final ImageButton backButton;
-        private final ImageButton forwardButton;
-        private final ImageButton upButton;
-
-        public ActionBar(View containerView) {
-            ImageButton homeButton = containerView.findViewById(R.id.action_home);
-            homeButton.setOnClickListener(v -> navigateToHome());
-
-            backButton = containerView.findViewById(R.id.action_back);
-            backButton.setOnClickListener(v -> navigateBack());
-
-            forwardButton = containerView.findViewById(R.id.action_forward);
-            forwardButton.setOnClickListener(v -> navigateForward());
-
-            upButton = containerView.findViewById(R.id.action_up);
-            upButton.setOnClickListener(v -> navigateToDirectory(getParentDirectory(pathBar.getCurrentDirectory())));
-
-            ImageButton refreshButton = containerView.findViewById(R.id.action_refresh);
-            refreshButton.setOnClickListener(v -> doChangeCurrentDirectory(pathBar.getCurrentDirectory()));
-
-            ImageButton moreButton = containerView.findViewById(R.id.action_more);
-            moreButton.setOnClickListener(v -> {
-                ActionPopup actionPopup = new ActionPopup(requireContext(), v);
-                actionPopup.setOnNewDirectoryClickedListener(BrowseFragment.this::showCreateDirectoryPopup);
-                actionPopup.setOnNewFileClickedListener(BrowseFragment.this::showCreateFilePopup);
-                actionPopup.whenSearchClicked(BrowseFragment.this::showSearchPopup);
-                actionPopup.whenDeleteEmptyClicked(BrowseFragment.this::showDeleteEmptyPopup);
-                actionPopup.whenDedupFilesClicked(BrowseFragment.this::showDedupPopup);
-                if (clipboard.toCut()) {
-                    actionPopup.setPasteFromCutButtonVisible(true);
-                    actionPopup.whenPasteFromCutClicked(BrowseFragment.this::showPastePopup);
-                } else if (clipboard.toCopy()) {
-                    actionPopup.setPasteFromCopyButtonVisible(true);
-                    actionPopup.whenPasteFromCopyClicked(BrowseFragment.this::showPastePopup);
-                } else {
-                    actionPopup.setPasteFromCutButtonVisible(false);
-                    actionPopup.setPasteFromCopyButtonVisible(false);
-                }
-            });
-        }
-
-        public void invalidate() {
-            boolean hasParentDirectory = getParentDirectory(pathBar.getCurrentDirectory()) != null;
-            upButton.setEnabled(hasParentDirectory);
-            backButton.setEnabled(!backStack.isEmpty());
-            forwardButton.setEnabled(!forwardStack.isEmpty());
-        }
     }
 
     private class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.FileItemViewHolder> {
