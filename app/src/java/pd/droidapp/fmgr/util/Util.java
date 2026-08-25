@@ -9,15 +9,18 @@ import java.util.Locale;
 public class Util {
 
     public static String getSizeString(long size) {
+        if (size < 0) {
+            return "Error";
+        }
         if (size < 1024) {
-            return size + "B";
+            return size + " B";
         }
         int exp = (int) (Math.log(size) / Math.log(1024));
         if (exp > 6) {
             exp = 6;
         }
         char unit = "KMGTPE".charAt(exp - 1);
-        return String.format(Locale.US, "%.1f%sB", size / Math.pow(1024, exp), unit);
+        return String.format(Locale.getDefault(), "%.1f %sB", size / Math.pow(1024, exp), unit);
     }
 
     public static float getGaussianValue(double mu, double sigma, float amplitude, float fraction) {

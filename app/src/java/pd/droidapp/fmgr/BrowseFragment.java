@@ -33,9 +33,10 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Stack;
 import java.util.stream.Collectors;
+
+import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.Clipboard;
@@ -734,7 +735,7 @@ public class BrowseFragment extends Fragment {
                 viewHolder.fileDetailsTextView.setText(getDirectoryDetailsString(item.getNumOrdinaryItems(), item.getNumHiddenItems()));
             } else {
                 viewHolder.fileIconImageView.setImageResource(R.drawable.i_file_24);
-                String sizeText = getFileDetailsString(item.getSize());
+                String sizeText = getSizeString(item.getSize());
                 viewHolder.fileDetailsTextView.setText(sizeText);
             }
 
@@ -812,20 +813,6 @@ public class BrowseFragment extends Fragment {
                 return hiddenItemsString == null ? "Empty" : hiddenItemsString;
             } else {
                 return hiddenItemsString == null ? ordinaryItemsString : ordinaryItemsString + " + " + hiddenItemsString;
-            }
-        }
-
-        private String getFileDetailsString(long size) {
-            if (size < 0) {
-                return "Error";
-            } else if (size < 1024) {
-                return size + " B";
-            } else if (size < 1024 * 1024) {
-                return String.format(Locale.getDefault(), "%.1f KB", size / 1024.0);
-            } else if (size < 1024 * 1024 * 1024) {
-                return String.format(Locale.getDefault(), "%.1f MB", size / (1024.0 * 1024));
-            } else {
-                return String.format(Locale.getDefault(), "%.1f GB", size / (1024.0 * 1024 * 1024));
             }
         }
 
