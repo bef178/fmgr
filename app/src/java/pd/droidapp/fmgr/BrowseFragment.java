@@ -62,6 +62,7 @@ public class BrowseFragment extends Fragment {
     private final Stack<File> forwardStack = new Stack<>();
 
     private boolean askedAllFilesAccess;
+    private boolean mightGrantedAllFilesAccess;
 
     private static final String STATE_CURRENT_DIRECTORY = "current_directory";
     private static final String STATE_BACK_STACK = "back_stack";
@@ -178,6 +179,9 @@ public class BrowseFragment extends Fragment {
         super.onResume();
         if (pathBar.getCurrentDirectory() == null) {
             doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+        } else if (mightGrantedAllFilesAccess) {
+            mightGrantedAllFilesAccess = false;
+            itemsAdapter.invalidate(pathBar.getCurrentDirectory());
         }
         askForAllFilesAccessIfNecessary();
     }
@@ -199,10 +203,12 @@ public class BrowseFragment extends Fragment {
                         Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                         intent.setData(Uri.parse("package:" + requireContext().getPackageName()));
                         startActivity(intent);
+                        mightGrantedAllFilesAccess = true;
                     } catch (ActivityNotFoundException e) {
                         try {
                             Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
                             startActivity(intent);
+                            mightGrantedAllFilesAccess = true;
                         } catch (ActivityNotFoundException ignored) {
                             Toast.makeText(requireContext(), R.string.error_failed_to_handle, Toast.LENGTH_SHORT).show();
                         }
