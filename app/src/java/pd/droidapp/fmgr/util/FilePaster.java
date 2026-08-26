@@ -24,7 +24,6 @@ public class FilePaster {
 
     private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
-    private volatile Thread workerThread;
 
     private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
         if (succeeded == null) {
@@ -60,7 +59,7 @@ public class FilePaster {
             return false;
         }
 
-        workerThread = new Thread(() -> {
+        Thread workerThread = new Thread(() -> {
             try {
                 for (String s : srcFiles) {
                     Path src = Paths.get(s);
@@ -302,9 +301,6 @@ public class FilePaster {
     public void cancel() {
         if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
             cancelled.set(true);
-            if (workerThread != null) {
-                workerThread.interrupt();
-            }
         }
     }
 

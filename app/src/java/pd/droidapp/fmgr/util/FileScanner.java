@@ -16,7 +16,6 @@ public class FileScanner {
     private Consumer<File> onDirectory;
 
     private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
-    private volatile Thread workerThread;
 
     public FileScanner() {
         this.maxDepth = 32;
@@ -35,7 +34,7 @@ public class FileScanner {
             return false;
         }
 
-        workerThread = new Thread(() -> {
+        Thread workerThread = new Thread(() -> {
             try {
                 doScan(startDirectory);
             } catch (Throwable ignored) {
@@ -93,9 +92,7 @@ public class FileScanner {
     }
 
     public void cancel() {
-        if (state.compareAndSet(State.RUNNING, State.CANCELLING) && workerThread != null) {
-            workerThread.interrupt();
-        }
+        state.compareAndSet(State.RUNNING, State.CANCELLING);
     }
 
     public boolean isCancelled() {
