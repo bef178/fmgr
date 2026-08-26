@@ -54,6 +54,21 @@ public class FileScanner {
         stack.push(new Frame(startDirectory, 0));
         while (state.get() != State.CANCELLING && !stack.isEmpty()) {
             Frame frame = stack.pop();
+            if (frame.depth > 0) {
+                if (frame.file.isFile()) {
+                    if (onFile != null) {
+                        onFile.accept(frame.file);
+                    }
+                } else if (frame.file.isDirectory()) {
+                    if (onDirectory != null) {
+                        onDirectory.accept(frame.file);
+                    }
+                }
+            }
+            if (!frame.file.isDirectory() || frame.depth >= maxDepth) {
+                continue;
+            }
+
             File[] children = frame.file.listFiles();
             if (children == null) {
                 continue;
@@ -61,28 +76,9 @@ public class FileScanner {
 
             Arrays.sort(children, (a, b) -> PathOps.singleton.compare(a.getPath(), b.getPath()));
 
-            // push directories in reverse so they are visited in sorted order
+            // push children in reverse so they are visited in sorted order
             for (int i = children.length - 1; i >= 0; i--) {
-                if (state.get() == State.CANCELLING) {
-                    return;
-                }
-                File child = children[i];
-                if (child.isDirectory() && frame.depth < maxDepth) {
-                    if (onDirectory != null) {
-                        onDirectory.accept(child);
-                    }
-                    stack.push(new Frame(child, frame.depth + 1));
-                }
-            }
-            for (File child : children) {
-                if (state.get() == State.CANCELLING) {
-                    return;
-                }
-                if (child.isFile()) {
-                    if (onFile != null) {
-                        onFile.accept(child);
-                    }
-                }
+                stack.push(new Frame(children[i], frame.depth + 1));
             }
         }
     }
