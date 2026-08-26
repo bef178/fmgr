@@ -97,7 +97,6 @@ class FilePasteUpdater {
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                // note the race condition
                 if (onPasteUpdated != null) {
                     onPasteUpdated.accept(
                             added.getAndSet(0),

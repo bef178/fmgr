@@ -97,7 +97,6 @@ public class FileScanUpdater {
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                // note the race condition
                 if (fileScanner.isRunning()) {
                     if (onScanUpdated != null) {
                         onScanUpdated.accept(dump(), scanned.getAndSet(0));
@@ -129,10 +128,6 @@ public class FileScanUpdater {
 
     public void cancel() {
         fileScanner.cancel();
-    }
-
-    public boolean isCancelled() {
-        return fileScanner.isCancelled();
     }
 
     private List<File> dump() {

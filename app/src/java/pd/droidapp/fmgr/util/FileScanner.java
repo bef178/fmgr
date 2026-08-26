@@ -3,7 +3,7 @@ package pd.droidapp.fmgr.util;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Stack;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import pd.util.PathOps;
@@ -15,19 +15,13 @@ public class FileScanner {
     private Consumer<File> onFile;
     private Consumer<File> onDirectory;
 
-    private final AtomicBoolean started = new AtomicBoolean(false);
-    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+    private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
     private volatile Thread workerThread;
 
     public FileScanner() {
         this.maxDepth = 32;
     }
 
-    /**
-     * Called on each file found during the scan.
-     * The file will be accumulated if the callback returns `true`.
-     * Follows symlinks.
-     */
     public void whenFileReached(Consumer<File> onFile) {
         this.onFile = onFile;
     }
@@ -37,11 +31,18 @@ public class FileScanner {
     }
 
     public boolean start(File startDirectory) {
-        if (!started.compareAndSet(false, true)) {
+        if (!state.compareAndSet(State.IDLE, State.RUNNING)) {
             return false;
         }
 
-        workerThread = new Thread(() -> doScan(startDirectory));
+        workerThread = new Thread(() -> {
+            try {
+                doScan(startDirectory);
+            } finally {
+                state.compareAndSet(State.RUNNING, State.COMPLETED);
+                state.compareAndSet(State.CANCELLING, State.CANCELLED);
+            }
+        });
         workerThread.start();
         return true;
     }
@@ -49,7 +50,7 @@ public class FileScanner {
     private void doScan(File startDirectory) {
         Stack<Frame> stack = new Stack<>();
         stack.push(new Frame(startDirectory, 0));
-        while (!cancelled.get() && !stack.isEmpty()) {
+        while (state.get() != State.CANCELLING && !stack.isEmpty()) {
             Frame frame = stack.pop();
             File[] children = frame.file.listFiles();
             if (children == null) {
@@ -60,7 +61,7 @@ public class FileScanner {
 
             // push directories in reverse so they are visited in sorted order
             for (int i = children.length - 1; i >= 0; i--) {
-                if (cancelled.get()) {
+                if (state.get() == State.CANCELLING) {
                     return;
                 }
                 File child = children[i];
@@ -72,7 +73,7 @@ public class FileScanner {
                 }
             }
             for (File child : children) {
-                if (cancelled.get()) {
+                if (state.get() == State.CANCELLING) {
                     return;
                 }
                 if (child.isFile()) {
@@ -85,25 +86,23 @@ public class FileScanner {
     }
 
     public boolean isRunning() {
-        return workerThread != null && workerThread.isAlive();
+        State state = this.state.get();
+        return state == State.RUNNING || state == State.CANCELLING;
     }
 
     public boolean isCompleted() {
-        return started.get() && !cancelled.get() && !isRunning();
+        return state.get() == State.COMPLETED;
     }
 
     public void cancel() {
-        if (!started.get() || !isRunning()) {
-            return;
-        }
-        cancelled.set(true);
-        if (workerThread != null) {
+        if (state.compareAndSet(State.RUNNING, State.CANCELLING) && workerThread != null) {
             workerThread.interrupt();
         }
     }
 
     public boolean isCancelled() {
-        return cancelled.get();
+        State state = this.state.get();
+        return state == State.CANCELLING || state == State.CANCELLED;
     }
 
     private static class Frame {
@@ -115,5 +114,9 @@ public class FileScanner {
             this.file = file;
             this.depth = depth;
         }
+    }
+
+    enum State {
+        IDLE, RUNNING, CANCELLING, CANCELLED, COMPLETED
     }
 }

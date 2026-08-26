@@ -91,7 +91,6 @@ public class FileRemoveUpdater {
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                // note the race condition
                 if (onRemoveUpdated != null) {
                     onRemoveUpdated.accept(
                             dumpDeleted(),

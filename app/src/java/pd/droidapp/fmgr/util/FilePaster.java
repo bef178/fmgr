@@ -9,6 +9,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import pd.droidapp.fmgr.util.FileScanner.State;
 
 import pd.util.FileOps;
 import pd.util.PathOps;
@@ -19,7 +22,7 @@ public class FilePaster {
 
     private OnPasteActionListener onPasteAction;
 
-    private final AtomicBoolean started = new AtomicBoolean(false);
+    private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
     private volatile Thread workerThread;
 
@@ -53,23 +56,28 @@ public class FilePaster {
     }
 
     public boolean start(boolean isCopy, Iterable<String> srcFiles, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
-        if (!started.compareAndSet(false, true)) {
+        if (!state.compareAndSet(State.IDLE, State.RUNNING)) {
             return false;
         }
 
         workerThread = new Thread(() -> {
-            for (String s : srcFiles) {
-                Path src = Paths.get(s);
-                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(s));
-                if (isCopy) {
-                    doCopy(src, dst, resolution, mergeDirectories);
-                } else {
-                    doCut(src, dst, resolution, mergeDirectories);
+            try {
+                for (String s : srcFiles) {
+                    Path src = Paths.get(s);
+                    Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(s));
+                    if (isCopy) {
+                        doCopy(src, dst, resolution, mergeDirectories);
+                    } else {
+                        doCut(src, dst, resolution, mergeDirectories);
+                    }
+                    if (isCancelled()) {
+                        return;
+                    }
+                    callback(PasteAction.PROGRESS, src.toString(), dst.toString(), true);
                 }
-                if (cancelled.get()) {
-                    return;
-                }
-                callback(PasteAction.PROGRESS, src.toString(), dst.toString(), true);
+            } finally {
+                state.compareAndSet(State.RUNNING, State.COMPLETED);
+                state.compareAndSet(State.CANCELLING, State.CANCELLED);
             }
         });
         workerThread.start();
@@ -77,7 +85,7 @@ public class FilePaster {
     }
 
     private void doCopy(Path src, Path dst, ConflictResolution resolution, boolean mergeDirectories) {
-        if (cancelled.get()) {
+        if (isCancelled()) {
             return;
         }
 
@@ -116,7 +124,7 @@ public class FilePaster {
             return;
         }
         for (String child : children) {
-            if (cancelled.get()) {
+            if (isCancelled()) {
                 return;
             }
             Path childDst = dst.resolve(PathOps.singleton.basename(child));
@@ -210,7 +218,7 @@ public class FilePaster {
     }
 
     private void doCut(Path src, Path dst, ConflictResolution resolution, boolean mergeDirectories) {
-        if (cancelled.get()) {
+        if (isCancelled()) {
             return;
         }
 
@@ -270,7 +278,7 @@ public class FilePaster {
             return;
         }
         for (String child : children) {
-            if (cancelled.get()) {
+            if (isCancelled()) {
                 return;
             }
             Path childDst = dst.resolve(PathOps.singleton.basename(child));
@@ -281,25 +289,26 @@ public class FilePaster {
     }
 
     public boolean isRunning() {
-        return workerThread != null && workerThread.isAlive();
+        State state = this.state.get();
+        return state == State.RUNNING || state == State.CANCELLING;
     }
 
     public boolean isCompleted() {
-        return started.get() && !cancelled.get() && !isRunning();
+        return state.get() == State.COMPLETED;
     }
 
     public void cancel() {
-        if (!started.get() || !isRunning()) {
-            return;
-        }
-        cancelled.set(true);
-        if (workerThread != null) {
-            workerThread.interrupt();
+        if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
+            cancelled.set(true);
+            if (workerThread != null) {
+                workerThread.interrupt();
+            }
         }
     }
 
     public boolean isCancelled() {
-        return cancelled.get();
+        State state = this.state.get();
+        return state == State.CANCELLING || state == State.CANCELLED;
     }
 
     public interface OnPasteActionListener {

@@ -4,6 +4,9 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import pd.droidapp.fmgr.util.FileScanner.State;
 
 import pd.util.FileOps;
 
@@ -11,7 +14,7 @@ public class FileRemover {
 
     private OnDeleteActionListener onDeleteAction;
 
-    private final AtomicBoolean started = new AtomicBoolean(false);
+    private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
     private volatile Thread workerThread;
 
@@ -39,17 +42,22 @@ public class FileRemover {
     }
 
     public boolean start(Iterable<String> startFiles, boolean prune) {
-        if (!started.compareAndSet(false, true)) {
+        if (!state.compareAndSet(State.IDLE, State.RUNNING)) {
             return false;
         }
 
         workerThread = new Thread(() -> {
-            for (String s : startFiles) {
-                doRemove(s, prune);
-                if (cancelled.get()) {
-                    return;
+            try {
+                for (String s : startFiles) {
+                    doRemove(s, prune);
+                    if (isCancelled()) {
+                        return;
+                    }
+                    callback(DeleteAction.PROGRESS, s, true);
                 }
-                callback(DeleteAction.PROGRESS, s, true);
+            } finally {
+                state.compareAndSet(State.RUNNING, State.COMPLETED);
+                state.compareAndSet(State.CANCELLING, State.CANCELLED);
             }
         });
         workerThread.start();
@@ -65,21 +73,22 @@ public class FileRemover {
     }
 
     public boolean isRunning() {
-        return workerThread != null && workerThread.isAlive();
+        State state = this.state.get();
+        return state == State.RUNNING || state == State.CANCELLING;
     }
 
     public void cancel() {
-        if (!started.get() || !isRunning()) {
-            return;
-        }
-        cancelled.set(true);
-        if (workerThread != null) {
-            workerThread.interrupt();
+        if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
+            cancelled.set(true);
+            if (workerThread != null) {
+                workerThread.interrupt();
+            }
         }
     }
 
     public boolean isCancelled() {
-        return cancelled.get();
+        State state = this.state.get();
+        return state == State.CANCELLING || state == State.CANCELLED;
     }
 
     public interface OnDeleteActionListener {
