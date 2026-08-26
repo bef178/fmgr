@@ -84,7 +84,10 @@ public class FileRemoveUpdater {
             updateTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    onRemoveStarted.run();
+                    try {
+                        onRemoveStarted.run();
+                    } catch (Throwable ignored) {
+                    }
                 }
             }, 0);
         }
@@ -92,17 +95,23 @@ public class FileRemoveUpdater {
             @Override
             public void run() {
                 if (onRemoveUpdated != null) {
-                    onRemoveUpdated.accept(
-                            dumpDeleted(),
-                            failed.getAndSet(0),
-                            progressed.getAndSet(0),
-                            current.get());
+                    try {
+                        onRemoveUpdated.accept(
+                                dumpDeleted(),
+                                failed.getAndSet(0),
+                                progressed.getAndSet(0),
+                                current.get());
+                    } catch (Throwable ignored) {
+                    }
                 }
                 if (!fileRemover.isRunning()) {
                     clearTimer();
                     stopped.set(true);
                     if (onRemoveStopped != null) {
-                        onRemoveStopped.run();
+                        try {
+                            onRemoveStopped.run();
+                        } catch (Throwable ignored) {
+                        }
                     }
                 }
             }

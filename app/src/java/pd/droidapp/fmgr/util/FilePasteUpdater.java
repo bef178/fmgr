@@ -90,7 +90,10 @@ class FilePasteUpdater {
             updateTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    onPasteStarted.run();
+                    try {
+                        onPasteStarted.run();
+                    } catch (Throwable ignored) {
+                    }
                 }
             }, 0);
         }
@@ -98,19 +101,25 @@ class FilePasteUpdater {
             @Override
             public void run() {
                 if (onPasteUpdated != null) {
-                    onPasteUpdated.accept(
-                            added.getAndSet(0),
-                            deleted.getAndSet(0),
-                            renamed.getAndSet(0),
-                            failed.getAndSet(0),
-                            progressed.getAndSet(0),
-                            current.get());
+                    try {
+                        onPasteUpdated.accept(
+                                added.getAndSet(0),
+                                deleted.getAndSet(0),
+                                renamed.getAndSet(0),
+                                failed.getAndSet(0),
+                                progressed.getAndSet(0),
+                                current.get());
+                    } catch (Throwable ignored) {
+                    }
                 }
                 if (!filePaster.isRunning()) {
                     clearTimer();
                     stopped.set(true);
                     if (onPasteStopped != null) {
-                        onPasteStopped.run();
+                        try {
+                            onPasteStopped.run();
+                        } catch (Throwable ignored) {
+                        }
                     }
                 }
             }

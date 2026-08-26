@@ -75,6 +75,8 @@ public class FilePaster {
                     }
                     callback(PasteAction.PROGRESS, src.toString(), dst.toString(), true);
                 }
+            } catch (Throwable ignored) {
+                state.compareAndSet(State.RUNNING, State.FAILED);
             } finally {
                 state.compareAndSet(State.RUNNING, State.COMPLETED);
                 state.compareAndSet(State.CANCELLING, State.CANCELLED);

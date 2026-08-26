@@ -55,6 +55,8 @@ public class FileRemover {
                     }
                     callback(DeleteAction.PROGRESS, s, true);
                 }
+            } catch (Throwable ignored) {
+                state.compareAndSet(State.RUNNING, State.FAILED);
             } finally {
                 state.compareAndSet(State.RUNNING, State.COMPLETED);
                 state.compareAndSet(State.CANCELLING, State.CANCELLED);

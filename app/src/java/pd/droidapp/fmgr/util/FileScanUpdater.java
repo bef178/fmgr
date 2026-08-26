@@ -90,24 +90,29 @@ public class FileScanUpdater {
             updateTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    onScanStarted.run();
+                    try {
+                        onScanStarted.run();
+                    } catch (Throwable ignored) {
+                    }
                 }
             }, 0);
         }
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                if (fileScanner.isRunning()) {
-                    if (onScanUpdated != null) {
+                if (onScanUpdated != null) {
+                    try {
                         onScanUpdated.accept(dump(), scanned.getAndSet(0));
+                    } catch (Throwable ignored) {
                     }
-                } else {
-                    if (onScanUpdated != null) {
-                        onScanUpdated.accept(dump(), scanned.getAndSet(0));
-                    }
+                }
+                if (!fileScanner.isRunning()) {
                     clearTimer();
                     if (onScanStopped != null) {
-                        onScanStopped.run();
+                        try {
+                            onScanStopped.run();
+                        } catch (Throwable ignored) {
+                        }
                     }
                 }
             }

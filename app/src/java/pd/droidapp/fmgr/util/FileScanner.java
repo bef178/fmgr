@@ -38,6 +38,8 @@ public class FileScanner {
         workerThread = new Thread(() -> {
             try {
                 doScan(startDirectory);
+            } catch (Throwable ignored) {
+                state.compareAndSet(State.RUNNING, State.FAILED);
             } finally {
                 state.compareAndSet(State.RUNNING, State.COMPLETED);
                 state.compareAndSet(State.CANCELLING, State.CANCELLED);
@@ -117,6 +119,6 @@ public class FileScanner {
     }
 
     enum State {
-        IDLE, RUNNING, CANCELLING, CANCELLED, COMPLETED
+        IDLE, RUNNING, CANCELLING, CANCELLED, COMPLETED, FAILED
     }
 }
