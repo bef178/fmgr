@@ -1,32 +1,32 @@
 package pd.droidapp.fmgr.util;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Stack;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
-import pd.util.PathOps;
+import pd.util.FileOps;
 
 public class FileScanner {
 
     private final int maxDepth;
 
-    private Consumer<File> onFile;
-    private Consumer<File> onDirectory;
+    private OnScanActionListener onScanAction;
 
     private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
     public FileScanner() {
         this.maxDepth = 32;
     }
 
-    public void whenFileReached(Consumer<File> onFile) {
-        this.onFile = onFile;
+    public void whenScanAction(OnScanActionListener onScanAction) {
+        this.onScanAction = onScanAction;
     }
 
-    public void whenDirectoryReached(Consumer<File> onDirectory) {
-        this.onDirectory = onDirectory;
+    private void callback(ScanAction action, File file) {
+        if (onScanAction != null) {
+            onScanAction.accept(action, file);
+        }
     }
 
     public boolean start(File startDirectory) {
@@ -49,37 +49,9 @@ public class FileScanner {
     }
 
     private void doScan(File startDirectory) {
-        Stack<Frame> stack = new Stack<>();
-        stack.push(new Frame(startDirectory, 0));
-        while (state.get() != State.CANCELLING && !stack.isEmpty()) {
-            Frame frame = stack.pop();
-            if (frame.depth > 0) {
-                if (frame.file.isFile()) {
-                    if (onFile != null) {
-                        onFile.accept(frame.file);
-                    }
-                } else if (frame.file.isDirectory()) {
-                    if (onDirectory != null) {
-                        onDirectory.accept(frame.file);
-                    }
-                }
-            }
-            if (!frame.file.isDirectory() || frame.depth >= maxDepth) {
-                continue;
-            }
-
-            File[] children = frame.file.listFiles();
-            if (children == null) {
-                continue;
-            }
-
-            Arrays.sort(children, (a, b) -> PathOps.singleton.compare(a.getPath(), b.getPath()));
-
-            // push children in reverse so they are visited in sorted order
-            for (int i = children.length - 1; i >= 0; i--) {
-                stack.push(new Frame(children[i], frame.depth + 1));
-            }
-        }
+        FileOps.singleton.listDirectory(startDirectory.getPath(), maxDepth, cancelled, (action, src, dst, succeeded) -> {
+            callback(src.endsWith("/") ? ScanAction.DIRECTORY : ScanAction.FILE, new File(src));
+        });
     }
 
     public boolean isRunning() {
@@ -92,7 +64,9 @@ public class FileScanner {
     }
 
     public void cancel() {
-        state.compareAndSet(State.RUNNING, State.CANCELLING);
+        if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
+            cancelled.set(true);
+        }
     }
 
     public boolean isCancelled() {
@@ -100,18 +74,17 @@ public class FileScanner {
         return state == State.CANCELLING || state == State.CANCELLED;
     }
 
-    private static class Frame {
-
-        final File file;
-        final int depth;
-
-        Frame(File file, int depth) {
-            this.file = file;
-            this.depth = depth;
-        }
-    }
-
     enum State {
         IDLE, RUNNING, CANCELLING, CANCELLED, COMPLETED, FAILED
+    }
+
+    public interface OnScanActionListener {
+
+        void accept(ScanAction action, File file);
+    }
+
+    public enum ScanAction {
+        FILE,
+        DIRECTORY,
     }
 }

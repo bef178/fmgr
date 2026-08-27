@@ -63,20 +63,21 @@ public class FileScanUpdater {
             return false;
         }
 
-        fileScanner.whenDirectoryReached(directory -> {
-            if (onDirectory != null && onDirectory.apply(directory)) {
-                synchronized (lock) {
-                    accumulated.add(directory);
+        fileScanner.whenScanAction((action, file) -> {
+            if (action == FileScanner.ScanAction.DIRECTORY) {
+                if (onDirectory != null && onDirectory.apply(file)) {
+                    synchronized (lock) {
+                        accumulated.add(file);
+                    }
+                }
+            } else {
+                scanned.incrementAndGet();
+                if (onFile != null && onFile.apply(file)) {
+                    synchronized (lock) {
+                        accumulated.add(file);
+                    }
                 }
             }
-        });
-        fileScanner.whenFileReached(file -> {
-            if (onFile != null && onFile.apply(file)) {
-                synchronized (lock) {
-                    accumulated.add(file);
-                }
-            }
-            scanned.incrementAndGet();
         });
 
         fileScanner.start(startDirectory);

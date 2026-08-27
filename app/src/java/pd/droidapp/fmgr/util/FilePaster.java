@@ -7,6 +7,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -120,8 +121,9 @@ public class FilePaster {
 
     // `dst` must be a directory
     private void copyMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
-        List<String> children = FileOps.singleton.listDirectory(src.toString(), 1, cancelled, onAction);
-        if (children == null) {
+        List<String> children = new LinkedList<>();
+        if (!FileOps.singleton.listDirectory(src.toString(), 1, cancelled,
+                (action, s, to, succeeded) -> children.add(s))) {
             return;
         }
         for (String child : children) {
@@ -274,8 +276,9 @@ public class FilePaster {
     }
 
     private void cutMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
-        List<String> children = FileOps.singleton.listDirectory(src.toString(), 1, cancelled, onAction);
-        if (children == null) {
+        List<String> children = new LinkedList<>();
+        if (!FileOps.singleton.listDirectory(src.toString(), 1, cancelled,
+                (action, s, to, succeeded) -> children.add(s))) {
             return;
         }
         for (String child : children) {
