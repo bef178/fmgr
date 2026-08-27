@@ -87,6 +87,7 @@ public class FileScanUpdater {
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
+                boolean running = fileScanner.isRunning();
                 if (onScanUpdated != null) {
                     int nowScanned;
                     List<String> nowMatched;
@@ -101,7 +102,7 @@ public class FileScanUpdater {
                     } catch (Throwable ignored) {
                     }
                 }
-                if (!fileScanner.isRunning()) {
+                if (!running) {
                     clearTimer();
                     if (onScanStopped != null) {
                         try {

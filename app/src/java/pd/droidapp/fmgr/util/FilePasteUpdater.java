@@ -100,6 +100,7 @@ class FilePasteUpdater {
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
+                boolean running = filePaster.isRunning();
                 if (onPasteUpdated != null) {
                     try {
                         int nowAdded;
@@ -131,7 +132,7 @@ class FilePasteUpdater {
                     } catch (Throwable ignored) {
                     }
                 }
-                if (!filePaster.isRunning()) {
+                if (!running) {
                     clearTimer();
                     stopped.set(true);
                     if (onPasteStopped != null) {
@@ -151,10 +152,6 @@ class FilePasteUpdater {
             updateTimer.purge();
             updateTimer = null;
         }
-    }
-
-    public boolean isCompleted() {
-        return filePaster.isCompleted();
     }
 
     public boolean isStopped() {

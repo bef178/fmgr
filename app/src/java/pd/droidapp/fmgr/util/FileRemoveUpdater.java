@@ -95,6 +95,7 @@ public class FileRemoveUpdater {
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
+                boolean running = fileRemover.isRunning();
                 if (onRemoveUpdated != null) {
                     try {
                         List<File> nowDeleted;
@@ -118,7 +119,7 @@ public class FileRemoveUpdater {
                     } catch (Throwable ignored) {
                     }
                 }
-                if (!fileRemover.isRunning()) {
+                if (!running) {
                     clearTimer();
                     stopped.set(true);
                     if (onRemoveStopped != null) {
