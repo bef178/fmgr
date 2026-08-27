@@ -269,7 +269,11 @@ public class FilePaster {
             doCut(Paths.get(child), childDst, resolution, true);
         }
         // remove src only if empty: skipped/failed children must stay
-        FileOps.singleton.deleteDirectory(src.toString(), false, false, cancelled, onAction);
+        List<String> remaining = new LinkedList<>();
+        if (FileOps.singleton.listDirectory(src.toString(), 1, cancelled,
+                (action, s, to, succeeded) -> remaining.add(s)) && remaining.isEmpty()) {
+            FileOps.singleton.deleteDirectory(src.toString(), false, false, cancelled, onAction);
+        }
     }
 
     public boolean isRunning() {
