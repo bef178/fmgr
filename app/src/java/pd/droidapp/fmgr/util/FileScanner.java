@@ -1,8 +1,8 @@
 package pd.droidapp.fmgr.util;
 
-import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import pd.util.FileOps;
 
@@ -10,7 +10,7 @@ public class FileScanner {
 
     private final int maxDepth;
 
-    private OnScanActionListener onScanAction;
+    private Consumer<String> onScanAction;
 
     private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
@@ -19,17 +19,11 @@ public class FileScanner {
         this.maxDepth = 32;
     }
 
-    public void whenScanAction(OnScanActionListener onScanAction) {
+    public void whenScanAction(Consumer<String> onScanAction) {
         this.onScanAction = onScanAction;
     }
 
-    private void callback(ScanAction action, File file) {
-        if (onScanAction != null) {
-            onScanAction.accept(action, file);
-        }
-    }
-
-    public boolean start(File startDirectory) {
+    public boolean start(String startDirectory) {
         if (!state.compareAndSet(State.IDLE, State.RUNNING)) {
             return false;
         }
@@ -48,9 +42,11 @@ public class FileScanner {
         return true;
     }
 
-    private void doScan(File startDirectory) {
-        FileOps.singleton.listDirectory(startDirectory.getPath(), maxDepth, cancelled, (action, src, dst, succeeded) -> {
-            callback(src.endsWith("/") ? ScanAction.DIRECTORY : ScanAction.FILE, new File(src));
+    private void doScan(String startDirectory) {
+        FileOps.singleton.listDirectory(startDirectory, maxDepth, cancelled, (action, src, dst, succeeded) -> {
+            if (onScanAction != null) {
+                onScanAction.accept(src);
+            }
         });
     }
 
@@ -76,15 +72,5 @@ public class FileScanner {
 
     enum State {
         IDLE, RUNNING, CANCELLING, CANCELLED, COMPLETED, FAILED
-    }
-
-    public interface OnScanActionListener {
-
-        void accept(ScanAction action, File file);
-    }
-
-    public enum ScanAction {
-        FILE,
-        DIRECTORY,
     }
 }

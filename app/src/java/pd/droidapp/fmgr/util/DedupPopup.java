@@ -195,8 +195,9 @@ public class DedupPopup {
 
     private void doScan() {
         scanner = new FileScanUpdater();
-        scanner.whenFileReached(file -> {
-            if (file.length() != 0) {
+        scanner.whenReached(path -> {
+            File file = new File(path);
+            if (!path.endsWith("/") && file.length() != 0) {
                 fileGrouper.add(file);
             }
             return false;
@@ -206,7 +207,7 @@ public class DedupPopup {
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
         }));
-        scanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
+        scanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
             totalScanned += scanned;
             itemsAdapter.invalidate(buildFileGroups());
             selectionBar.invalidate();
@@ -220,7 +221,7 @@ public class DedupPopup {
                 statusBar.markDone();
             }
         }));
-        scanner.start(startDirectory);
+        scanner.start(startDirectory.getPath());
     }
 
     private List<FileGroup> buildFileGroups() {

@@ -166,17 +166,20 @@ public class DeleteEmptyPopup {
 
     private void doScan() {
         scanner = new FileScanUpdater();
-        scanner.whenDirectoryReached(directory -> {
-            File[] children = directory.listFiles();
-            return children == null || children.length == 0;
+        scanner.whenReached(path -> {
+            File file = new File(path);
+            if (path.endsWith("/")) {
+                File[] children = file.listFiles();
+                return children == null || children.length == 0;
+            }
+            return file.length() == 0;
         });
-        scanner.whenFileReached(file -> file.length() == 0);
         scanner.whenScanStarted(() -> containerView.post(() -> {
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
         }));
-        scanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
+        scanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
             totalScanned += scanned;
             itemsAdapter.addAll(delta);
             selectionBar.invalidate();
@@ -188,6 +191,6 @@ public class DeleteEmptyPopup {
                 statusBar.markDone();
             }
         }));
-        scanner.start(startDirectory);
+        scanner.start(startDirectory.getPath());
     }
 }

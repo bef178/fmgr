@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
+import pd.util.PathOps;
 
 public class SearchPopup {
 
@@ -291,16 +292,9 @@ public class SearchPopup {
             results.clear();
 
             nameScanner = new FileScanUpdater();
-            nameScanner.whenDirectoryReached(directory -> {
-                if (directory.getName().contains(Scanner.this.query)) {
-                    results.add(directory.getPath());
-                    return true;
-                }
-                return false;
-            });
-            nameScanner.whenFileReached(file -> {
-                if (file.getName().contains(Scanner.this.query)) {
-                    results.add(file.getPath());
+            nameScanner.whenReached(path -> {
+                if (PathOps.singleton.basename(path).contains(Scanner.this.query)) {
+                    results.add(path);
                     return true;
                 }
                 return false;
@@ -319,16 +313,18 @@ public class SearchPopup {
                     scanContent();
                 }
             }));
-            nameScanner.start(startDirectory);
+            nameScanner.start(startDirectory.getPath());
         }
 
         private void scanContent() {
             contentScanner = new FileScanUpdater();
-            contentScanner.whenFileReached(file -> {
-                if (!results.contains(file.getPath())
+            contentScanner.whenReached(path -> {
+                File file = new File(path);
+                if (!path.endsWith("/")
+                        && !results.contains(path)
                         && (isTextFile(file) || isSmallAnonymousFile(file))
                         && fileContainsText(file, query)) {
-                    results.add(file.getPath());
+                    results.add(path);
                     return true;
                 }
                 return false;
@@ -344,7 +340,7 @@ public class SearchPopup {
                     statusBar.markDone();
                 }
             }));
-            contentScanner.start(startDirectory);
+            contentScanner.start(startDirectory.getPath());
         }
 
         void cancel() {

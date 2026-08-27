@@ -1,6 +1,5 @@
 package pd.droidapp.fmgr.util;
 
-import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -13,8 +12,7 @@ public class FileScanUpdater {
     private final FileScanner fileScanner;
     private final int updateInterval;
 
-    private Function<File, Boolean> onFile;
-    private Function<File, Boolean> onDirectory;
+    private Function<String, Boolean> onReached;
 
     private Runnable onScanStarted;
     private OnScanUpdateListener onScanUpdated;
@@ -32,16 +30,13 @@ public class FileScanUpdater {
     }
 
     /**
-     * Called on each file found during the scan.
-     * The file will be accumulated if the callback returns `true`.
+     * Called on each file or directory found during the scan
+     * - which will be accumulated if the callback returns `true`
+     * - directory paths end with "/"
      * Follows symlinks.
      */
-    public void whenFileReached(Function<File, Boolean> onFile) {
-        this.onFile = onFile;
-    }
-
-    public void whenDirectoryReached(Function<File, Boolean> onDirectory) {
-        this.onDirectory = onDirectory;
+    public void whenReached(Function<String, Boolean> onReached) {
+        this.onReached = onReached;
     }
 
     public void whenScanStarted(Runnable onScanStarted) {
@@ -56,18 +51,17 @@ public class FileScanUpdater {
         this.onScanStopped = onScanStopped;
     }
 
-    public boolean start(File startDirectory) {
+    public boolean start(String startDirectory) {
         if (!started.compareAndSet(false, true)) {
             return false;
         }
 
-        fileScanner.whenScanAction((action, file) -> {
-            Function<File, Boolean> predicate = action == FileScanner.ScanAction.DIRECTORY ? onDirectory : onFile;
-            boolean acceptable = predicate != null && predicate.apply(file);
+        fileScanner.whenScanAction(path -> {
+            boolean acceptable = onReached != null && onReached.apply(path);
             synchronized (lock) {
                 scanned++;
                 if (acceptable) {
-                    matched.add(file.getPath());
+                    matched.add(path);
                 }
             }
         });
