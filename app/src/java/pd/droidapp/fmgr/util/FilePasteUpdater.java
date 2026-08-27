@@ -44,9 +44,9 @@ class FilePasteUpdater {
         this.onPasteStopped = onPasteStopped;
     }
 
-    public void start(boolean isCopy, List<File> srcFiles, File dstDirectory, FilePaster.ConflictResolution resolution, boolean mergeDirectories) {
+    public boolean start(boolean isCopy, List<File> srcFiles, File dstDirectory, FilePaster.ConflictResolution resolution, boolean mergeDirectories) {
         if (!started.compareAndSet(false, true)) {
-            return;
+            return false;
         }
 
         filePaster.whenPasteAction((action, src, dst, succeeded) -> {
@@ -82,6 +82,7 @@ class FilePasteUpdater {
         }
         filePaster.start(isCopy, paths, dstDirectory.getPath(), resolution, mergeDirectories);
         startTimer();
+        return true;
     }
 
     private void startTimer() {
