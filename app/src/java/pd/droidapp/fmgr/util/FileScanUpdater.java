@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -24,8 +23,8 @@ public class FileScanUpdater {
 
     private final AtomicBoolean started = new AtomicBoolean(false);
     private Timer updateTimer;
-    private final AtomicInteger scanned = new AtomicInteger(0);
-    private List<File> accumulated = new LinkedList<>();
+    private int scannedFiles = 0;
+    private List<File> matched = new LinkedList<>();
     private final Object lock = started;
 
     public FileScanUpdater() {
@@ -64,19 +63,27 @@ public class FileScanUpdater {
         }
 
         fileScanner.whenScanAction((action, file) -> {
-            if (action == FileScanner.ScanAction.DIRECTORY) {
-                if (onDirectory != null && onDirectory.apply(file)) {
-                    synchronized (lock) {
-                        accumulated.add(file);
+            switch (action) {
+                case DIRECTORY: {
+                    if (onDirectory != null && onDirectory.apply(file)) {
+                        synchronized (lock) {
+                            matched.add(file);
+                        }
                     }
+                    break;
                 }
-            } else {
-                scanned.incrementAndGet();
-                if (onFile != null && onFile.apply(file)) {
+                case FILE: {
+                    boolean acceptable = onFile != null && onFile.apply(file);
                     synchronized (lock) {
-                        accumulated.add(file);
+                        scannedFiles++;
+                        if (acceptable) {
+                            matched.add(file);
+                        }
                     }
+                    break;
                 }
+                default:
+                    break;
             }
         });
 
@@ -102,8 +109,16 @@ public class FileScanUpdater {
             @Override
             public void run() {
                 if (onScanUpdated != null) {
+                    List<File> nowMatched;
+                    int nowScannedFiles;
+                    synchronized (lock) {
+                        nowMatched = matched;
+                        matched = new LinkedList<>();
+                        nowScannedFiles = scannedFiles;
+                        scannedFiles = 0;
+                    }
                     try {
-                        onScanUpdated.accept(dump(), scanned.getAndSet(0));
+                        onScanUpdated.accept(nowMatched, nowScannedFiles);
                     } catch (Throwable ignored) {
                     }
                 }
@@ -134,13 +149,5 @@ public class FileScanUpdater {
 
     public void cancel() {
         fileScanner.cancel();
-    }
-
-    private List<File> dump() {
-        synchronized (lock) {
-            List<File> batch = accumulated;
-            accumulated = new LinkedList<>();
-            return batch;
-        }
     }
 }

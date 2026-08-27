@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class FileRemoveUpdater {
@@ -22,8 +21,8 @@ public class FileRemoveUpdater {
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private Timer updateTimer;
     private List<File> deleted = new LinkedList<>();
-    private final AtomicInteger failed = new AtomicInteger(0);
-    private final AtomicInteger progressed = new AtomicInteger(0);
+    private int failed = 0;
+    private int progressed = 0;
     private final AtomicReference<String> current = new AtomicReference<>();
     private final Object lock = started;
 
@@ -52,16 +51,18 @@ public class FileRemoveUpdater {
         fileRemover.whenDeleteAction((action, src, succeeded) -> {
             switch (action) {
                 case DELETE:
-                    if (succeeded) {
-                        synchronized (lock) {
+                    synchronized (lock) {
+                        if (succeeded) {
                             deleted.add(new File(src));
+                        } else {
+                            failed++;
                         }
-                    } else {
-                        failed.incrementAndGet();
                     }
                     break;
                 case PROGRESS:
-                    progressed.incrementAndGet();
+                    synchronized (lock) {
+                        progressed++;
+                    }
                     break;
                 default:
                     break;
@@ -96,10 +97,21 @@ public class FileRemoveUpdater {
             public void run() {
                 if (onRemoveUpdated != null) {
                     try {
+                        List<File> nowDeleted;
+                        int nowFailed;
+                        int nowProgressed;
+                        synchronized (lock) {
+                            nowDeleted = deleted;
+                            deleted = new LinkedList<>();
+                            nowFailed = failed;
+                            failed = 0;
+                            nowProgressed = progressed;
+                            progressed = 0;
+                        }
                         onRemoveUpdated.accept(
-                                dumpDeleted(),
-                                failed.getAndSet(0),
-                                progressed.getAndSet(0),
+                                nowDeleted,
+                                nowFailed,
+                                nowProgressed,
                                 current.get());
                     } catch (Throwable ignored) {
                     }
@@ -123,14 +135,6 @@ public class FileRemoveUpdater {
             updateTimer.cancel();
             updateTimer.purge();
             updateTimer = null;
-        }
-    }
-
-    private List<File> dumpDeleted() {
-        synchronized (lock) {
-            List<File> batch = deleted;
-            deleted = new LinkedList<>();
-            return batch;
         }
     }
 
