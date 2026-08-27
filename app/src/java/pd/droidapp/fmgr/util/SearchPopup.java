@@ -309,9 +309,9 @@ public class SearchPopup {
                 statusBar.markRunning();
                 statusBar.setText(context.getString(R.string.search_status_searching));
             }));
-            nameScanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
+            nameScanner.whenScanUpdated((scanned, matched) -> containerView.post(() -> {
                 nameScanned += scanned;
-                itemsAdapter.addAll(delta);
+                itemsAdapter.addAll(matched);
                 statusBar.setText(context.getString(R.string.search_status_searching));
             }));
             nameScanner.whenScanStopped(() -> containerView.post(() -> {
@@ -333,7 +333,7 @@ public class SearchPopup {
                 }
                 return false;
             });
-            contentScanner.whenScanUpdated((delta, scanned) -> containerView.post(() -> {
+            contentScanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
                 contentScanned += scanned;
                 itemsAdapter.addAll(delta);
                 statusBar.setText(context.getString(R.string.x_scanned_y_found,

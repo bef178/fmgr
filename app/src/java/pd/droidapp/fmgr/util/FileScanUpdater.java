@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public class FileScanUpdater {
@@ -18,13 +17,13 @@ public class FileScanUpdater {
     private Function<File, Boolean> onDirectory;
 
     private Runnable onScanStarted;
-    private BiConsumer<List<File>, Integer> onScanUpdated;
+    private OnScanUpdateListener onScanUpdated;
     private Runnable onScanStopped;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
     private Timer updateTimer;
-    private int scannedFiles = 0;
-    private List<File> matched = new LinkedList<>();
+    private int scanned = 0;
+    private List<String> matched = new LinkedList<>();
     private final Object lock = started;
 
     public FileScanUpdater() {
@@ -49,7 +48,7 @@ public class FileScanUpdater {
         this.onScanStarted = onScanStarted;
     }
 
-    public void whenScanUpdated(BiConsumer<List<File>, Integer> onScanUpdated) {
+    public void whenScanUpdated(OnScanUpdateListener onScanUpdated) {
         this.onScanUpdated = onScanUpdated;
     }
 
@@ -63,27 +62,13 @@ public class FileScanUpdater {
         }
 
         fileScanner.whenScanAction((action, file) -> {
-            switch (action) {
-                case DIRECTORY: {
-                    if (onDirectory != null && onDirectory.apply(file)) {
-                        synchronized (lock) {
-                            matched.add(file);
-                        }
-                    }
-                    break;
+            Function<File, Boolean> predicate = action == FileScanner.ScanAction.DIRECTORY ? onDirectory : onFile;
+            boolean acceptable = predicate != null && predicate.apply(file);
+            synchronized (lock) {
+                scanned++;
+                if (acceptable) {
+                    matched.add(file.getPath());
                 }
-                case FILE: {
-                    boolean acceptable = onFile != null && onFile.apply(file);
-                    synchronized (lock) {
-                        scannedFiles++;
-                        if (acceptable) {
-                            matched.add(file);
-                        }
-                    }
-                    break;
-                }
-                default:
-                    break;
             }
         });
 
@@ -109,16 +94,16 @@ public class FileScanUpdater {
             @Override
             public void run() {
                 if (onScanUpdated != null) {
-                    List<File> nowMatched;
-                    int nowScannedFiles;
+                    int nowScanned;
+                    List<String> nowMatched;
                     synchronized (lock) {
+                        nowScanned = scanned;
+                        scanned = 0;
                         nowMatched = matched;
                         matched = new LinkedList<>();
-                        nowScannedFiles = scannedFiles;
-                        scannedFiles = 0;
                     }
                     try {
-                        onScanUpdated.accept(nowMatched, nowScannedFiles);
+                        onScanUpdated.accept(nowScanned, nowMatched);
                     } catch (Throwable ignored) {
                     }
                 }
@@ -149,5 +134,10 @@ public class FileScanUpdater {
 
     public void cancel() {
         fileScanner.cancel();
+    }
+
+    public interface OnScanUpdateListener {
+
+        void accept(int scanned, List<String> matched);
     }
 }
