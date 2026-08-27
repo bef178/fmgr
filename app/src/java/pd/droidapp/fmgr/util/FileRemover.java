@@ -18,9 +18,6 @@ public class FileRemover {
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
     private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
-        if (succeeded == null) {
-            return;
-        }
         switch (action) {
             case DELETE:
                 callback(DeleteAction.DELETE, src, succeeded);
@@ -30,7 +27,7 @@ public class FileRemover {
         }
     };
 
-    private void callback(DeleteAction action, String src, boolean succeeded) {
+    private void callback(DeleteAction action, String src, Boolean succeeded) {
         if (onDeleteAction != null) {
             onDeleteAction.accept(action, src, succeeded);
         }
@@ -91,7 +88,7 @@ public class FileRemover {
 
     public interface OnDeleteActionListener {
 
-        void accept(DeleteAction action, String src, boolean succeeded);
+        void accept(DeleteAction action, String src, Boolean succeeded);
     }
 
     public enum DeleteAction {

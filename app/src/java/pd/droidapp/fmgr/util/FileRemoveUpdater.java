@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class FileRemoveUpdater {
 
@@ -23,7 +22,7 @@ public class FileRemoveUpdater {
     private List<File> deleted = new LinkedList<>();
     private int failed = 0;
     private int progressed = 0;
-    private final AtomicReference<String> current = new AtomicReference<>();
+    private String current;
     private final Object lock = started;
 
     public FileRemoveUpdater() {
@@ -52,7 +51,9 @@ public class FileRemoveUpdater {
             switch (action) {
                 case DELETE:
                     synchronized (lock) {
-                        if (succeeded) {
+                        if (succeeded == null) {
+                            current = src;
+                        } else if (succeeded) {
                             deleted.add(new File(src));
                         } else {
                             failed++;
@@ -67,7 +68,6 @@ public class FileRemoveUpdater {
                 default:
                     break;
             }
-            current.set(src);
         });
 
         List<String> paths = new LinkedList<>();
@@ -100,6 +100,7 @@ public class FileRemoveUpdater {
                         List<File> nowDeleted;
                         int nowFailed;
                         int nowProgressed;
+                        String nowCurrent;
                         synchronized (lock) {
                             nowDeleted = deleted;
                             deleted = new LinkedList<>();
@@ -107,12 +108,13 @@ public class FileRemoveUpdater {
                             failed = 0;
                             nowProgressed = progressed;
                             progressed = 0;
+                            nowCurrent = current;
                         }
                         onRemoveUpdated.accept(
                                 nowDeleted,
                                 nowFailed,
                                 nowProgressed,
-                                current.get());
+                                nowCurrent);
                     } catch (Throwable ignored) {
                     }
                 }

@@ -1,12 +1,9 @@
 package pd.droidapp.fmgr.util;
 
-import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,9 +24,6 @@ public class FilePaster {
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
     private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
-        if (succeeded == null) {
-            return;
-        }
         switch (action) {
             case DELETE:
                 callback(PasteAction.DELETE, src, dst, succeeded);
@@ -45,7 +39,7 @@ public class FilePaster {
         }
     };
 
-    private void callback(PasteAction action, String from, String to, boolean succeeded) {
+    private void callback(PasteAction action, String from, String to, Boolean succeeded) {
         if (onPasteAction != null) {
             onPasteAction.accept(action, from, to, succeeded);
         }
@@ -189,24 +183,10 @@ public class FilePaster {
 
     // `dst` must not exist
     private boolean mv(Path src, Path dst) {
-        boolean renameSucceeded = false;
-        boolean fallback = false;
-        try {
-            Files.move(src, dst, StandardCopyOption.ATOMIC_MOVE);
-            renameSucceeded = true;
-        } catch (AtomicMoveNotSupportedException ignored) {
-            fallback = true;
-        } catch (IOException ignored) {
-        }
-        callback(PasteAction.RENAME, src.toString(), dst.toString(), renameSucceeded);
-        if (renameSucceeded) {
+        if (FileOps.singleton.rename(src.toString(), dst.toString(), onAction)) {
             return true;
-        } else if (!fallback) {
-            return false;
-        } else {
-            // cross-device: fall back to copy + delete
-            return cp(src, dst) && rm(src);
         }
+        return cp(src, dst) && rm(src);
     }
 
     private boolean rm(Path path) {
@@ -314,7 +294,7 @@ public class FilePaster {
 
     public interface OnPasteActionListener {
 
-        void accept(PasteAction action, String src, String dst, boolean succeeded);
+        void accept(PasteAction action, String src, String dst, Boolean succeeded);
     }
 
     public enum PasteAction {

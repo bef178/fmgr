@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 class FilePasteUpdater {
 
@@ -21,12 +19,13 @@ class FilePasteUpdater {
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private Timer updateTimer;
-    private final AtomicInteger added = new AtomicInteger(0);
-    private final AtomicInteger deleted = new AtomicInteger(0);
-    private final AtomicInteger renamed = new AtomicInteger(0);
-    private final AtomicInteger failed = new AtomicInteger(0);
-    private final AtomicInteger progressed = new AtomicInteger(0);
-    private final AtomicReference<String> current = new AtomicReference<>();
+    private int added = 0;
+    private int deleted = 0;
+    private int renamed = 0;
+    private int failed = 0;
+    private int progressed = 0;
+    private String current;
+    private final Object lock = started;
 
     public FilePasteUpdater() {
         this.filePaster = new FilePaster();
@@ -51,28 +50,29 @@ class FilePasteUpdater {
         }
 
         filePaster.whenPasteAction((action, src, dst, succeeded) -> {
-            if (succeeded) {
-                switch (action) {
-                    case ADD:
-                        added.incrementAndGet();
-                        break;
-                    case DELETE:
-                        deleted.incrementAndGet();
-                        break;
-                    case RENAME:
-                        renamed.incrementAndGet();
-                        break;
+            synchronized (lock) {
+                if (succeeded == null) {
+                    current = src != null ? src : dst;
+                } else if (succeeded) {
+                    switch (action) {
+                        case ADD:
+                            added++;
+                            break;
+                        case DELETE:
+                            deleted++;
+                            break;
+                        case RENAME:
+                            renamed++;
+                            break;
+                        case PROGRESS:
+                            progressed++;
+                            break;
+                        default:
+                            break;
+                    }
+                } else {
+                    failed++;
                 }
-            } else {
-                failed.incrementAndGet();
-            }
-            if (action == FilePaster.PasteAction.PROGRESS) {
-                progressed.incrementAndGet();
-            }
-            if (src != null) {
-                current.set(src);
-            } else if (dst != null) {
-                current.set(dst);
             }
         });
 
@@ -102,13 +102,32 @@ class FilePasteUpdater {
             public void run() {
                 if (onPasteUpdated != null) {
                     try {
+                        int nowAdded;
+                        int nowDeleted;
+                        int nowRenamed;
+                        int nowFailed;
+                        int nowProgressed;
+                        String nowCurrent;
+                        synchronized (lock) {
+                            nowAdded = added;
+                            added = 0;
+                            nowDeleted = deleted;
+                            deleted = 0;
+                            nowRenamed = renamed;
+                            renamed = 0;
+                            nowFailed = failed;
+                            failed = 0;
+                            nowProgressed = progressed;
+                            progressed = 0;
+                            nowCurrent = current;
+                        }
                         onPasteUpdated.accept(
-                                added.getAndSet(0),
-                                deleted.getAndSet(0),
-                                renamed.getAndSet(0),
-                                failed.getAndSet(0),
-                                progressed.getAndSet(0),
-                                current.get());
+                                nowAdded,
+                                nowDeleted,
+                                nowRenamed,
+                                nowFailed,
+                                nowProgressed,
+                                nowCurrent);
                     } catch (Throwable ignored) {
                     }
                 }
