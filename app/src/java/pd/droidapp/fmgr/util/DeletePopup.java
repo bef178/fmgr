@@ -115,7 +115,7 @@ public class DeletePopup {
     }
 
     private void initProgress() {
-        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 0, srcFiles.size()));
+        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcFiles.size()));
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
@@ -147,7 +147,7 @@ public class DeletePopup {
         remover.whenRemoveStarted(() -> containerView.post(() -> {
             progressArea.setVisibility(View.VISIBLE);
             progressBarView.setProgress(0);
-            progressBarTextView.setText(context.getString(R.string.popup_progress_text, 0, total));
+            progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
         }));
         remover.whenRemoveUpdated(new FileRemoveUpdater.OnRemoveUpdateListener() {
             private int totalFailed;
@@ -161,7 +161,8 @@ public class DeletePopup {
 
                 containerView.post(() -> {
                     progressBarView.setProgress(totalProgressed * 100 / total);
-                    progressBarTextView.setText(context.getString(R.string.popup_progress_text, totalProgressed, total));
+                    progressBarTextView.setText(context.getString(R.string.popup_progress_text,
+                            Math.min(totalProgressed + 1, total), total));
                     progressBarSideTextView.setText(getDisplayPath(current));
                     progressSummaryTextView.setText(context.getString(R.string.delete_progress_summary,
                             totalDeleted.size(), totalFailed));

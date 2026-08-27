@@ -131,7 +131,7 @@ public class PastePopup {
     }
 
     private void initProgress() {
-        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 0, srcFiles.size()));
+        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcFiles.size()));
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
@@ -177,7 +177,7 @@ public class PastePopup {
         paster.whenPasteStarted(() -> containerView.post(() -> {
             progressArea.setVisibility(View.VISIBLE);
             progressBarView.setProgress(0);
-            progressBarTextView.setText(context.getString(R.string.popup_progress_text, 0, total));
+            progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
         }));
         paster.whenPasteUpdated(new FilePasteUpdater.OnPasteUpdateListener() {
             private int totalAdded;
@@ -196,7 +196,8 @@ public class PastePopup {
 
                 containerView.post(() -> {
                     progressBarView.setProgress(totalProcessed * 100 / total);
-                    progressBarTextView.setText(context.getString(R.string.popup_progress_text, totalProcessed, total));
+                    progressBarTextView.setText(context.getString(R.string.popup_progress_text,
+                            Math.min(totalProcessed + 1, total), total));
                     progressBarSideTextView.setText(getDisplayPath(current));
                     progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
                             totalAdded, totalDeleted, totalRenamed, totalFailed));
