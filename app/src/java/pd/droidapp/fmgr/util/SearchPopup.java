@@ -292,19 +292,15 @@ public class SearchPopup {
             results.clear();
 
             nameScanner = new FileScanUpdater();
-            nameScanner.whenReached(path -> {
-                if (PathOps.singleton.basename(path).contains(Scanner.this.query)) {
-                    results.add(path);
-                    return true;
-                }
-                return false;
-            });
+            nameScanner.whenReached(path ->
+                    PathOps.singleton.basename(path).contains(Scanner.this.query));
             nameScanner.whenScanStarted(() -> containerView.post(() -> {
                 statusBar.markRunning();
                 statusBar.setText(context.getString(R.string.search_status_searching));
             }));
             nameScanner.whenScanUpdated((scanned, matched) -> containerView.post(() -> {
                 nameScanned += scanned;
+                results.addAll(matched);
                 itemsAdapter.addAll(matched);
                 statusBar.setText(context.getString(R.string.search_status_searching));
             }));
@@ -319,15 +315,12 @@ public class SearchPopup {
         private void scanContent() {
             contentScanner = new FileScanUpdater();
             contentScanner.whenReached(path -> {
-                File file = new File(path);
-                if (!path.endsWith("/")
-                        && !results.contains(path)
-                        && (isTextFile(file) || isSmallAnonymousFile(file))
-                        && fileContainsText(file, query)) {
-                    results.add(path);
-                    return true;
+                if (path.endsWith("/") || results.contains(path)) {
+                    return false;
                 }
-                return false;
+                File file = new File(path);
+                return (isTextFile(file) || isSmallAnonymousFile(file))
+                        && fileContainsText(file, query);
             });
             contentScanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
                 contentScanned += scanned;
