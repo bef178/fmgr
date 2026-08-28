@@ -21,19 +21,13 @@ import android.widget.PopupWindow;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
-import pd.util.PathOps;
 
 public class SearchPopup {
 
@@ -61,8 +55,9 @@ public class SearchPopup {
     private Consumer<Collection<File>> onCut;
     private PopupOnDismissListener onDismiss;
 
-    private Scanner scanner;
+    private FileSearchUpdater searcher;
     private String lastQuery = "";
+    private int totalScanned;
     private final Collection<File> removedFiles = new LinkedList<>();
 
     public SearchPopup(View containerView, File startDirectory) {
@@ -261,14 +256,32 @@ public class SearchPopup {
         itemsAdapter.clear();
 
         lastQuery = query;
-        scanner = new Scanner();
-        scanner.start(query);
+        totalScanned = 0;
+        searcher = new FileSearchUpdater();
+        searcher.whenSearchStarted(() -> containerView.post(() -> {
+            statusBar.markRunning();
+            statusBar.setText(context.getString(R.string.search_status_searching));
+        }));
+        searcher.whenSearchUpdated((scanned, matched) -> containerView.post(() -> {
+            totalScanned += scanned;
+            itemsAdapter.addAll(matched);
+            statusBar.setText(context.getString(R.string.x_scanned_y_found,
+                    totalScanned, itemsAdapter.getItemCount()));
+        }));
+        searcher.whenSearchStopped(() -> containerView.post(() -> {
+            if (searcher != null && searcher.isCancelled()) {
+                statusBar.setText(context.getString(R.string.popup_progress_aborted));
+            } else {
+                statusBar.markDone();
+            }
+        }));
+        searcher.start(startDirectory.getPath(), query);
     }
 
     private void cancelSearch() {
-        if (scanner != null) {
-            scanner.cancel();
-            scanner = null;
+        if (searcher != null) {
+            searcher.cancel();
+            searcher = null;
         }
     }
 
@@ -276,102 +289,5 @@ public class SearchPopup {
         selectionBar.clear();
         selectionBar.invalidate();
         itemsAdapter.notifyDataSetChanged();
-    }
-
-    class Scanner {
-
-        private String query;
-        private FileScanUpdater nameScanner;
-        private int nameScanned;
-        private FileScanUpdater contentScanner;
-        private int contentScanned;
-        private final Set<String> results = Collections.synchronizedSet(new HashSet<>());
-
-        void start(String query) {
-            this.query = query;
-            results.clear();
-
-            nameScanner = new FileScanUpdater();
-            nameScanner.whenReached(path ->
-                    PathOps.singleton.basename(path).contains(Scanner.this.query));
-            nameScanner.whenScanStarted(() -> containerView.post(() -> {
-                statusBar.markRunning();
-                statusBar.setText(context.getString(R.string.search_status_searching));
-            }));
-            nameScanner.whenScanUpdated((scanned, matched) -> containerView.post(() -> {
-                nameScanned += scanned;
-                results.addAll(matched);
-                itemsAdapter.addAll(matched);
-                statusBar.setText(context.getString(R.string.search_status_searching));
-            }));
-            nameScanner.whenScanStopped(() -> containerView.post(() -> {
-                if (nameScanner.isCompleted()) {
-                    scanContent();
-                }
-            }));
-            nameScanner.start(startDirectory.getPath());
-        }
-
-        private void scanContent() {
-            contentScanner = new FileScanUpdater();
-            contentScanner.whenReached(path -> {
-                if (path.endsWith("/") || results.contains(path)) {
-                    return false;
-                }
-                File file = new File(path);
-                return (isTextFile(file) || isSmallAnonymousFile(file))
-                        && fileContainsText(file, query);
-            });
-            contentScanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
-                contentScanned += scanned;
-                itemsAdapter.addAll(delta);
-                statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                        nameScanned + contentScanned, itemsAdapter.getItemCount()));
-            }));
-            contentScanner.whenScanStopped(() -> containerView.post(() -> {
-                if (contentScanner.isCompleted()) {
-                    statusBar.markDone();
-                }
-            }));
-            contentScanner.start(startDirectory.getPath());
-        }
-
-        void cancel() {
-            if (nameScanner != null) {
-                nameScanner.cancel();
-            }
-            if (contentScanner != null) {
-                contentScanner.cancel();
-            }
-        }
-
-        private boolean isTextFile(File file) {
-            String lowerName = file.getName().toLowerCase();
-            return lowerName.endsWith(".txt") || lowerName.endsWith(".md") || lowerName.endsWith(".json") ||
-                    lowerName.endsWith(".xml") || lowerName.endsWith(".html") || lowerName.endsWith(".css") ||
-                    lowerName.endsWith(".js") || lowerName.endsWith(".java") || lowerName.endsWith(".kt") ||
-                    lowerName.endsWith(".py") || lowerName.endsWith(".c") || lowerName.endsWith(".cpp") ||
-                    lowerName.endsWith(".h") || lowerName.endsWith(".hpp") || lowerName.endsWith(".sh") ||
-                    lowerName.endsWith(".yaml") || lowerName.endsWith(".yml") || lowerName.endsWith(".properties") ||
-                    lowerName.endsWith(".gradle") || lowerName.endsWith(".csv") || lowerName.endsWith(".log");
-        }
-
-        private boolean isSmallAnonymousFile(File file) {
-            return !file.getName().contains(".") || file.length() < 1024 * 1024;
-        }
-
-        private boolean fileContainsText(File file, String query) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (line.contains(query)) {
-                        return true;
-                    }
-                }
-            } catch (Exception e) {
-                // Ignore errors
-            }
-            return false;
-        }
     }
 }

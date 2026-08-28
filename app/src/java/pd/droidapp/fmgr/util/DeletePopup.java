@@ -149,7 +149,7 @@ public class DeletePopup {
             progressBarView.setProgress(0);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
         }));
-        remover.whenRemoveUpdated(new FileRemoveUpdater.OnRemoveUpdateListener() {
+        remover.whenRemoveUpdated(new FileRemoveUpdater.OnRemoveUpdatedListener() {
             private int totalFailed;
             private int totalProgressed;
 

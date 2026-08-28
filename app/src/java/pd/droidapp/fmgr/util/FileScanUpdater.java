@@ -7,7 +7,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-public class FileScanUpdater {
+class FileScanUpdater {
 
     private final FileScanner fileScanner;
     private final int updateInterval;
@@ -15,7 +15,7 @@ public class FileScanUpdater {
     private Function<String, Boolean> onReached;
 
     private Runnable onScanStarted;
-    private OnScanUpdateListener onScanUpdated;
+    private OnScanUpdatedListener onScanUpdated;
     private Runnable onScanStopped;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
@@ -43,7 +43,7 @@ public class FileScanUpdater {
         this.onScanStarted = onScanStarted;
     }
 
-    public void whenScanUpdated(OnScanUpdateListener onScanUpdated) {
+    public void whenScanUpdated(OnScanUpdatedListener onScanUpdated) {
         this.onScanUpdated = onScanUpdated;
     }
 
@@ -133,7 +133,7 @@ public class FileScanUpdater {
         fileScanner.cancel();
     }
 
-    public interface OnScanUpdateListener {
+    public interface OnScanUpdatedListener {
 
         void accept(int scanned, List<String> matched);
     }

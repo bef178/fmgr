@@ -7,13 +7,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class FileRemoveUpdater {
+class FileRemoveUpdater {
 
     private final FileRemover fileRemover;
     private final int updateInterval;
 
     private Runnable onRemoveStarted;
-    private OnRemoveUpdateListener onRemoveUpdated;
+    private OnRemoveUpdatedListener onRemoveUpdated;
     private Runnable onRemoveStopped;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
@@ -34,7 +34,7 @@ public class FileRemoveUpdater {
         this.onRemoveStarted = onRemoveStarted;
     }
 
-    public void whenRemoveUpdated(OnRemoveUpdateListener onRemoveUpdated) {
+    public void whenRemoveUpdated(OnRemoveUpdatedListener onRemoveUpdated) {
         this.onRemoveUpdated = onRemoveUpdated;
     }
 
@@ -156,7 +156,7 @@ public class FileRemoveUpdater {
         return fileRemover.isCancelled();
     }
 
-    public interface OnRemoveUpdateListener {
+    public interface OnRemoveUpdatedListener {
 
         void accept(List<File> removed, int failed, int progressed, String current);
     }

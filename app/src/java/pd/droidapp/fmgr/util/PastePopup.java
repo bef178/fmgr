@@ -179,7 +179,7 @@ public class PastePopup {
             progressBarView.setProgress(0);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
         }));
-        paster.whenPasteUpdated(new FilePasteUpdater.OnPasteUpdateListener() {
+        paster.whenPasteUpdated(new FilePasteUpdater.OnPasteUpdatedListener() {
             private int totalAdded;
             private int totalDeleted;
             private int totalRenamed;

@@ -13,7 +13,7 @@ class FilePasteUpdater {
     private final int updateInterval;
 
     private Runnable onPasteStarted;
-    private OnPasteUpdateListener onPasteUpdated;
+    private OnPasteUpdatedListener onPasteUpdated;
     private Runnable onPasteStopped;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
@@ -36,7 +36,7 @@ class FilePasteUpdater {
         this.onPasteStarted = onPasteStarted;
     }
 
-    public void whenPasteUpdated(OnPasteUpdateListener onPasteUpdated) {
+    public void whenPasteUpdated(OnPasteUpdatedListener onPasteUpdated) {
         this.onPasteUpdated = onPasteUpdated;
     }
 
@@ -170,7 +170,7 @@ class FilePasteUpdater {
         return filePaster.isCancelled();
     }
 
-    interface OnPasteUpdateListener {
+    interface OnPasteUpdatedListener {
 
         void accept(int added, int removed, int renamed, int failed, int progressed, String current);
     }
