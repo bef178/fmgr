@@ -74,7 +74,10 @@ public class FileRemoveUpdater {
         for (File file : startFiles) {
             paths.add(file.getPath());
         }
-        fileRemover.start(paths, prune);
+        if (!fileRemover.start(paths, prune)) {
+            stopped.set(true);
+            return false;
+        }
         startTimer();
         return true;
     }

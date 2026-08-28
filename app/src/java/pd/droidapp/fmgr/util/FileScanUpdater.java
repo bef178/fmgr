@@ -66,7 +66,9 @@ public class FileScanUpdater {
             }
         });
 
-        fileScanner.start(startDirectory);
+        if (!fileScanner.start(startDirectory)) {
+            return false;
+        }
         startTimer();
         return true;
     }

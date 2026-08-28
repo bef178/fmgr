@@ -80,7 +80,10 @@ class FilePasteUpdater {
         for (File src : srcFiles) {
             paths.add(src.getPath());
         }
-        filePaster.start(isCopy, paths, dstDirectory.getPath(), resolution, mergeDirectories);
+        if (!filePaster.start(isCopy, paths, dstDirectory.getPath(), resolution, mergeDirectories)) {
+            stopped.set(true);
+            return false;
+        }
         startTimer();
         return true;
     }

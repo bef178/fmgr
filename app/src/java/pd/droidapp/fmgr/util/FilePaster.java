@@ -286,8 +286,20 @@ public class FilePaster {
     }
 
     public void cancel() {
-        if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
-            cancelled.set(true);
+        while (true) {
+            State current = state.get();
+            if (current == State.RUNNING) {
+                if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
+                    cancelled.set(true);
+                    return;
+                }
+            } else if (current == State.IDLE) {
+                if (state.compareAndSet(State.IDLE, State.CANCELLED)) {
+                    return;
+                }
+            } else {
+                return;
+            }
         }
     }
 
