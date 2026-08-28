@@ -56,6 +56,21 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
         notifyItemRangeRemoved(0, oldSize);
     }
 
+    private void invalidateItem(File item) {
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i).equals(item)) {
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
+
+    public void invalidateItems(Iterable<File> items) {
+        for (File item : items) {
+            invalidateItem(item);
+        }
+    }
+
     private void diffAndDispatch(List<File> oldFiles) {
         DiffUtil.calculateDiff(new DiffUtil.Callback() {
             @Override

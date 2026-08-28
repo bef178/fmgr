@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -58,6 +59,7 @@ public class SearchPopup {
     private FileSearchUpdater searcher;
     private String lastQuery = "";
     private int totalScanned;
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private final Collection<File> removedFiles = new LinkedList<>();
 
     public SearchPopup(View containerView, File startDirectory) {
@@ -97,7 +99,11 @@ public class SearchPopup {
         selfWindow.setElevation(24);
         selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         selfWindow.setOnDismissListener(() -> {
-            cancelSearch();
+            handler.removeCallbacks(this::doSearch);
+            if (searcher != null) {
+                searcher.cancel();
+                searcher = null;
+            }
             if (onDismiss != null) {
                 onDismiss.accept(removedFiles);
             }
@@ -115,7 +121,6 @@ public class SearchPopup {
     }
 
     private void initSearchEdit() {
-        Handler handler = new Handler(Looper.getMainLooper());
         searchEdit.addTextChangedListener(new TextWatcher() {
 
             @Override
@@ -128,8 +133,8 @@ public class SearchPopup {
 
             @Override
             public void afterTextChanged(Editable s) {
-                handler.removeCallbacks(SearchPopup.this::doSearch);
                 searchEditClearButton.setEnabled(!s.toString().isEmpty());
+                handler.removeCallbacks(SearchPopup.this::doSearch);
                 handler.postDelayed(SearchPopup.this::doSearch, SEARCH_START_DELAY_IN_MILLISECONDS);
             }
         });
@@ -197,7 +202,12 @@ public class SearchPopup {
             itemsAdapter.notifyDataSetChanged();
         });
 
-        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> clearSelection());
+        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
+            List<File> selected = selectionBar.copySelectedItems();
+            selectionBar.clear();
+            selectionBar.invalidate();
+            itemsAdapter.invalidateItems(selected);
+        });
     }
 
     private void initItemsView() {
@@ -238,56 +248,60 @@ public class SearchPopup {
 
     private void doSearch() {
         String query = searchEdit.getText().toString();
-        if (query.isEmpty()) {
-            cancelSearch();
-            clearSelection();
-            itemsAdapter.clear();
-            lastQuery = "";
-            statusBar.hide();
-            return;
-        }
-
         if (query.equals(lastQuery)) {
             return;
         }
 
-        cancelSearch();
-        clearSelection();
-        itemsAdapter.clear();
-
+        if (searcher != null) {
+            searcher.cancel();
+            searcher = null;
+        }
+        clear();
         lastQuery = query;
-        totalScanned = 0;
-        searcher = new FileSearchUpdater();
-        searcher.whenSearchStarted(() -> containerView.post(() -> {
+        if (!query.isEmpty()) {
+            totalScanned = 0;
+            searcher = createAndStartSearcher(startDirectory.getPath(), query);
+        }
+    }
+
+    private FileSearchUpdater createAndStartSearcher(String startDirectory, String query) {
+        FileSearchUpdater current = new FileSearchUpdater(); // the guard
+        current.whenSearchStarted(() -> containerView.post(() -> {
+            if (searcher != current) {
+                return;
+            }
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.search_status_searching));
         }));
-        searcher.whenSearchUpdated((scanned, matched) -> containerView.post(() -> {
+        current.whenSearchUpdated((scanned, matched) -> containerView.post(() -> {
+            if (searcher != current) {
+                return;
+            }
             totalScanned += scanned;
             itemsAdapter.addAll(matched);
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));
-        searcher.whenSearchStopped(() -> containerView.post(() -> {
-            if (searcher != null && searcher.isCancelled()) {
+        current.whenSearchStopped(() -> containerView.post(() -> {
+            if (searcher != current) {
+                return;
+            }
+            if (current.isCancelled()) {
                 statusBar.setText(context.getString(R.string.popup_progress_aborted));
             } else {
                 statusBar.markDone();
             }
         }));
-        searcher.start(startDirectory.getPath(), query);
-    }
-
-    private void cancelSearch() {
-        if (searcher != null) {
-            searcher.cancel();
-            searcher = null;
+        if (current.start(startDirectory, query)) {
+            return current;
         }
+        return null;
     }
 
-    private void clearSelection() {
+    private void clear() {
+        statusBar.hide();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.notifyDataSetChanged();
+        itemsAdapter.clear();
     }
 }

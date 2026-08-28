@@ -129,11 +129,6 @@ class FileSearchUpdater {
         return state == State.CANCELLING || state == State.CANCELLED;
     }
 
-    public boolean isStopped() {
-        State state = this.state.get();
-        return state == State.COMPLETED || state == State.CANCELLED || state == State.FAILED;
-    }
-
     private void markCancelled() {
         goToStop(State.CANCELLED);
     }
