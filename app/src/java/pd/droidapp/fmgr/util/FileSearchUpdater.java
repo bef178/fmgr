@@ -113,6 +113,10 @@ class FileSearchUpdater {
         return true;
     }
 
+    public boolean isCompleted() {
+        return state.get() == State.COMPLETED;
+    }
+
     public void cancel() {
         if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
             if (nameScanner != null) {

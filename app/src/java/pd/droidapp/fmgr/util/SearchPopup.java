@@ -286,10 +286,10 @@ public class SearchPopup {
             if (searcher != current) {
                 return;
             }
-            if (current.isCancelled()) {
-                statusBar.setText(context.getString(R.string.popup_progress_aborted));
-            } else {
+            if (current.isCompleted()) {
                 statusBar.markDone();
+            } else {
+                statusBar.markStopped();
             }
         }));
         if (current.start(startDirectory, query)) {

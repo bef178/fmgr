@@ -36,6 +36,11 @@ public class StatusBar {
         iconView.setImageResource(R.drawable.baseline_done_24);
     }
 
+    public void markStopped() {
+        iconView.clearAnimation();
+        iconView.setImageResource(R.drawable.baseline_close_24);
+    }
+
     public void setText(CharSequence value) {
         textView.setText(value);
     }
