@@ -91,6 +91,7 @@
     <string name="popup_progress_pending">Pending</string>
     <string name="popup_progress_completed">Completed</string>
     <string name="popup_progress_aborted">Aborted</string>
+    <string name="popup_progress_failed">Failed</string>
     <string name="paste_progress_summary">%d added, %d deleted, %d renamed, %d failed</string>
 
     <!-- delete popup -->

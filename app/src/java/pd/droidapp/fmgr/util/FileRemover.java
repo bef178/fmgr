@@ -75,6 +75,10 @@ public class FileRemover {
         return state == State.RUNNING || state == State.CANCELLING;
     }
 
+    public boolean isCompleted() {
+        return state.get() == State.COMPLETED;
+    }
+
     public void cancel() {
         while (true) {
             State current = state.get();

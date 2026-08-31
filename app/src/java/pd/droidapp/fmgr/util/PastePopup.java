@@ -143,10 +143,12 @@ public class PastePopup extends ProcessingPopup {
             }
         });
         paster.whenPasteStopped(() -> containerView.post(() -> {
-            if (paster.isCancelled()) {
+            if (paster.isCompleted()) {
+                progressBarSideTextView.setText(R.string.popup_progress_completed);
+            } else if (paster.isCancelled()) {
                 progressBarSideTextView.setText(R.string.popup_progress_aborted);
             } else {
-                progressBarSideTextView.setText(R.string.popup_progress_completed);
+                progressBarSideTextView.setText(R.string.popup_progress_failed);
             }
             updateButtons();
         }));

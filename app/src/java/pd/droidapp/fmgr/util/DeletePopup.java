@@ -108,10 +108,12 @@ public class DeletePopup extends ProcessingPopup {
             }
         });
         remover.whenRemoveStopped(() -> containerView.post(() -> {
-            if (remover.isCancelled()) {
+            if (remover.isCompleted()) {
+                progressBarSideTextView.setText(R.string.popup_progress_completed);
+            } else if (remover.isCancelled()) {
                 progressBarSideTextView.setText(R.string.popup_progress_aborted);
             } else {
-                progressBarSideTextView.setText(R.string.popup_progress_completed);
+                progressBarSideTextView.setText(R.string.popup_progress_failed);
             }
             updateButtons();
         }));

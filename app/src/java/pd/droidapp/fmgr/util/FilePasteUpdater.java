@@ -162,6 +162,10 @@ class FilePasteUpdater {
         return started.get() && stopped.get();
     }
 
+    public boolean isCompleted() {
+        return filePaster.isCompleted();
+    }
+
     public void cancel() {
         filePaster.cancel();
     }
