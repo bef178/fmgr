@@ -49,6 +49,7 @@ public class SearchPopup {
     private final SelectionBar selectionBar;
     private final RecyclerView itemsView;
     private final PopupFileItemsAdapter itemsAdapter;
+    private final PopupButtonBar buttonBar;
 
     // callbacks
     private Consumer<File> onJump;
@@ -74,7 +75,15 @@ public class SearchPopup {
         selfWindow = new PopupWindow(selfView,
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                true);
+                true) {
+            @Override
+            public void dismiss() {
+                if (searcher != null && !searcher.isStopped()) {
+                    return;
+                }
+                super.dismiss();
+            }
+        };
         mainAreaView = selfView.findViewById(R.id.popup_area);
 
         titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
@@ -84,6 +93,7 @@ public class SearchPopup {
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.files_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedItems);
+        buttonBar = new PopupButtonBar(mainAreaView.findViewById(R.id.popup_button_bar));
 
         initPopupWindow();
         enableClosePopupOnOutsideTouch();
@@ -91,6 +101,7 @@ public class SearchPopup {
         initSearchEdit();
         initSelectionBar();
         initItemsView();
+        initPopupButtonBar();
     }
 
     private void initPopupWindow() {
@@ -99,11 +110,7 @@ public class SearchPopup {
         selfWindow.setElevation(24);
         selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         selfWindow.setOnDismissListener(() -> {
-            handler.removeCallbacks(this::doSearch);
-            if (searcher != null) {
-                searcher.cancel();
-                searcher = null;
-            }
+            stopSearch();
             if (onDismiss != null) {
                 onDismiss.accept(removedFiles);
             }
@@ -134,6 +141,7 @@ public class SearchPopup {
             @Override
             public void afterTextChanged(Editable s) {
                 searchEditClearButton.setEnabled(!s.toString().isEmpty());
+                updateButtons();
                 handler.removeCallbacks(SearchPopup.this::doSearch);
                 handler.postDelayed(SearchPopup.this::doSearch, SEARCH_START_DELAY_IN_MILLISECONDS);
             }
@@ -163,6 +171,7 @@ public class SearchPopup {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.selectedItems.size() == 1) {
                 File file = selectionBar.selectedItems.iterator().next();
+                stopSearch();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
@@ -174,14 +183,12 @@ public class SearchPopup {
             if (onCopy != null) {
                 onCopy.accept(selectionBar.copySelectedItems());
             }
-            selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
                 onCut.accept(selectionBar.copySelectedItems());
             }
-            selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
@@ -214,6 +221,40 @@ public class SearchPopup {
         itemsView.setLayoutManager(new LinearLayoutManager(context));
         itemsView.setAdapter(itemsAdapter);
         itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
+    }
+
+    private void initPopupButtonBar() {
+        buttonBar.addButton(R.string.start, () -> true, () -> {
+            String query = searchEdit.getText().toString();
+            return !query.isEmpty() && !query.equals(lastQuery);
+        }, v -> {
+            handler.removeCallbacks(this::doSearch);
+            doSearch();
+        });
+        buttonBar.addButton(R.string.abort, () -> true, this::isSearching, v -> {
+            if (searcher != null) {
+                searcher.cancel();
+            }
+        });
+        buttonBar.addButton(R.string.close, () -> true, () -> !isSearching(), v -> selfWindow.dismiss());
+        updateButtons();
+    }
+
+    private void updateButtons() {
+        buttonBar.invalidate();
+        titleBar.enableCloseButton(!isSearching());
+    }
+
+    private boolean isSearching() {
+        return searcher != null && !searcher.isStopped();
+    }
+
+    private void stopSearch() {
+        handler.removeCallbacks(this::doSearch);
+        if (searcher != null) {
+            searcher.cancel();
+            searcher = null; // late callbacks are dropped by the guards
+        }
     }
 
     public void whenJumpClicked(Consumer<File> onJump) {
@@ -262,6 +303,7 @@ public class SearchPopup {
             totalScanned = 0;
             searcher = createAndStartSearcher(startDirectory.getPath(), query);
         }
+        updateButtons();
     }
 
     private FileSearchUpdater createAndStartSearcher(String startDirectory, String query) {
@@ -286,6 +328,7 @@ public class SearchPopup {
             if (searcher != current) {
                 return;
             }
+            updateButtons();
             if (current.isCompleted()) {
                 statusBar.markDone();
             } else {
