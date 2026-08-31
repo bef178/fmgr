@@ -73,44 +73,7 @@
 
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="16dp"
-            android:gravity="end"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/button_start"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:minWidth="0dp"
-                android:text="@string/start" />
-
-            <Button
-                android:id="@+id/button_abort"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:minWidth="0dp"
-                android:text="@string/abort"
-                android:visibility="gone" />
-
-            <Button
-                android:id="@+id/button_close"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:minWidth="0dp"
-                android:text="@string/close"
-                android:visibility="gone" />
-
-        </LinearLayout>
+        <include layout="@layout/popup_button_bar" />
 
     </LinearLayout>
 

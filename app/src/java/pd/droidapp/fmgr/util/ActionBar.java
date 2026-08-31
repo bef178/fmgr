@@ -85,13 +85,13 @@ public class ActionBar {
         }
     }
 
-    private static class ActionButton {
+    static class ActionButton {
 
-        private final ImageButton view;
-        private final BooleanSupplier visible;
-        private final BooleanSupplier enabled;
+        public final View view;
+        public final BooleanSupplier visible;
+        public final BooleanSupplier enabled;
 
-        public ActionButton(ImageButton view, BooleanSupplier visible, BooleanSupplier enabled) {
+        public ActionButton(View view, BooleanSupplier visible, BooleanSupplier enabled) {
             this.view = view;
             this.visible = visible;
             this.enabled = enabled;

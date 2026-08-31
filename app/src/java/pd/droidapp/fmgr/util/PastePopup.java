@@ -7,7 +7,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -48,9 +47,7 @@ public class PastePopup {
     private final TextView progressBarTextView;
     private final TextView progressBarSideTextView;
     private final TextView progressSummaryTextView;
-    private final Button startButton;
-    private final Button abortButton;
-    private final Button closeButton;
+    private final PopupButtonBar buttonBar;
 
     // callbacks
     private PopupOnDismissListener onDismiss;
@@ -74,7 +71,7 @@ public class PastePopup {
                 true) {
             @Override
             public void dismiss() {
-                if (paster != null && !paster.isStopped()) {
+                if (isPasting()) {
                     return;
                 }
                 super.dismiss();
@@ -91,16 +88,14 @@ public class PastePopup {
         progressBarTextView = mainAreaView.findViewById(R.id.progress_bar_text);
         progressBarSideTextView = mainAreaView.findViewById(R.id.progress_bar_side_text);
         progressSummaryTextView = mainAreaView.findViewById(R.id.progress_summary);
-        startButton = mainAreaView.findViewById(R.id.button_start);
-        abortButton = mainAreaView.findViewById(R.id.button_abort);
-        closeButton = mainAreaView.findViewById(R.id.button_close);
+        buttonBar = new PopupButtonBar(mainAreaView.findViewById(R.id.popup_button_bar));
 
         initPopupWindow();
         enableClosePopupOnOutsideTouch();
         initPopupTitleBar();
         initConflictResolution();
         initProgress();
-        initBottomButtons();
+        initPopupButtonBar();
     }
 
     private void initPopupWindow() {
@@ -135,13 +130,24 @@ public class PastePopup {
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
-    private void initBottomButtons() {
-        startButton.setVisibility(View.VISIBLE);
-        abortButton.setVisibility(View.GONE);
-        closeButton.setVisibility(View.GONE);
-        startButton.setOnClickListener(v -> start());
-        abortButton.setOnClickListener(v -> abort());
-        closeButton.setOnClickListener(v -> selfWindow.dismiss());
+    private void initPopupButtonBar() {
+        buttonBar.addButton(R.string.start, () -> true, () -> paster == null, v -> start());
+        buttonBar.addButton(R.string.abort, () -> true, this::isPasting, v -> abort());
+        buttonBar.addButton(R.string.close, () -> true, this::isStopped, v -> selfWindow.dismiss());
+        updateButtons();
+    }
+
+    private void updateButtons() {
+        buttonBar.invalidate();
+        titleBar.enableCloseButton(isStopped());
+    }
+
+    private boolean isPasting() {
+        return paster != null && !paster.isStopped();
+    }
+
+    private boolean isStopped() {
+        return !isPasting();
     }
 
     public void whenDismissClicked(PopupOnDismissListener onDismiss) {
@@ -168,10 +174,6 @@ public class PastePopup {
                 context.getString(R.string.on_conflict_x, context.getString(shortId)));
         resolutionOptionsGroup.setVisibility(View.GONE);
         mergeDirectoriesCheckBox.setVisibility(View.GONE);
-
-        startButton.setVisibility(View.GONE);
-        abortButton.setVisibility(View.VISIBLE);
-        titleBar.enableCloseButton(false);
 
         paster = new FilePasteUpdater();
         paster.whenPasteStarted(() -> containerView.post(() -> {
@@ -210,11 +212,11 @@ public class PastePopup {
             } else {
                 progressBarSideTextView.setText(R.string.popup_progress_completed);
             }
-            abortButton.setVisibility(View.GONE);
-            closeButton.setVisibility(View.VISIBLE);
-            titleBar.enableCloseButton(true);
+            updateButtons();
         }));
         paster.start(isCopy, srcFiles, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
+
+        updateButtons();
     }
 
     private ConflictResolution getSelectedResolution() {

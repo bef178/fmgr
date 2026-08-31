@@ -7,7 +7,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -42,9 +41,7 @@ public class DeletePopup {
     private final TextView progressBarTextView;
     private final TextView progressBarSideTextView;
     private final TextView progressSummaryTextView;
-    private final Button startButton;
-    private final Button abortButton;
-    private final Button closeButton;
+    private final PopupButtonBar buttonBar;
 
     // callbacks
     private PopupOnDismissListener onDismiss;
@@ -68,7 +65,7 @@ public class DeletePopup {
                 true) {
             @Override
             public void dismiss() {
-                if (remover != null && !remover.isStopped()) {
+                if (isRemoving()) {
                     return;
                 }
                 super.dismiss();
@@ -82,15 +79,13 @@ public class DeletePopup {
         progressBarTextView = mainAreaView.findViewById(R.id.progress_bar_text);
         progressBarSideTextView = mainAreaView.findViewById(R.id.progress_bar_side_text);
         progressSummaryTextView = mainAreaView.findViewById(R.id.progress_summary);
-        startButton = mainAreaView.findViewById(R.id.button_start);
-        abortButton = mainAreaView.findViewById(R.id.button_abort);
-        closeButton = mainAreaView.findViewById(R.id.button_close);
+        buttonBar = new PopupButtonBar(mainAreaView.findViewById(R.id.popup_button_bar));
 
         initPopupWindow();
         enableClosePopupOnOutsideTouch();
         initPopupTitleBar();
         initProgress();
-        initBottomButtons();
+        initPopupButtonBar();
     }
 
     private void initPopupWindow() {
@@ -119,13 +114,24 @@ public class DeletePopup {
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
-    private void initBottomButtons() {
-        startButton.setVisibility(View.VISIBLE);
-        abortButton.setVisibility(View.GONE);
-        closeButton.setVisibility(View.GONE);
-        startButton.setOnClickListener(v -> start());
-        abortButton.setOnClickListener(v -> abort());
-        closeButton.setOnClickListener(v -> selfWindow.dismiss());
+    private void initPopupButtonBar() {
+        buttonBar.addButton(R.string.start, () -> true, () -> remover == null, v -> start());
+        buttonBar.addButton(R.string.abort, () -> true, this::isRemoving, v -> abort());
+        buttonBar.addButton(R.string.close, () -> true, this::isStopped, v -> selfWindow.dismiss());
+        updateButtons();
+    }
+
+    private void updateButtons() {
+        buttonBar.invalidate();
+        titleBar.enableCloseButton(isStopped());
+    }
+
+    private boolean isRemoving() {
+        return remover != null && !remover.isStopped();
+    }
+
+    private boolean isStopped() {
+        return !isRemoving();
     }
 
     public void whenDismissClicked(PopupOnDismissListener onDismiss) {
@@ -138,10 +144,6 @@ public class DeletePopup {
 
     private void start() {
         final int total = srcFiles.size();
-
-        startButton.setVisibility(View.GONE);
-        abortButton.setVisibility(View.VISIBLE);
-        titleBar.enableCloseButton(false);
 
         remover = new FileRemoveUpdater();
         remover.whenRemoveStarted(() -> containerView.post(() -> {
@@ -175,11 +177,11 @@ public class DeletePopup {
             } else {
                 progressBarSideTextView.setText(R.string.popup_progress_completed);
             }
-            abortButton.setVisibility(View.GONE);
-            closeButton.setVisibility(View.VISIBLE);
-            titleBar.enableCloseButton(true);
+            updateButtons();
         }));
         remover.start(srcFiles, prune);
+
+        updateButtons();
     }
 
     private void abort() {
