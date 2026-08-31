@@ -35,6 +35,7 @@ public class DeleteEmptyPopup {
     private final SelectionBar selectionBar;
     private final RecyclerView itemsView;
     private final PopupFileItemsAdapter itemsAdapter;
+    private final PopupButtonBar buttonBar;
 
     // callbacks
     private Consumer<File> onJump;
@@ -56,7 +57,15 @@ public class DeleteEmptyPopup {
         selfWindow = new PopupWindow(selfView,
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                true);
+                true) {
+            @Override
+            public void dismiss() {
+                if (scanner != null && scanner.isRunning()) {
+                    return;
+                }
+                super.dismiss();
+            }
+        };
         mainAreaView = selfView.findViewById(R.id.popup_area);
 
         titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
@@ -64,12 +73,14 @@ public class DeleteEmptyPopup {
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.files_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedItems);
+        buttonBar = new PopupButtonBar(mainAreaView.findViewById(R.id.popup_button_bar));
 
         initPopupWindow();
         enableClosePopupOnOutsideTouch();
         initPopupTitleBar();
         initSelectionBar();
         initItemsView();
+        initPopupButtonBar();
     }
 
     private void initPopupWindow() {
@@ -149,6 +160,24 @@ public class DeleteEmptyPopup {
         itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
     }
 
+    private void initPopupButtonBar() {
+        buttonBar.addButton(R.string.abort, () -> true, this::isScanning, v -> {
+            if (scanner != null) {
+                scanner.cancel();
+            }
+        });
+        updateButtons();
+    }
+
+    private void updateButtons() {
+        buttonBar.invalidate();
+        titleBar.enableCloseButton(!isScanning());
+    }
+
+    private boolean isScanning() {
+        return scanner != null && scanner.isRunning();
+    }
+
     public void whenJumpClicked(Consumer<File> onJump) {
         this.onJump = onJump;
     }
@@ -187,10 +216,14 @@ public class DeleteEmptyPopup {
                     totalScanned, itemsAdapter.getItemCount()));
         }));
         scanner.whenScanStopped(() -> containerView.post(() -> {
+            updateButtons();
             if (scanner.isCompleted()) {
                 statusBar.markDone();
+            } else {
+                statusBar.markStopped();
             }
         }));
         scanner.start(startDirectory.getPath());
+        updateButtons();
     }
 }

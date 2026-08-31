@@ -37,6 +37,8 @@
             android:scrollbarStyle="insideOverlay"
             android:scrollbars="vertical" />
 
+        <include layout="@layout/popup_button_bar" />
+
     </LinearLayout>
 
 </FrameLayout>

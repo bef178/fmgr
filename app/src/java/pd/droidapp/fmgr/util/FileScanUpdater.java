@@ -125,6 +125,10 @@ class FileScanUpdater {
         }
     }
 
+    public boolean isRunning() {
+        return fileScanner.isRunning();
+    }
+
     public boolean isCompleted() {
         return fileScanner.isCompleted();
     }
