@@ -12,7 +12,6 @@
     <string name="edit_favorite_name">Edit favorite name</string>
 
     <string name="ok">OK</string>
-    <string name="cancel">Cancel</string>
     <string name="start">Start</string>
     <string name="abort">Abort</string>
     <string name="close">Close</string>
@@ -43,22 +42,13 @@
 
     <string name="x_selected">%d selected</string>
 
-    <string name="delete">Delete</string>
-
     <string name="rename">Rename</string>
     <string name="renamed">Renamed</string>
 
     <string name="error_rename_failed">Failed to rename</string>
 
-    <string name="cut">Cut</string>
-    <string name="copy">Copy</string>
-    <string name="paste">Paste</string>
     <string name="cut_report_format">%d cut</string>
     <string name="copied_report_format">%d copied</string>
-    <string name="pasted_report_format">%d pasted (%d failed)</string>
-    <string name="error_cut_failed">Failed to cut</string>
-    <string name="error_copy_failed">Failed to copy</string>
-    <string name="error_paste_failed">Failed to paste</string>
 
     <!-- search popup -->
     <string name="search_files">Search files</string>
