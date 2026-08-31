@@ -1,15 +1,7 @@
 package pd.droidapp.fmgr.util;
 
-import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -18,95 +10,51 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
 
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
-public class DeletePopup {
+public class DeletePopup extends ProcessingPopup {
 
-    private final Context context;
-    private final View containerView;
     private final List<File> srcFiles;
     private final boolean prune;
 
     // views
-    private final View selfView;
-    private final PopupWindow selfWindow;
-    private final View mainAreaView;
-    private final PopupTitleBar titleBar;
     private final LinearLayout progressArea;
     private final ProgressBar progressBarView;
     private final TextView progressBarTextView;
     private final TextView progressBarSideTextView;
     private final TextView progressSummaryTextView;
-    private final PopupButtonBar buttonBar;
 
     // callbacks
-    private PopupOnDismissListener onDismiss;
+    private PopupOnDismissedListener onPopupDismissed;
 
     private FileRemoveUpdater remover;
     private final Collection<File> totalDeleted = Collections.synchronizedList(new LinkedList<>());
 
     public DeletePopup(View containerView, List<File> srcFiles, boolean prune) {
-        this.context = Objects.requireNonNull(containerView, "containerView").getContext();
-        this.containerView = containerView;
+        super(containerView, R.layout.delete_popup);
         this.srcFiles = new LinkedList<>(srcFiles);
         this.prune = prune;
 
-        selfView = LayoutInflater.from(context).inflate(
-                R.layout.delete_popup,
-                (ViewGroup) containerView,
-                false);
-        selfWindow = new PopupWindow(selfView,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                true) {
-            @Override
-            public void dismiss() {
-                if (isRemoving()) {
-                    return;
-                }
-                super.dismiss();
-            }
-        };
-        mainAreaView = selfView.findViewById(R.id.popup_area);
-
-        titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
         progressArea = mainAreaView.findViewById(R.id.progress_area);
         progressBarView = mainAreaView.findViewById(R.id.progress_bar);
         progressBarTextView = mainAreaView.findViewById(R.id.progress_bar_text);
         progressBarSideTextView = mainAreaView.findViewById(R.id.progress_bar_side_text);
         progressSummaryTextView = mainAreaView.findViewById(R.id.progress_summary);
-        buttonBar = new PopupButtonBar(mainAreaView.findViewById(R.id.popup_button_bar));
 
-        initPopupWindow();
-        enableClosePopupOnOutsideTouch();
-        initPopupTitleBar();
-        initProgress();
-        initPopupButtonBar();
-    }
-
-    private void initPopupWindow() {
-        selfWindow.setOutsideTouchable(false);
-        selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        selfWindow.setElevation(24);
-        selfWindow.setOnDismissListener(() -> {
-            if (onDismiss != null) {
-                onDismiss.accept(totalDeleted);
-            }
-        });
-    }
-
-    private void enableClosePopupOnOutsideTouch() {
-        selfView.setOnClickListener(v -> selfWindow.dismiss());
-        mainAreaView.setOnClickListener(v -> {});
-    }
-
-    private void initPopupTitleBar() {
         titleBar.setTitle(context.getString(R.string.delete_x_items, srcFiles.size()));
-        titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
+
+        initProgress();
+    }
+
+    @Override
+    protected void initPopupButtons() {
+        super.initPopupButtons();
+        buttonBar.addButton(R.string.start, () -> true, () -> remover == null, v -> start());
+        buttonBar.addButton(R.string.abort, () -> true, this::isProcessing, v -> abort());
+        buttonBar.addButton(R.string.close, () -> true, () -> !isProcessing(), v -> selfWindow.dismiss());
     }
 
     private void initProgress() {
@@ -114,32 +62,20 @@ public class DeletePopup {
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
-    private void initPopupButtonBar() {
-        buttonBar.addButton(R.string.start, () -> true, () -> remover == null, v -> start());
-        buttonBar.addButton(R.string.abort, () -> true, this::isRemoving, v -> abort());
-        buttonBar.addButton(R.string.close, () -> true, this::isStopped, v -> selfWindow.dismiss());
-        updateButtons();
-    }
-
-    private void updateButtons() {
-        buttonBar.invalidate();
-        titleBar.enableCloseButton(isStopped());
-    }
-
-    private boolean isRemoving() {
+    @Override
+    protected boolean isProcessing() {
         return remover != null && !remover.isStopped();
     }
 
-    private boolean isStopped() {
-        return !isRemoving();
+    @Override
+    protected void onDismissed() {
+        if (onPopupDismissed != null) {
+            onPopupDismissed.accept(totalDeleted);
+        }
     }
 
-    public void whenDismissClicked(PopupOnDismissListener onDismiss) {
-        this.onDismiss = onDismiss;
-    }
-
-    public void show() {
-        containerView.post(() -> selfWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0));
+    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
+        this.onPopupDismissed = onPopupDismissed;
     }
 
     private void start() {

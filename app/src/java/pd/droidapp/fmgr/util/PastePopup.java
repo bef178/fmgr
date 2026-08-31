@@ -1,16 +1,8 @@
 package pd.droidapp.fmgr.util;
 
-import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -19,26 +11,19 @@ import java.io.File;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FilePaster.ConflictResolution;
 
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
-public class PastePopup {
+public class PastePopup extends ProcessingPopup {
 
-    private final Context context;
-    private final View containerView;
     private final boolean isCopy;
     private final List<File> srcFiles;
     private final File dstDirectory;
 
     // views
-    private final View selfView;
-    private final PopupWindow selfWindow;
-    private final View mainAreaView;
-    private final PopupTitleBar titleBar;
     private final TextView resolutionTitleTextView;
     private final RadioGroup resolutionOptionsGroup;
     private final CheckBox mergeDirectoriesCheckBox;
@@ -47,39 +32,18 @@ public class PastePopup {
     private final TextView progressBarTextView;
     private final TextView progressBarSideTextView;
     private final TextView progressSummaryTextView;
-    private final PopupButtonBar buttonBar;
 
     // callbacks
-    private PopupOnDismissListener onDismiss;
+    private PopupOnDismissedListener onPopupDismissed;
 
     private FilePasteUpdater paster;
 
     public PastePopup(View containerView, boolean isCopy, List<File> srcFiles, File dstDirectory) {
-        this.context = Objects.requireNonNull(containerView, "containerView").getContext();
-        this.containerView = containerView;
+        super(containerView, R.layout.paste_popup);
         this.isCopy = isCopy;
         this.dstDirectory = dstDirectory;
         this.srcFiles = new LinkedList<>(srcFiles);
 
-        selfView = LayoutInflater.from(context).inflate(
-                R.layout.paste_popup,
-                (ViewGroup) containerView,
-                false);
-        selfWindow = new PopupWindow(selfView,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                true) {
-            @Override
-            public void dismiss() {
-                if (isPasting()) {
-                    return;
-                }
-                super.dismiss();
-            }
-        };
-        mainAreaView = selfView.findViewById(R.id.popup_area);
-
-        titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
         resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
         mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
@@ -88,37 +52,21 @@ public class PastePopup {
         progressBarTextView = mainAreaView.findViewById(R.id.progress_bar_text);
         progressBarSideTextView = mainAreaView.findViewById(R.id.progress_bar_side_text);
         progressSummaryTextView = mainAreaView.findViewById(R.id.progress_summary);
-        buttonBar = new PopupButtonBar(mainAreaView.findViewById(R.id.popup_button_bar));
 
-        initPopupWindow();
-        enableClosePopupOnOutsideTouch();
-        initPopupTitleBar();
-        initConflictResolution();
-        initProgress();
-        initPopupButtonBar();
-    }
-
-    private void initPopupWindow() {
-        selfWindow.setOutsideTouchable(false);
-        selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        selfWindow.setElevation(24);
-        selfWindow.setOnDismissListener(() -> {
-            if (onDismiss != null) {
-                onDismiss.accept(paster == null ? Collections.emptyList() : null);
-            }
-        });
-    }
-
-    private void enableClosePopupOnOutsideTouch() {
-        selfView.setOnClickListener(v -> selfWindow.dismiss());
-        mainAreaView.setOnClickListener(v -> {});
-    }
-
-    private void initPopupTitleBar() {
         titleBar.setTitle(context.getString(
                 isCopy ? R.string.copy_x_items : R.string.move_x_items,
                 srcFiles.size()));
-        titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
+
+        initConflictResolution();
+        initProgress();
+    }
+
+    @Override
+    protected void initPopupButtons() {
+        super.initPopupButtons();
+        buttonBar.addButton(R.string.start, () -> true, () -> paster == null, v -> start());
+        buttonBar.addButton(R.string.abort, () -> true, this::isProcessing, v -> abort());
+        buttonBar.addButton(R.string.close, () -> true, () -> !isProcessing(), v -> selfWindow.dismiss());
     }
 
     private void initConflictResolution() {
@@ -130,32 +78,20 @@ public class PastePopup {
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
-    private void initPopupButtonBar() {
-        buttonBar.addButton(R.string.start, () -> true, () -> paster == null, v -> start());
-        buttonBar.addButton(R.string.abort, () -> true, this::isPasting, v -> abort());
-        buttonBar.addButton(R.string.close, () -> true, this::isStopped, v -> selfWindow.dismiss());
-        updateButtons();
-    }
-
-    private void updateButtons() {
-        buttonBar.invalidate();
-        titleBar.enableCloseButton(isStopped());
-    }
-
-    private boolean isPasting() {
+    @Override
+    protected boolean isProcessing() {
         return paster != null && !paster.isStopped();
     }
 
-    private boolean isStopped() {
-        return !isPasting();
+    @Override
+    protected void onDismissed() {
+        if (onPopupDismissed != null) {
+            onPopupDismissed.accept(paster == null ? Collections.emptyList() : null);
+        }
     }
 
-    public void whenDismissClicked(PopupOnDismissListener onDismiss) {
-        this.onDismiss = onDismiss;
-    }
-
-    public void show() {
-        containerView.post(() -> selfWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0));
+    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
+        this.onPopupDismissed = onPopupDismissed;
     }
 
     private void start() {

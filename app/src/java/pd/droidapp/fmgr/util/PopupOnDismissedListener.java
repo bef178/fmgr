@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.Collection;
 
 @FunctionalInterface
-public interface PopupOnDismissListener {
+public interface PopupOnDismissedListener {
 
     void accept(Collection<File> removedFiles);
 }

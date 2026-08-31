@@ -493,13 +493,13 @@ public class BrowseFragment extends Fragment {
         }
 
         PastePopup pastePopup = new PastePopup(getView(), isCopy, srcFiles, pathBar.getCurrentDirectory());
-        pastePopup.whenDismissClicked(this::onPopupDismissed);
+        pastePopup.whenPopupDismissed(this::onPopupDismissed);
         pastePopup.show();
     }
 
     private void showDeletePopup() {
         DeletePopup deletePopup = new DeletePopup(getView(), selectionBar.copySelectedItems(), false);
-        deletePopup.whenDismissClicked(this::onPopupDismissed);
+        deletePopup.whenPopupDismissed(this::onPopupDismissed);
         deletePopup.show();
     }
 
@@ -551,14 +551,14 @@ public class BrowseFragment extends Fragment {
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
-        popup.whenDismissClicked(this::onPopupDismissed);
+        popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
 
     private void showDeleteEmptyPopup() {
         DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), pathBar.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpToFile);
-        popup.whenDismissClicked(this::onPopupDismissed);
+        popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
 
@@ -567,7 +567,7 @@ public class BrowseFragment extends Fragment {
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
-        popup.whenDismissClicked(this::onPopupDismissed);
+        popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
 
