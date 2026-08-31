@@ -1,10 +1,11 @@
 package pd.droidapp.fmgr.util;
 
-import android.animation.ValueAnimator;
 import android.view.View;
 import android.widget.ImageView;
 
 import pd.droidapp.fmgr.R;
+
+import static pd.droidapp.fmgr.util.Util.animateCollapsed;
 
 public class LocationsCollapsible {
 
@@ -34,17 +35,6 @@ public class LocationsCollapsible {
 
     private void toggleLocationsItemsView() {
         isLocationsItemsViewCollapsed = !isLocationsItemsViewCollapsed;
-        locationsItemsView.setVisibility(isLocationsItemsViewCollapsed ? View.GONE : View.VISIBLE);
-
-        // rotate the triangle
-        float targetRotation = isLocationsItemsViewCollapsed ? -90f : 0f;
-        float currentRotation = locationsTriangle.getRotation();
-        ValueAnimator animator = ValueAnimator.ofFloat(currentRotation, targetRotation);
-        animator.setDuration(200);
-        animator.addUpdateListener(animation -> {
-            float rotation = (float) animation.getAnimatedValue();
-            locationsTriangle.setRotation(rotation);
-        });
-        animator.start();
+        animateCollapsed(locationsTriangle, locationsItemsView, isLocationsItemsViewCollapsed);
     }
 }

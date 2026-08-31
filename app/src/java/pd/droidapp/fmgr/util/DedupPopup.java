@@ -1,6 +1,5 @@
 package pd.droidapp.fmgr.util;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,6 +26,7 @@ import pd.droidapp.fmgr.R;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.getSizeString;
+import static pd.droidapp.fmgr.util.Util.animateCollapsed;
 
 public class DedupPopup extends ProcessingPopup {
 
@@ -366,18 +366,7 @@ public class DedupPopup extends ProcessingPopup {
 
             viewHolder.titleBarView.setOnClickListener(v -> {
                 toggleCollapsed(group);
-                boolean nowCollapsed = isCollapsed(group);
-                viewHolder.filesView.setVisibility(nowCollapsed ? View.GONE : View.VISIBLE);
-
-                float targetRotation = nowCollapsed ? -90f : 0f;
-                float currentRotation = viewHolder.triangleImageView.getRotation();
-                ValueAnimator animator = ValueAnimator.ofFloat(currentRotation, targetRotation);
-                animator.setDuration(200);
-                animator.addUpdateListener(animation -> {
-                    float rotation = (float) animation.getAnimatedValue();
-                    viewHolder.triangleImageView.setRotation(rotation);
-                });
-                animator.start();
+                animateCollapsed(viewHolder.triangleImageView, viewHolder.filesView, isCollapsed(group));
             });
 
             int nowCount = viewHolder.filesView.getChildCount();

@@ -1,6 +1,11 @@
 package pd.droidapp.fmgr.util;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.os.Environment;
+import android.view.View;
+import android.widget.ImageView;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -27,6 +32,22 @@ public class Util {
         // f(x) = A * exp(-(x-μ)² / (2σ²))
         double exponent = -Math.pow(fraction - mu, 2) / (2 * sigma * sigma);
         return (float) (amplitude * Math.exp(exponent));
+    }
+
+    public static void animateCollapsed(ImageView triangleView, View contentView, boolean collapsed) {
+        // rotate the triangle
+        float targetRotation = collapsed ? -90f : 0f;
+        ValueAnimator animator = ValueAnimator.ofFloat(triangleView.getRotation(), targetRotation);
+        animator.setDuration(200);
+        animator.addUpdateListener(animation ->
+                triangleView.setRotation((float) animation.getAnimatedValue()));
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                contentView.setVisibility(collapsed ? View.GONE : View.VISIBLE);
+            }
+        });
+        animator.start();
     }
 
     public static Path getAlternativeFile(Path directory, String basename) {

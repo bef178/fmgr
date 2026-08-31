@@ -1,6 +1,5 @@
 package pd.droidapp.fmgr.util;
 
-import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -20,6 +19,8 @@ import java.util.List;
 
 import pd.droidapp.fmgr.R;
 import pd.util.PathOps;
+
+import static pd.droidapp.fmgr.util.Util.animateCollapsed;
 
 public class FavoritesCollapsible {
 
@@ -101,18 +102,7 @@ public class FavoritesCollapsible {
 
     private void toggleFavItemsView() {
         isFavItemsViewCollapsed = !isFavItemsViewCollapsed;
-        favItemsView.setVisibility(isFavItemsViewCollapsed ? View.GONE : View.VISIBLE);
-
-        // rotate the triangle
-        float targetRotation = isFavItemsViewCollapsed ? -90f : 0f;
-        float currentRotation = favTriangle.getRotation();
-        ValueAnimator animator = ValueAnimator.ofFloat(currentRotation, targetRotation);
-        animator.setDuration(200);
-        animator.addUpdateListener(animation -> {
-            float rotation = (float) animation.getAnimatedValue();
-            favTriangle.setRotation(rotation);
-        });
-        animator.start();
+        animateCollapsed(favTriangle, favItemsView, isFavItemsViewCollapsed);
     }
 
     static class FavItem {
