@@ -650,6 +650,7 @@ public class BrowseFragment extends Fragment {
             int endB = Color.blue(endColor);
 
             float alpha = (float) (velocity / (Math.PI / 2));
+            alpha = Math.max(0f, Math.min(alpha, 1f));
             int a = (int) (startA * alpha + endA * (1 - alpha));
             int r = (int) (startR * alpha + endR * (1 - alpha));
             int g = (int) (startG * alpha + endG * (1 - alpha));
