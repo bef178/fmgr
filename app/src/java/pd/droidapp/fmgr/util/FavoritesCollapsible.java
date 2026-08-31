@@ -62,8 +62,7 @@ public class FavoritesCollapsible {
             invalidate();
         });
         favItemAdapter.whenFavEditClicked(favItem -> {
-            EditPopup editPopup = new EditPopup(selfView);
-            editPopup.show(
+            EditPopup editPopup = new EditPopup(selfView,
                     context.getString(R.string.edit_favorite_name),
                     favItem.getDisplayName(),
                     favItem.getDefaultName(),
@@ -74,8 +73,9 @@ public class FavoritesCollapsible {
                             favStore.put(favItem);
                             favItemAdapter.invalidate(favStore.getAll());
                         }
-                        editPopup.dismiss();
+                        return true;
                     });
+            editPopup.show();
         });
 
         favTriangle.setOnClickListener(v -> toggleFavItemsView());

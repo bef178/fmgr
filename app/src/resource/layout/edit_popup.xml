@@ -29,18 +29,7 @@
             android:singleLine="true"
             tools:ignore="Autofill,LabelFor,TextFields" />
 
-        <Button
-            android:id="@+id/button_ok"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginTop="18dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="18dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:minWidth="0dp"
-            android:text="@string/ok" />
+        <include layout="@layout/popup_button_bar" />
 
     </LinearLayout>
 

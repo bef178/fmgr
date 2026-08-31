@@ -349,29 +349,21 @@ public class BrowseFragment extends Fragment {
     }
 
     void showCreateDirectoryPopup() {
-        EditPopup editPopup = new EditPopup(getView());
-        editPopup.show(
+        EditPopup editPopup = new EditPopup(getView(),
                 getString(R.string.new_directory),
                 "",
                 getString(R.string.directory_name),
-                name -> {
-                    if (createItem(name.trim(), true)) {
-                        editPopup.dismiss();
-                    }
-                });
+                name -> createItem(name.trim(), true));
+        editPopup.show();
     }
 
     private void showCreateFilePopup() {
-        EditPopup editPopup = new EditPopup(getView());
-        editPopup.show(
+        EditPopup editPopup = new EditPopup(getView(),
                 getString(R.string.new_file),
                 "",
                 getString(R.string.file_name),
-                name -> {
-                    if (createItem(name.trim(), false)) {
-                        editPopup.dismiss();
-                    }
-                });
+                name -> createItem(name.trim(), false));
+        editPopup.show();
     }
 
     private boolean createItem(String name, boolean isDirectory) {
@@ -513,19 +505,20 @@ public class BrowseFragment extends Fragment {
 
     private void showRenamePopup(File file) {
         String currentName = file.getName();
-        EditPopup editPopup = new EditPopup(getView());
-        editPopup.show(
+        EditPopup editPopup = new EditPopup(getView(),
                 getString(R.string.rename),
                 currentName,
                 currentName,
                 newName -> {
                     newName = newName.trim();
                     if (newName.isEmpty() || newName.equals(currentName) || renameItem(file, newName)) {
-                        editPopup.dismiss();
                         selectionBar.clear();
                         selectionBar.invalidate();
+                        return true;
                     }
+                    return false;
                 });
+        editPopup.show();
     }
 
     private boolean renameItem(File file, String newName) {
