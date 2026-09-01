@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -156,7 +157,7 @@ public class SearchPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
-            deletePopup.whenPopupDismissed(removed -> {
+            deletePopup.whenPopupDismissed((added, removed) -> {
                 removedFiles.addAll(removed);
                 itemsAdapter.removeAll(removed);
                 selectionBar.selectedItems.removeAll(removed);
@@ -203,7 +204,7 @@ public class SearchPopup extends ProcessingPopup {
     protected void onDismissed() {
         stopSearch();
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(removedFiles);
+            onPopupDismissed.accept(Collections.emptyList(), removedFiles);
         }
     }
 

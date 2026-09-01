@@ -70,7 +70,7 @@ public class DeletePopup extends ProcessingPopup {
     @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(totalDeleted);
+            onPopupDismissed.accept(Collections.emptyList(), totalDeleted);
         }
     }
 

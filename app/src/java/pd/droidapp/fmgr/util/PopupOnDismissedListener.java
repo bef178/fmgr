@@ -6,5 +6,5 @@ import java.util.Collection;
 @FunctionalInterface
 public interface PopupOnDismissedListener {
 
-    void accept(Collection<File> removedFiles);
+    void accept(Collection<String> addedItems, Collection<File> removedItems);
 }

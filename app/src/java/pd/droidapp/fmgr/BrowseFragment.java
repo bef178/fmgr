@@ -36,8 +36,6 @@ import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
-import static pd.droidapp.fmgr.util.Util.getSizeString;
-
 import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.DedupPopup;
@@ -49,6 +47,8 @@ import pd.droidapp.fmgr.util.PathBar;
 import pd.droidapp.fmgr.util.Progressor;
 import pd.droidapp.fmgr.util.SearchPopup;
 import pd.droidapp.fmgr.util.SelectionBar;
+
+import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 public class BrowseFragment extends Fragment {
 
@@ -571,21 +571,25 @@ public class BrowseFragment extends Fragment {
         popup.show();
     }
 
-    private void onPopupDismissed(Collection<File> removedFiles) {
-        if (removedFiles == null) {
-            // TODO refactor this trick
+    private void onPopupDismissed(Collection<String> addedItems, Collection<File> removedItems) {
+        if (!addedItems.isEmpty()) {
             clipboard.clear();
             actionBar.invalidate();
-            itemsAdapter.invalidate(pathBar.getCurrentDirectory());
-            return;
+            selectionBar.invalidate();
+            File currentDirectory = pathBar.getCurrentDirectory();
+            itemsAdapter.addAll(addedItems.stream()
+                    .map(File::new)
+                    .filter(file -> currentDirectory != null
+                            && currentDirectory.equals(file.getParentFile()))
+                    .collect(Collectors.toList()));
         }
-        if (removedFiles.isEmpty()) {
-            return;
+        if (!removedItems.isEmpty()) {
+            clipboard.removeAllIfSameAsOrDescendantOf(removedItems);
+            actionBar.invalidate();
+            selectionBar.selectedItems.removeAll(removedItems);
+            selectionBar.invalidate();
+            itemsAdapter.removeAll(removedItems);
         }
-        clipboard.removeAllIfSameAsOrDescendantOf(removedFiles);
-        itemsAdapter.removeAll(removedFiles);
-        selectionBar.selectedItems.removeAll(removedFiles);
-        selectionBar.invalidate();
     }
 
     private class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.FileItemViewHolder> {
@@ -658,6 +662,37 @@ public class BrowseFragment extends Fragment {
             int color = Color.argb(a, r, g, b);
 
             view.setBackgroundColor(color);
+        }
+
+        public void addAll(Collection<File> files) {
+            List<FileItem> oldItems = new LinkedList<>(fileItems);
+            for (File file : files) {
+                if (!file.getName().startsWith(".") && fileItems.stream().noneMatch(item -> item.file.equals(file))) {
+                    fileItems.add(new FileItem(file));
+                }
+            }
+            fileItems.sort((a, b) -> fileComparator.compare(a.file, b.file));
+            DiffUtil.calculateDiff(new DiffUtil.Callback() {
+                @Override
+                public int getOldListSize() {
+                    return oldItems.size();
+                }
+
+                @Override
+                public int getNewListSize() {
+                    return fileItems.size();
+                }
+
+                @Override
+                public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                    return oldItems.get(oldItemPosition).file.equals(fileItems.get(newItemPosition).file);
+                }
+
+                @Override
+                public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                    return true;
+                }
+            }).dispatchUpdatesTo(this);
         }
 
         public void removeAll(Collection<File> files) {

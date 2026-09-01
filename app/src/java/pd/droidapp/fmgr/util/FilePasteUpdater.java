@@ -1,8 +1,10 @@
 package pd.droidapp.fmgr.util;
 
 import java.io.File;
+import java.util.AbstractMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,9 +21,9 @@ class FilePasteUpdater {
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private Timer updateTimer;
-    private int added = 0;
-    private int deleted = 0;
-    private int renamed = 0;
+    private List<String> added = new LinkedList<>();
+    private List<String> deleted = new LinkedList<>();
+    private List<Map.Entry<String, String>> renamed = new LinkedList<>();
     private int failed = 0;
     private int progressed = 0;
     private String current;
@@ -56,13 +58,13 @@ class FilePasteUpdater {
                 } else if (succeeded) {
                     switch (action) {
                         case ADD:
-                            added++;
+                            added.add(dst);
                             break;
                         case DELETE:
-                            deleted++;
+                            deleted.add(src);
                             break;
                         case RENAME:
-                            renamed++;
+                            renamed.add(new AbstractMap.SimpleEntry<>(src, dst));
                             break;
                         case PROGRESS:
                             progressed++;
@@ -107,19 +109,19 @@ class FilePasteUpdater {
                 boolean running = filePaster.isRunning();
                 if (onPasteUpdated != null) {
                     try {
-                        int nowAdded;
-                        int nowDeleted;
-                        int nowRenamed;
+                        List<String> nowAdded;
+                        List<String> nowDeleted;
+                        List<Map.Entry<String, String>> nowRenamed;
                         int nowFailed;
                         int nowProgressed;
                         String nowCurrent;
                         synchronized (lock) {
                             nowAdded = added;
-                            added = 0;
+                            added = new LinkedList<>();
                             nowDeleted = deleted;
-                            deleted = 0;
+                            deleted = new LinkedList<>();
                             nowRenamed = renamed;
-                            renamed = 0;
+                            renamed = new LinkedList<>();
                             nowFailed = failed;
                             failed = 0;
                             nowProgressed = progressed;
@@ -174,8 +176,8 @@ class FilePasteUpdater {
         return filePaster.isCancelled();
     }
 
-    interface OnPasteUpdatedListener {
+    public interface OnPasteUpdatedListener {
 
-        void accept(int added, int removed, int renamed, int failed, int progressed, String current);
+        void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> renamed, int failed, int progressed, String current);
     }
 }

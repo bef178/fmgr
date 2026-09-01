@@ -8,9 +8,11 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FilePaster.ConflictResolution;
@@ -37,6 +39,7 @@ public class PastePopup extends ProcessingPopup {
     private PopupOnDismissedListener onPopupDismissed;
 
     private FilePasteUpdater paster;
+    private final Collection<String> totalAdded = Collections.synchronizedList(new LinkedList<>());
 
     public PastePopup(View containerView, boolean isCopy, List<File> srcFiles, File dstDirectory) {
         super(containerView, R.layout.paste_popup);
@@ -86,7 +89,7 @@ public class PastePopup extends ProcessingPopup {
     @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(paster == null ? Collections.emptyList() : null);
+            onPopupDismissed.accept(totalAdded, Collections.emptyList());
         }
     }
 
@@ -118,17 +121,22 @@ public class PastePopup extends ProcessingPopup {
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
         }));
         paster.whenPasteUpdated(new FilePasteUpdater.OnPasteUpdatedListener() {
-            private int totalAdded;
             private int totalDeleted;
             private int totalRenamed;
             private int totalFailed;
             private int totalProcessed;
 
             @Override
-            public void accept(int added, int deleted, int renamed, int failed, int progressed, String current) {
-                totalAdded += added;
-                totalDeleted += deleted;
-                totalRenamed += renamed;
+            public void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> renamed, int failed, int progressed, String current) {
+                totalAdded.addAll(added);
+                totalAdded.removeAll(removed);
+                for (Map.Entry<String, String> pair : renamed) {
+                    totalAdded.remove(pair.getKey());
+                    totalAdded.add(pair.getValue());
+                }
+                int reportAdded = added.size() + renamed.size();
+                totalDeleted += removed.size() + renamed.size();
+                totalRenamed += renamed.size();
                 totalFailed += failed;
                 totalProcessed += progressed;
 
@@ -138,7 +146,7 @@ public class PastePopup extends ProcessingPopup {
                             Math.min(totalProcessed + 1, total), total));
                     progressBarSideTextView.setText(getDisplayPath(current));
                     progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
-                            totalAdded, totalDeleted, totalRenamed, totalFailed));
+                            reportAdded, totalDeleted, totalRenamed, totalFailed));
                 });
             }
         });
