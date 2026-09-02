@@ -67,9 +67,8 @@ public class PastePopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.start, () -> true, () -> paster == null, v -> start());
-        buttonBar.addButton(R.string.abort, () -> true, this::isProcessing, v -> abort());
-        buttonBar.addButton(R.string.close, () -> true, () -> !isProcessing(), v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.start, () -> paster == null, () -> true, v -> start());
+        buttonBar.addButton(R.string.abort, () -> paster != null, this::isProcessing, v -> abort());
     }
 
     private void initConflictResolution() {
