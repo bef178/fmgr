@@ -98,7 +98,7 @@ public class EditPopup extends ProcessingPopup {
         textEditView.postDelayed(() -> {
             InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
             if (imm != null) {
-                imm.showSoftInput(textEditView, InputMethodManager.SHOW_FORCED);
+                imm.showSoftInput(textEditView, InputMethodManager.SHOW_IMPLICIT);
             }
         }, 300);
     }
