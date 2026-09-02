@@ -3,7 +3,9 @@ package pd.droidapp.fmgr.util;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.os.Environment;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 
@@ -26,6 +28,30 @@ public class Util {
         }
         char unit = "KMGTPE".charAt(exp - 1);
         return String.format(Locale.getDefault(), "%.1f %sB", size / Math.pow(1024, exp), unit);
+    }
+
+    // ClickableViewAccessibility: the listener never consumes events (returns false);
+    @SuppressLint("ClickableViewAccessibility")
+    public static void forwardViewActionsTo(View view, View itemView) {
+        view.setOnClickListener(v -> itemView.performClick());
+        view.setOnLongClickListener(v -> itemView.performLongClick());
+        view.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_MOVE:
+                    itemView.setPressed(true);
+                    break;
+                case MotionEvent.ACTION_UP:
+                    // ViewGroup#dispatchSetPressed always propagates pressed=false to children,
+                    // which would clear this view's pressed flag and swallow its pending click
+                    itemView.post(() -> itemView.setPressed(false));
+                    break;
+                default:
+                    itemView.setPressed(false);
+                    break;
+            }
+            return false;
+        });
     }
 
     public static float getGaussianValue(double mu, double sigma, float amplitude, float fraction) {

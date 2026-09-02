@@ -373,6 +373,7 @@ public class DedupPopup extends ProcessingPopup {
 
                 PopupFileItem fileItem = new PopupFileItem(fileView);
                 fileItem.setIndex(startIndex + i);
+                fileItem.forwardPathViewClicksTo(fileView);
                 fileItem.setIcon(R.drawable.i_file_24);
                 fileItem.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
                 fileItem.setSelected(selectedFiles.contains(file));

@@ -47,6 +47,7 @@ import pd.droidapp.fmgr.util.PathBar;
 import pd.droidapp.fmgr.util.Progressor;
 import pd.droidapp.fmgr.util.SearchPopup;
 import pd.droidapp.fmgr.util.SelectionBar;
+import pd.droidapp.fmgr.util.Util;
 
 import static pd.droidapp.fmgr.util.Util.getSizeString;
 
@@ -343,7 +344,7 @@ public class BrowseFragment extends Fragment {
             int position = itemsAdapter.indexOf(file);
             if (position >= 0) {
                 itemsView.scrollToPosition(position);
-                itemsView.postDelayed(() -> itemsAdapter.highlightFile(file), 400);
+                itemsView.postDelayed(() -> itemsAdapter.highlightItem(file), 400);
             }
         });
     }
@@ -620,7 +621,7 @@ public class BrowseFragment extends Fragment {
             return -1;
         }
 
-        public void highlightFile(final File file) {
+        public void highlightItem(final File file) {
             progressor.start(file, 1500, new AccelerateDecelerateInterpolator(), (distance, velocity) -> {
                 int position = indexOf(file);
                 if (position >= 0) {
@@ -628,7 +629,7 @@ public class BrowseFragment extends Fragment {
                     if (viewHolder != null) {
                         FileItem item = fileItems.get(position);
                         if (item.getFile().equals(file)) {
-                            applyHighlightEffect(viewHolder.itemView, velocity);
+                            applyHighlightEffect(((FileItemViewHolder) viewHolder).fileHighlightView, velocity);
                         }
                     }
                 }
@@ -774,7 +775,7 @@ public class BrowseFragment extends Fragment {
                 viewHolder.fileSelectedImageView.setVisibility(View.GONE);
             }
 
-            applyHighlightEffect(viewHolder.itemView, progressor.getVelocity(file));
+            applyHighlightEffect(viewHolder.fileHighlightView, progressor.getVelocity(file));
 
             viewHolder.itemView.setOnClickListener(v -> {
                 if (selectionBar.hasSelection()) {
@@ -795,8 +796,7 @@ public class BrowseFragment extends Fragment {
                 return true;
             });
 
-            viewHolder.fileNameTextView.setOnClickListener(v -> viewHolder.itemView.performClick());
-            viewHolder.fileNameTextView.setOnLongClickListener(v -> viewHolder.itemView.performLongClick());
+            Util.forwardViewActionsTo(viewHolder.fileNameTextView, viewHolder.itemView);
         }
 
         private void toggleSelected(File file) {
@@ -852,6 +852,7 @@ public class BrowseFragment extends Fragment {
 
         class FileItemViewHolder extends RecyclerView.ViewHolder {
 
+            private final View fileHighlightView;
             private final ImageView fileIconImageView;
             private final ImageView fileSelectedImageView;
             private final TextView fileNameTextView;
@@ -859,6 +860,7 @@ public class BrowseFragment extends Fragment {
 
             public FileItemViewHolder(@NonNull View itemView) {
                 super(itemView);
+                fileHighlightView = itemView.findViewById(R.id.file_highlight);
                 fileIconImageView = itemView.findViewById(R.id.file_icon);
                 fileSelectedImageView = itemView.findViewById(R.id.file_selected_icon);
                 fileNameTextView = itemView.findViewById(R.id.file_name);

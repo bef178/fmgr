@@ -37,7 +37,6 @@ public class PopupFileItem {
     }
 
     public void forwardPathViewClicksTo(View itemView) {
-        pathView.setOnClickListener(v -> itemView.performClick());
-        pathView.setOnLongClickListener(v -> itemView.performLongClick());
+        Util.forwardViewActionsTo(pathView, itemView);
     }
 }
