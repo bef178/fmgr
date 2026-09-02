@@ -5,6 +5,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -90,7 +91,13 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
 
             @Override
             public boolean areContentsTheSame(int oldPos, int newPos) {
-                return oldFiles.get(oldPos).equals(items.get(newPos));
+                return oldPos == newPos;
+            }
+
+            @Nullable
+            @Override
+            public Object getChangePayload(int oldPos, int newPos) {
+                return Boolean.TRUE;
             }
         }).dispatchUpdatesTo(this);
     }

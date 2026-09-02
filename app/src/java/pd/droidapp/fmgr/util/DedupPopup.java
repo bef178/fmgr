@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -277,6 +278,7 @@ public class DedupPopup extends ProcessingPopup {
         private final Set<File> selectedFiles;
         private final List<FileGroup> fileGroups = new ArrayList<>();
         private final Map<String, Boolean> collapsedStates = new HashMap<>();
+        private int[] startIndexes = new int[0];
         private Runnable onItemFileToggled;
 
         FileGroupsAdapter(File startDirectory, Set<File> selectedFiles) {
@@ -290,8 +292,10 @@ public class DedupPopup extends ProcessingPopup {
 
         void load(List<FileGroup> newGroups) {
             List<FileGroup> oldGroups = new ArrayList<>(fileGroups);
+            int[] oldStartIndexes = startIndexes;
             fileGroups.clear();
             fileGroups.addAll(newGroups);
+            startIndexes = calculateStartIndexes(fileGroups);
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
                 @Override
                 public int getOldListSize() {
@@ -310,9 +314,26 @@ public class DedupPopup extends ProcessingPopup {
 
                 @Override
                 public boolean areContentsTheSame(int oldPos, int newPos) {
-                    return oldGroups.get(oldPos).getFiles().size() == fileGroups.get(newPos).getFiles().size();
+                    return oldStartIndexes[oldPos] == startIndexes[newPos]
+                            && oldGroups.get(oldPos).getFiles().size() == fileGroups.get(newPos).getFiles().size();
+                }
+
+                @Nullable
+                @Override
+                public Object getChangePayload(int oldPos, int newPos) {
+                    return Boolean.TRUE;
                 }
             }).dispatchUpdatesTo(this);
+        }
+
+        private static int[] calculateStartIndexes(List<FileGroup> groups) {
+            int[] indexes = new int[groups.size()];
+            int index = 1;
+            for (int i = 0; i < groups.size(); i++) {
+                indexes[i] = index;
+                index += groups.get(i).getFiles().size();
+            }
+            return indexes;
         }
 
         List<FileGroup> getFileGroups() {
@@ -354,10 +375,7 @@ public class DedupPopup extends ProcessingPopup {
             int nowCount = viewHolder.filesView.getChildCount();
             int requiredCount = files.size();
 
-            int startIndex = 1;
-            for (int g = 0; g < position; g++) {
-                startIndex += fileGroups.get(g).getFiles().size();
-            }
+            int startIndex = startIndexes[position];
 
             LayoutInflater layoutInflater = LayoutInflater.from(context);
             for (int i = 0; i < requiredCount; i++) {
