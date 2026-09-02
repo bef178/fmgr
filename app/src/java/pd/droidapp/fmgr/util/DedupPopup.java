@@ -22,12 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.FileDupGroupUpdater.FileProperties;
 import pd.util.PathOps;
 
-import static pd.droidapp.fmgr.util.Util.getSizeString;
 import static pd.droidapp.fmgr.util.Util.animateCollapsed;
+import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 public class DedupPopup extends ProcessingPopup {
 
@@ -37,7 +39,7 @@ public class DedupPopup extends ProcessingPopup {
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private final RecyclerView itemsView;
-    private final DedupFileGroupsAdapter itemsAdapter;
+    private final FileGroupsAdapter itemsAdapter;
 
     // callbacks
     private Consumer<File> onJump;
@@ -45,10 +47,7 @@ public class DedupPopup extends ProcessingPopup {
     private Consumer<Collection<File>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
-    // the single source of truth
-    private final FileGrouper fileGrouper = new FileGrouper();
-    private FileScanUpdater scanner;
-    private int totalScanned;
+    private FileDupGroupUpdater grouper;
     private final Collection<File> removedFiles = new LinkedList<>();
 
     public DedupPopup(View containerView, File startDirectory) {
@@ -58,7 +57,7 @@ public class DedupPopup extends ProcessingPopup {
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.files_list);
-        itemsAdapter = new DedupFileGroupsAdapter(startDirectory, selectionBar.selectedItems);
+        itemsAdapter = new FileGroupsAdapter(startDirectory, selectionBar.selectedItems);
 
         titleBar.setTitle(R.string.delete_duplicate_files);
 
@@ -70,8 +69,8 @@ public class DedupPopup extends ProcessingPopup {
     protected void initPopupButtons() {
         super.initPopupButtons();
         buttonBar.addButton(R.string.abort, () -> true, this::isProcessing, v -> {
-            if (scanner != null) {
-                scanner.cancel();
+            if (grouper != null) {
+                grouper.cancel();
             }
         });
     }
@@ -105,10 +104,8 @@ public class DedupPopup extends ProcessingPopup {
             DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 removedFiles.addAll(removed);
-                fileGrouper.removeAll(removed);
-                itemsAdapter.invalidate(buildFileGroups());
                 selectionBar.selectedItems.removeAll(removed);
-                selectionBar.invalidate();
+                grouper.remove(removed.stream().map(File::getPath).collect(Collectors.toList()));
             });
             deletePopup.show();
         });
@@ -135,13 +132,13 @@ public class DedupPopup extends ProcessingPopup {
 
     @Override
     protected boolean isProcessing() {
-        return scanner != null && scanner.isRunning();
+        return grouper != null && grouper.isRunning();
     }
 
     @Override
     protected void onDismissed() {
-        if (scanner != null) {
-            scanner.cancel();
+        if (grouper != null) {
+            grouper.cancel();
         }
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(Collections.emptyList(), removedFiles);
@@ -170,49 +167,37 @@ public class DedupPopup extends ProcessingPopup {
     }
 
     private void doScan() {
-        scanner = new FileScanUpdater();
-        scanner.whenReached(path -> !path.endsWith("/") && new File(path).length() != 0);
-        scanner.whenScanStarted(() -> containerView.post(() -> {
+        grouper = new FileDupGroupUpdater(containerView::post);
+        grouper.whenGroupStarted(() -> {
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
-        }));
-        scanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
-            totalScanned += scanned;
-            for (String path : delta) {
-                fileGrouper.add(new File(path));
-            }
-            itemsAdapter.invalidate(buildFileGroups());
+        });
+        grouper.whenGroupUpdated((totalScanned, totalGroups, totalGroupItems) -> {
+            itemsAdapter.load(buildFileGroups());
             selectionBar.invalidate();
-            int totalFiles = itemsAdapter.getFileGroups().stream()
-                    .mapToInt(g -> g.getFiles().size()).sum();
             statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
-                    totalScanned, totalFiles, itemsAdapter.getGroupCount()));
-        }));
-        scanner.whenScanStopped(() -> containerView.post(() -> {
+                    totalScanned, totalGroupItems, totalGroups));
+        });
+        grouper.whenGroupStopped(() -> {
             updateButtons();
-            if (scanner.isCompleted()) {
+            if (grouper.isCompleted()) {
                 statusBar.markDone();
             } else {
                 statusBar.markStopped();
             }
-        }));
-        scanner.start(startDirectory.getPath());
+        });
+        grouper.start(startDirectory.getPath());
         updateButtons();
     }
 
     private List<FileGroup> buildFileGroups() {
-        List<FileGroup> newFileGroups = new ArrayList<>();
-        for (List<FileGrouper.FileProperties> group : fileGrouper.getDupGroups()) {
-            List<File> a = new ArrayList<>();
-            for (FileGrouper.FileProperties props : group) {
-                if (props.file.exists()) {
-                    a.add(props.file);
-                }
-            }
-            if (a.size() > 1) {
-                newFileGroups.add(new FileGroup(group.get(0).size, group.get(0).md5sum, a));
-            }
+        List<FileGroup> newFileGroups = new LinkedList<>();
+        for (List<FileProperties> group : grouper.getDupGroups()) {
+            newFileGroups.add(new FileGroup(
+                    group.get(0).size,
+                    group.get(0).md5sum,
+                    group.stream().map(props -> new File(props.path)).collect(Collectors.toList())));
         }
         return newFileGroups;
     }
@@ -225,7 +210,7 @@ public class DedupPopup extends ProcessingPopup {
         List<File> newlySelectedFiles = new LinkedList<>();
         for (FileGroup group : itemsAdapter.getFileGroups()) {
             List<File> files = group.getFiles();
-            List<File> unselected = new ArrayList<>();
+            List<File> unselected = new LinkedList<>();
             for (File f : files) {
                 if (!alreadySelectedFiles.contains(f)) {
                     unselected.add(f);
@@ -274,7 +259,7 @@ public class DedupPopup extends ProcessingPopup {
         FileGroup(long size, String md5sum, List<File> files) {
             this.size = size;
             this.md5sum = md5sum;
-            this.files = new ArrayList<>(files);
+            this.files = new LinkedList<>(files);
         }
 
         public List<File> getFiles() {
@@ -286,15 +271,15 @@ public class DedupPopup extends ProcessingPopup {
         }
     }
 
-    private static class DedupFileGroupsAdapter extends RecyclerView.Adapter<DedupFileGroupsAdapter.FileGroupViewHolder> {
+    private static class FileGroupsAdapter extends RecyclerView.Adapter<FileGroupsAdapter.FileGroupViewHolder> {
 
         private final File startDirectory;
         private final Set<File> selectedFiles;
-        private final List<FileGroup> fileGroups = new LinkedList<>();
+        private final List<FileGroup> fileGroups = new ArrayList<>();
         private final Map<String, Boolean> collapsedStates = new HashMap<>();
         private Runnable onItemFileToggled;
 
-        DedupFileGroupsAdapter(File startDirectory, Set<File> selectedFiles) {
+        FileGroupsAdapter(File startDirectory, Set<File> selectedFiles) {
             this.startDirectory = startDirectory;
             this.selectedFiles = selectedFiles;
         }
@@ -303,8 +288,8 @@ public class DedupPopup extends ProcessingPopup {
             this.onItemFileToggled = onItemFileToggled;
         }
 
-        void invalidate(List<FileGroup> newGroups) {
-            List<FileGroup> oldGroups = new LinkedList<>(fileGroups);
+        void load(List<FileGroup> newGroups) {
+            List<FileGroup> oldGroups = new ArrayList<>(fileGroups);
             fileGroups.clear();
             fileGroups.addAll(newGroups);
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
@@ -332,10 +317,6 @@ public class DedupPopup extends ProcessingPopup {
 
         List<FileGroup> getFileGroups() {
             return fileGroups;
-        }
-
-        int getGroupCount() {
-            return fileGroups.size();
         }
 
         private boolean isCollapsed(FileGroup group) {

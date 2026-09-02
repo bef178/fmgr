@@ -25,8 +25,12 @@ class FileScanUpdater {
     private final Object lock = started;
 
     public FileScanUpdater() {
+        this(200);
+    }
+
+    public FileScanUpdater(int updateInterval) {
         this.fileScanner = new FileScanner();
-        this.updateInterval = 1000;
+        this.updateInterval = updateInterval;
     }
 
     /**
