@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -344,7 +345,7 @@ public class BrowseFragment extends Fragment {
             int position = itemsAdapter.indexOf(file);
             if (position >= 0) {
                 itemsView.scrollToPosition(position);
-                itemsView.postDelayed(() -> itemsAdapter.highlightItem(file), 400);
+                itemsView.postDelayed(() -> itemsAdapter.highlightItem(file), 100);
             }
         });
     }
@@ -637,29 +638,34 @@ public class BrowseFragment extends Fragment {
         }
 
         private void applyHighlightEffect(View view, Float velocity) {
-            final int startColor = getContext().getColor(R.color.purple_200);
-            final int endColor = 0;
+            TypedValue typedValue = new TypedValue();
+            requireContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorSecondary, typedValue, true);
+            final int peakColor = typedValue.data;
+
+            requireContext().getTheme().resolveAttribute(android.R.attr.colorBackground, typedValue, true);
+            final int baseColor = typedValue.data & 0x00FFFFFF;
 
             if (velocity == null) {
                 velocity = 0f;
             }
 
-            int startA = Color.alpha(startColor);
-            int startR = Color.red(startColor);
-            int startG = Color.green(startColor);
-            int startB = Color.blue(startColor);
+            int peakA = Color.alpha(peakColor);
+            int peakR = Color.red(peakColor);
+            int peakG = Color.green(peakColor);
+            int peakB = Color.blue(peakColor);
 
-            int endA = Color.alpha(endColor);
-            int endR = Color.red(endColor);
-            int endG = Color.green(endColor);
-            int endB = Color.blue(endColor);
+            int baseA = Color.alpha(baseColor);
+            int baseR = Color.red(baseColor);
+            int baseG = Color.green(baseColor);
+            int baseB = Color.blue(baseColor);
 
-            float alpha = (float) (velocity / (Math.PI / 2));
-            alpha = Math.max(0f, Math.min(alpha, 1f));
-            int a = (int) (startA * alpha + endA * (1 - alpha));
-            int r = (int) (startR * alpha + endR * (1 - alpha));
-            int g = (int) (startG * alpha + endG * (1 - alpha));
-            int b = (int) (startB * alpha + endB * (1 - alpha));
+            float x = (float) (velocity / (Math.PI / 2));
+            x = Math.max(0f, Math.min(x, 1f));
+            float alpha = x * x * (3f - 2f * x); // smoothstep: f(t) = 3t^2-3t^3
+            int a = (int) (peakA * alpha + baseA * (1 - alpha));
+            int r = (int) (peakR * alpha + baseR * (1 - alpha));
+            int g = (int) (peakG * alpha + baseG * (1 - alpha));
+            int b = (int) (peakB * alpha + baseB * (1 - alpha));
             int color = Color.argb(a, r, g, b);
 
             view.setBackgroundColor(color);
