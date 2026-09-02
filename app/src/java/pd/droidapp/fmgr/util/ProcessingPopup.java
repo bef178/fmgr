@@ -27,6 +27,9 @@ public abstract class ProcessingPopup {
     protected final PopupTitleBar titleBar;
     protected final PopupButtonBar buttonBar;
 
+    // guard
+    private boolean dismissing;
+
     protected ProcessingPopup(View containerView, @LayoutRes int layoutId) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
@@ -35,10 +38,15 @@ public abstract class ProcessingPopup {
         selfWindow = new PopupWindow(selfView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, true) {
             @Override
             public void dismiss() {
-                if (isProcessing()) {
+                if (dismissing) {
                     return;
                 }
-                super.dismiss();
+                dismissing = true;
+                titleBar.enableCloseButton(false);
+                stopProcessing(() -> selfView.post(() -> {
+                    dismissing = false;
+                    super.dismiss();
+                }));
             }
         };
         mainAreaView = selfView.findViewById(R.id.popup_area);
@@ -55,11 +63,6 @@ public abstract class ProcessingPopup {
         selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         selfWindow.setElevation(24);
         selfWindow.setOnDismissListener(this::onDismissed);
-
-        // outside touch
-        selfView.setOnClickListener(v -> selfWindow.dismiss());
-        mainAreaView.setOnClickListener(v -> {
-        });
     }
 
     protected void initPopupButtons() {
@@ -78,10 +81,11 @@ public abstract class ProcessingPopup {
 
     protected final void updateButtons() {
         buttonBar.invalidate();
-        titleBar.enableCloseButton(!isProcessing());
     }
 
     protected abstract boolean isProcessing();
+
+    protected abstract void stopProcessing(Runnable onStopped);
 
     protected abstract void onDismissed();
 
@@ -92,6 +96,5 @@ public abstract class ProcessingPopup {
         });
     }
 
-    protected void onShow() {
-    }
+    protected abstract void onShow();
 }

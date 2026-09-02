@@ -114,10 +114,17 @@ public class DeleteEmptyPopup extends ProcessingPopup {
     }
 
     @Override
-    protected void onDismissed() {
-        if (scanner != null) {
-            scanner.cancel();
+    protected void stopProcessing(Runnable onStopped) {
+        if (scanner == null || !scanner.isRunning()) {
+            onStopped.run();
+            return;
         }
+        scanner.whenScanStopped(onStopped);
+        scanner.cancel();
+    }
+
+    @Override
+    protected void onDismissed() {
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(Collections.emptyList(), removedFiles);
         }

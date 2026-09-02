@@ -88,6 +88,11 @@ public class EditPopup extends ProcessingPopup {
     }
 
     @Override
+    protected void stopProcessing(Runnable onStopped) {
+        onStopped.run();
+    }
+
+    @Override
     protected void onDismissed() {
     }
 

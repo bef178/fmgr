@@ -127,7 +127,6 @@ public class SearchPopup extends ProcessingPopup {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.selectedItems.size() == 1) {
                 File file = selectionBar.selectedItems.iterator().next();
-                stopSearch();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
@@ -184,17 +183,18 @@ public class SearchPopup extends ProcessingPopup {
         return searcher != null && !searcher.isStopped();
     }
 
-    private void stopSearch() {
+    @Override
+    protected void stopProcessing(Runnable onStopped) {
         handler.removeCallbacks(this::doSearch);
         if (searcher != null) {
             searcher.cancel();
             searcher = null; // late callbacks are dropped by the guards
         }
+        onStopped.run();
     }
 
     @Override
     protected void onDismissed() {
-        stopSearch();
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(Collections.emptyList(), removedFiles);
         }

@@ -67,6 +67,16 @@ public class DeletePopup extends ProcessingPopup {
     }
 
     @Override
+    protected void stopProcessing(Runnable onStopped) {
+        if (remover == null || remover.isStopped()) {
+            onStopped.run();
+            return;
+        }
+        remover.whenRemoveStopped(onStopped);
+        remover.cancel();
+    }
+
+    @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(Collections.emptyList(), totalDeleted);
@@ -75,6 +85,10 @@ public class DeletePopup extends ProcessingPopup {
 
     public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
         this.onPopupDismissed = onPopupDismissed;
+    }
+
+    @Override
+    protected void onShow() {
     }
 
     private void start() {

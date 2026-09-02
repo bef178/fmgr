@@ -86,6 +86,16 @@ public class PastePopup extends ProcessingPopup {
     }
 
     @Override
+    protected void stopProcessing(Runnable onStopped) {
+        if (paster == null || paster.isStopped()) {
+            onStopped.run();
+            return;
+        }
+        paster.whenPasteStopped(onStopped);
+        paster.cancel();
+    }
+
+    @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(totalAdded, Collections.emptyList());
@@ -94,6 +104,10 @@ public class PastePopup extends ProcessingPopup {
 
     public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
         this.onPopupDismissed = onPopupDismissed;
+    }
+
+    @Override
+    protected void onShow() {
     }
 
     private void start() {

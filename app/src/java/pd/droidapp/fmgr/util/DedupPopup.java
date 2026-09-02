@@ -137,10 +137,17 @@ public class DedupPopup extends ProcessingPopup {
     }
 
     @Override
-    protected void onDismissed() {
-        if (grouper != null) {
-            grouper.cancel();
+    protected void stopProcessing(Runnable onStopped) {
+        if (grouper == null || !grouper.isRunning()) {
+            onStopped.run();
+            return;
         }
+        grouper.whenGroupStopped(onStopped);
+        grouper.cancel();
+    }
+
+    @Override
+    protected void onDismissed() {
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(Collections.emptyList(), removedFiles);
         }
