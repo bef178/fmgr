@@ -68,7 +68,8 @@ public class PastePopup extends ProcessingPopup {
     protected void initPopupButtons() {
         super.initPopupButtons();
         buttonBar.addButton(R.string.start, () -> paster == null, () -> true, v -> start());
-        buttonBar.addButton(R.string.abort, () -> paster != null, this::isProcessing, v -> abort());
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !paster.isCancelled(), v -> abort());
+        buttonBar.addButton(R.string.close, () -> paster != null && paster.isStopped(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initConflictResolution() {
@@ -194,5 +195,6 @@ public class PastePopup extends ProcessingPopup {
         if (paster != null) {
             paster.cancel();
         }
+        updateButtons();
     }
 }

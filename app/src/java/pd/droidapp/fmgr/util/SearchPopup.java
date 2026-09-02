@@ -76,11 +76,13 @@ public class SearchPopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, () -> true, this::isProcessing, v -> {
+        buttonBar.addButton(R.string.abort, () -> searcher == null || isProcessing(), () -> isProcessing() && !searcher.isCancelled(), v -> {
             if (searcher != null) {
                 searcher.cancel();
             }
+            updateButtons();
         });
+        buttonBar.addButton(R.string.close, () -> searcher != null && searcher.isStopped(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initSearchEdit() {

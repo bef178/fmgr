@@ -141,6 +141,10 @@ class FileScanUpdater {
         fileScanner.cancel();
     }
 
+    public boolean isCancelled() {
+        return fileScanner.isCancelled();
+    }
+
     public interface OnScanUpdatedListener {
 
         void accept(int scanned, List<String> matched);

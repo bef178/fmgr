@@ -69,11 +69,13 @@ public class DedupPopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, () -> true, this::isProcessing, v -> {
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !grouper.isCancelled(), v -> {
             if (grouper != null) {
                 grouper.cancel();
             }
+            updateButtons();
         });
+        buttonBar.addButton(R.string.close, () -> grouper != null && !grouper.isRunning(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initSelectionBar() {

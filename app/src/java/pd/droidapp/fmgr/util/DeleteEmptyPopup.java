@@ -101,11 +101,13 @@ public class DeleteEmptyPopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, () -> true, this::isProcessing, v -> {
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !scanner.isCancelled(), v -> {
             if (scanner != null) {
                 scanner.cancel();
             }
+            updateButtons();
         });
+        buttonBar.addButton(R.string.close, () -> scanner != null && !scanner.isRunning(), () -> true, v -> selfWindow.dismiss());
     }
 
     @Override

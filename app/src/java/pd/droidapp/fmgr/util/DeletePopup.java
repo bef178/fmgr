@@ -53,7 +53,8 @@ public class DeletePopup extends ProcessingPopup {
     protected void initPopupButtons() {
         super.initPopupButtons();
         buttonBar.addButton(R.string.start, () -> remover == null, () -> true, v -> start());
-        buttonBar.addButton(R.string.abort, () -> remover != null, this::isProcessing, v -> abort());
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !remover.isCancelled(), v -> abort());
+        buttonBar.addButton(R.string.close, () -> remover != null && remover.isStopped(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initProgress() {
@@ -139,5 +140,6 @@ public class DeletePopup extends ProcessingPopup {
         if (remover != null) {
             remover.cancel();
         }
+        updateButtons();
     }
 }

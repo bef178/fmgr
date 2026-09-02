@@ -251,6 +251,10 @@ class FileDupGroupUpdater {
         reportStopped();
     }
 
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
     public static class FileProperties {
         String path;
         long size;
