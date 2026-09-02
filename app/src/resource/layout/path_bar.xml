@@ -4,7 +4,6 @@
     android:id="@+id/path_bar"
     android:layout_width="match_parent"
     android:layout_height="36dp"
-    android:background="@color/path_bar_background"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="18dp"
