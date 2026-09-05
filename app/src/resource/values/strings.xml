@@ -79,6 +79,7 @@
     <string name="merge_directories_check">Merge into existing directories</string>
     <string name="popup_progress_text">%d / %d</string>
     <string name="popup_progress_pending">Pending</string>
+    <string name="popup_progress_processing">Processing</string>
     <string name="popup_progress_completed">Completed</string>
     <string name="popup_progress_aborted">Aborted</string>
     <string name="popup_progress_failed">Failed</string>

@@ -17,8 +17,6 @@ import java.util.Map;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FilePaster.ConflictResolution;
 
-import static pd.droidapp.fmgr.util.Util.getDisplayPath;
-
 public class PastePopup extends ProcessingPopup {
 
     private final boolean isCopy;
@@ -133,6 +131,7 @@ public class PastePopup extends ProcessingPopup {
             progressArea.setVisibility(View.VISIBLE);
             progressBarView.setProgress(0);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
+            progressBarSideTextView.setText(R.string.popup_progress_processing);
         }));
         paster.whenPasteUpdated(new FilePasteUpdater.OnPasteUpdatedListener() {
             private int totalDeleted;
@@ -141,7 +140,7 @@ public class PastePopup extends ProcessingPopup {
             private int totalProcessed;
 
             @Override
-            public void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> renamed, int failed, int progressed, String current) {
+            public void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> renamed, int failed, int progressed) {
                 totalAdded.addAll(added);
                 totalAdded.removeAll(removed);
                 for (Map.Entry<String, String> pair : renamed) {
@@ -158,7 +157,6 @@ public class PastePopup extends ProcessingPopup {
                     progressBarView.setProgress(totalProcessed * 100 / total);
                     progressBarTextView.setText(context.getString(R.string.popup_progress_text,
                             Math.min(totalProcessed + 1, total), total));
-                    progressBarSideTextView.setText(getDisplayPath(current));
                     progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
                             reportAdded, totalDeleted, totalRenamed, totalFailed));
                 });

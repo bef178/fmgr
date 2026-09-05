@@ -22,7 +22,6 @@ class FileRemoveUpdater {
     private List<File> deleted = new LinkedList<>();
     private int failed = 0;
     private int progressed = 0;
-    private String current;
     private final Object lock = started;
 
     public FileRemoveUpdater() {
@@ -50,10 +49,11 @@ class FileRemoveUpdater {
         fileRemover.whenDeleteAction((action, src, succeeded) -> {
             switch (action) {
                 case DELETE:
+                    if (succeeded == null) {
+                        break;
+                    }
                     synchronized (lock) {
-                        if (succeeded == null) {
-                            current = src;
-                        } else if (succeeded) {
+                        if (succeeded) {
                             deleted.add(new File(src));
                         } else {
                             failed++;
@@ -104,7 +104,6 @@ class FileRemoveUpdater {
                         List<File> nowDeleted;
                         int nowFailed;
                         int nowProgressed;
-                        String nowCurrent;
                         synchronized (lock) {
                             nowDeleted = deleted;
                             deleted = new LinkedList<>();
@@ -112,13 +111,11 @@ class FileRemoveUpdater {
                             failed = 0;
                             nowProgressed = progressed;
                             progressed = 0;
-                            nowCurrent = current;
                         }
                         onRemoveUpdated.accept(
                                 nowDeleted,
                                 nowFailed,
-                                nowProgressed,
-                                nowCurrent);
+                                nowProgressed);
                     } catch (Throwable ignored) {
                     }
                 }
@@ -162,6 +159,6 @@ class FileRemoveUpdater {
 
     public interface OnRemoveUpdatedListener {
 
-        void accept(List<File> removed, int failed, int progressed, String current);
+        void accept(List<File> removed, int failed, int progressed);
     }
 }

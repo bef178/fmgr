@@ -26,7 +26,6 @@ class FilePasteUpdater {
     private List<Map.Entry<String, String>> renamed = new LinkedList<>();
     private int failed = 0;
     private int progressed = 0;
-    private String current;
     private final Object lock = started;
 
     public FilePasteUpdater() {
@@ -52,10 +51,11 @@ class FilePasteUpdater {
         }
 
         filePaster.whenPasteAction((action, src, dst, succeeded) -> {
+            if (succeeded == null) {
+                return;
+            }
             synchronized (lock) {
-                if (succeeded == null) {
-                    current = src != null ? src : dst;
-                } else if (succeeded) {
+                if (succeeded) {
                     switch (action) {
                         case ADD:
                             added.add(dst);
@@ -114,7 +114,6 @@ class FilePasteUpdater {
                         List<Map.Entry<String, String>> nowRenamed;
                         int nowFailed;
                         int nowProgressed;
-                        String nowCurrent;
                         synchronized (lock) {
                             nowAdded = added;
                             added = new LinkedList<>();
@@ -126,15 +125,13 @@ class FilePasteUpdater {
                             failed = 0;
                             nowProgressed = progressed;
                             progressed = 0;
-                            nowCurrent = current;
                         }
                         onPasteUpdated.accept(
                                 nowAdded,
                                 nowDeleted,
                                 nowRenamed,
                                 nowFailed,
-                                nowProgressed,
-                                nowCurrent);
+                                nowProgressed);
                     } catch (Throwable ignored) {
                     }
                 }
@@ -178,6 +175,6 @@ class FilePasteUpdater {
 
     public interface OnPasteUpdatedListener {
 
-        void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> renamed, int failed, int progressed, String current);
+        void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> renamed, int failed, int progressed);
     }
 }

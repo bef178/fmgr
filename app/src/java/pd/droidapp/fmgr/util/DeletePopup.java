@@ -13,8 +13,6 @@ import java.util.List;
 
 import pd.droidapp.fmgr.R;
 
-import static pd.droidapp.fmgr.util.Util.getDisplayPath;
-
 public class DeletePopup extends ProcessingPopup {
 
     private final List<File> srcFiles;
@@ -100,13 +98,14 @@ public class DeletePopup extends ProcessingPopup {
             progressArea.setVisibility(View.VISIBLE);
             progressBarView.setProgress(0);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
+            progressBarSideTextView.setText(R.string.popup_progress_processing);
         }));
         remover.whenRemoveUpdated(new FileRemoveUpdater.OnRemoveUpdatedListener() {
             private int totalFailed;
             private int totalProgressed;
 
             @Override
-            public void accept(List<File> deleted, int failed, int progressed, String current) {
+            public void accept(List<File> deleted, int failed, int progressed) {
                 totalDeleted.addAll(deleted);
                 totalFailed += failed;
                 totalProgressed += progressed;
@@ -115,7 +114,6 @@ public class DeletePopup extends ProcessingPopup {
                     progressBarView.setProgress(totalProgressed * 100 / total);
                     progressBarTextView.setText(context.getString(R.string.popup_progress_text,
                             Math.min(totalProgressed + 1, total), total));
-                    progressBarSideTextView.setText(getDisplayPath(current));
                     progressSummaryTextView.setText(context.getString(R.string.delete_progress_summary,
                             totalDeleted.size(), totalFailed));
                 });
