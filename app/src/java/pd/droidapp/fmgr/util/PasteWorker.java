@@ -4,86 +4,93 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.AbstractMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import pd.droidapp.fmgr.util.FileScanner.State;
+import java.util.Map;
 
 import pd.util.FileOps;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.getAlternativeFile;
 
-public class FilePaster {
+class PasteWorker extends ProcessingWorker {
 
-    private OnPasteActionListener onPasteAction;
+    private OnUpdatedListener onUpdated;
 
-    private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
-    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+    private List<String> added = new LinkedList<>();
+    private List<String> removed = new LinkedList<>();
+    private List<Map.Entry<String, String>> moved = new LinkedList<>();
+    private int failed = 0;
+    private int progressed = 0;
+    private final Object lock = new Object();
 
     private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
         switch (action) {
             case LIST:
                 // an unreadable directory aborts the copy without further CREATE events
                 if (succeeded != null && !succeeded) {
-                    callback(PasteAction.DELETE, Util.stripTrailingSlash(src), null, false);
+                    accumulate(PasteAction.REMOVE, src, null, false);
                 }
                 break;
             case CREATE:
-                callback(PasteAction.ADD, src, Util.stripTrailingSlash(dst), succeeded);
+                accumulate(PasteAction.ADD, src, dst, succeeded);
                 break;
             case REMOVE:
-                callback(PasteAction.DELETE, Util.stripTrailingSlash(src), dst, succeeded);
+                accumulate(PasteAction.REMOVE, src, dst, succeeded);
                 break;
             case MOVE:
-                callback(PasteAction.RENAME, Util.stripTrailingSlash(src), Util.stripTrailingSlash(dst), succeeded);
+                accumulate(PasteAction.MOVE, src, dst, succeeded);
                 break;
             default:
                 break;
         }
     };
 
-    private void callback(PasteAction action, String from, String to, Boolean succeeded) {
-        if (onPasteAction != null) {
-            onPasteAction.accept(action, from, to, succeeded);
+    private void accumulate(PasteAction action, String src, String dst, Boolean succeeded) {
+        if (succeeded == null) {
+            return;
         }
-    }
-
-    public void whenPasteAction(OnPasteActionListener onPasteAction) {
-        this.onPasteAction = onPasteAction;
-    }
-
-    public boolean start(boolean isCopy, Iterable<String> srcFiles, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
-        if (!state.compareAndSet(State.IDLE, State.RUNNING)) {
-            return false;
-        }
-
-        Thread workerThread = new Thread(() -> {
-            try {
-                for (String s : srcFiles) {
-                    Path src = Paths.get(s);
-                    Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(s));
-                    if (isCopy) {
-                        doCopy(src, dst, resolution, mergeDirectories);
-                    } else {
-                        doCut(src, dst, resolution, mergeDirectories);
-                    }
-                    if (isCancelled()) {
-                        return;
-                    }
-                    callback(PasteAction.PROGRESS, src.toString(), dst.toString(), true);
+        synchronized (lock) {
+            if (succeeded) {
+                switch (action) {
+                    case ADD:
+                        added.add(dst);
+                        break;
+                    case REMOVE:
+                        removed.add(src);
+                        break;
+                    case MOVE:
+                        moved.add(new AbstractMap.SimpleEntry<>(src, dst));
+                        break;
+                    case PROGRESS:
+                        progressed++;
+                        break;
+                    default:
+                        break;
                 }
-            } catch (Throwable ignored) {
-                state.compareAndSet(State.RUNNING, State.FAILED);
-            } finally {
-                state.compareAndSet(State.RUNNING, State.COMPLETED);
-                state.compareAndSet(State.CANCELLING, State.CANCELLED);
+            } else {
+                failed++;
+            }
+        }
+    }
+
+    public void whenUpdated(OnUpdatedListener onUpdated) {
+        this.onUpdated = onUpdated;
+    }
+
+    public boolean startCopy(List<String> srcPaths, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
+        return start(() -> {
+            for (String s : srcPaths) {
+                Path src = Paths.get(s);
+                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(s));
+                doCopy(src, dst, resolution, mergeDirectories);
+                if (isCancelled()) {
+                    return;
+                }
+                accumulate(PasteAction.PROGRESS, src.toString(), dst.toString(), true);
             }
         });
-        workerThread.start();
-        return true;
     }
 
     private void doCopy(Path src, Path dst, ConflictResolution resolution, boolean mergeDirectories) {
@@ -111,9 +118,6 @@ public class FilePaster {
             case RENAME_INCOMING:
                 copyRenameIncoming(src, dst);
                 break;
-            case SKIP_INCOMING:
-                callback(PasteAction.SKIP, src.toString(), dst.toString(), true);
-                break;
             default:
                 break;
         }
@@ -121,13 +125,8 @@ public class FilePaster {
 
     // `dst` must be a directory
     private void copyMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
-        List<String> children = new LinkedList<>();
-        if (!FileOps.singleton.listDirectory(src.toString(), 1, true, cancelled,
-                (action, from, to, succeeded) -> {
-                    if (action == FileOps.Action.MEET) {
-                        children.add(from);
-                    }
-                })) {
+        List<String> children = listDirectory(src);
+        if (children == null) {
             return;
         }
         for (String child : children) {
@@ -137,13 +136,23 @@ public class FilePaster {
             Path childDst = dst.resolve(PathOps.singleton.basename(child));
             doCopy(Paths.get(child), childDst, resolution, true);
         }
-        // since `dst` already exists, `src` marks skipped
-        callback(PasteAction.SKIP, src.toString(), dst.toString(), true);
+    }
+
+    private List<String> listDirectory(Path src) {
+        List<String> children = new LinkedList<>();
+        if (!FileOps.singleton.listDirectory(src.toString(), 1, true, cancelRequested,
+                (action, from, to, succeeded) -> {
+                    if (action == FileOps.Action.MEET) {
+                        children.add(from);
+                    }
+                })) {
+            return null;
+        }
+        return children;
     }
 
     private void copyOverwriteExisting(Path src, Path dst) {
         if (isSamePath(src, dst)) {
-            callback(PasteAction.SKIP, src.toString(), dst.toString(), true);
             return;
         }
 
@@ -186,9 +195,9 @@ public class FilePaster {
     // `dst` must not exist
     private boolean cp(Path src, Path dst) {
         if (Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS)) {
-            return FileOps.singleton.copyDirectory(src.toString(), dst.toString(), cancelled, onAction);
+            return FileOps.singleton.copyDirectory(src.toString(), dst.toString(), cancelRequested, onAction);
         }
-        return FileOps.singleton.copyFile(src.toString(), dst.toString(), true, cancelled, onAction);
+        return FileOps.singleton.copyFile(src.toString(), dst.toString(), true, cancelRequested, onAction);
     }
 
     // `dst` must not exist
@@ -201,7 +210,7 @@ public class FilePaster {
 
     private boolean rm(Path path) {
         if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
-            return FileOps.singleton.removeDirectory(path.toString(), true, false, cancelled, onAction);
+            return FileOps.singleton.removeDirectory(path.toString(), true, false, cancelRequested, onAction);
         }
         return FileOps.singleton.removeFile(path.toString(), onAction);
     }
@@ -210,13 +219,26 @@ public class FilePaster {
         return p1.toAbsolutePath().normalize().equals(p2.toAbsolutePath().normalize());
     }
 
+    public boolean startCut(List<String> srcPaths, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
+        return start(() -> {
+            for (String s : srcPaths) {
+                Path src = Paths.get(s);
+                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(s));
+                doCut(src, dst, resolution, mergeDirectories);
+                if (isCancelled()) {
+                    return;
+                }
+                accumulate(PasteAction.PROGRESS, src.toString(), dst.toString(), true);
+            }
+        });
+    }
+
     private void doCut(Path src, Path dst, ConflictResolution resolution, boolean mergeDirectories) {
         if (isCancelled()) {
             return;
         }
 
         if (isSamePath(src, dst)) {
-            callback(PasteAction.SKIP, src.toString(), dst.toString(), true);
             return;
         }
 
@@ -239,9 +261,6 @@ public class FilePaster {
                 break;
             case RENAME_INCOMING:
                 mv(src, getAlternativeFile(dst.getParent(), dst.getFileName().toString()));
-                break;
-            case SKIP_INCOMING:
-                callback(PasteAction.SKIP, src.toString(), dst.toString(), true);
                 break;
             default:
                 break;
@@ -266,13 +285,8 @@ public class FilePaster {
     }
 
     private void cutMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
-        List<String> children = new LinkedList<>();
-        if (!FileOps.singleton.listDirectory(src.toString(), 1, true, cancelled,
-                (action, s, to, succeeded) -> {
-                    if (action == FileOps.Action.MEET) {
-                        children.add(s);
-                    }
-                })) {
+        List<String> children = listDirectory(src);
+        if (children == null) {
             return;
         }
         for (String child : children) {
@@ -282,66 +296,59 @@ public class FilePaster {
             Path childDst = dst.resolve(PathOps.singleton.basename(child));
             doCut(Paths.get(child), childDst, resolution, true);
         }
-        // remove src only if empty: skipped/failed children must stay
+        // remove src iff empty: skipped/failed children must stay
         List<String> remaining = new LinkedList<>();
-        if (FileOps.singleton.listDirectory(src.toString(), 1, true, cancelled,
+        if (FileOps.singleton.listDirectory(src.toString(), 1, true, cancelRequested,
                 (action, s, to, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         remaining.add(s);
                     }
                 }) && remaining.isEmpty()) {
-            FileOps.singleton.removeDirectory(src.toString(), false, false, cancelled, onAction);
+            FileOps.singleton.removeDirectory(src.toString(), false, false, cancelRequested, onAction);
         }
     }
 
-    public boolean isRunning() {
-        State state = this.state.get();
-        return state == State.RUNNING || state == State.CANCELLING;
-    }
-
-    public boolean isCompleted() {
-        return state.get() == State.COMPLETED;
-    }
-
-    public void cancel() {
-        while (true) {
-            State current = state.get();
-            if (current == State.RUNNING) {
-                if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
-                    cancelled.set(true);
-                    return;
-                }
-            } else if (current == State.IDLE) {
-                if (state.compareAndSet(State.IDLE, State.CANCELLED)) {
-                    return;
-                }
-            } else {
-                return;
+    @Override
+    protected void reportUpdated() {
+        List<String> nowAdded;
+        List<String> nowRemoved;
+        List<Map.Entry<String, String>> nowMoved;
+        int nowFailed;
+        int nowProgressed;
+        synchronized (lock) {
+            nowAdded = added;
+            added = new LinkedList<>();
+            nowRemoved = removed;
+            removed = new LinkedList<>();
+            nowMoved = moved;
+            moved = new LinkedList<>();
+            nowFailed = failed;
+            failed = 0;
+            nowProgressed = progressed;
+            progressed = 0;
+        }
+        if (onUpdated != null) {
+            try {
+                onUpdated.accept(nowAdded, nowRemoved, nowMoved, nowFailed, nowProgressed);
+            } catch (Throwable ignored) {
             }
         }
     }
 
-    public boolean isCancelled() {
-        State state = this.state.get();
-        return state == State.CANCELLING || state == State.CANCELLED;
-    }
-
-    public interface OnPasteActionListener {
-
-        void accept(PasteAction action, String src, String dst, Boolean succeeded);
-    }
-
-    public enum PasteAction {
-        ADD,
-        DELETE,
-        RENAME,
-        SKIP,
-        PROGRESS,
+    public interface OnUpdatedListener {
+        void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> moved, int failed, int progressed);
     }
 
     public enum ConflictResolution {
         OVERWRITE,
         RENAME_INCOMING,
         SKIP_INCOMING
+    }
+
+    private enum PasteAction {
+        ADD,
+        REMOVE,
+        MOVE,
+        PROGRESS,
     }
 }

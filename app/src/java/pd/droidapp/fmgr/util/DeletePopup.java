@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 
@@ -28,8 +29,10 @@ public class DeletePopup extends ProcessingPopup {
     // callbacks
     private PopupOnDismissedListener onPopupDismissed;
 
-    private FileRemoveUpdater remover;
-    private final Collection<File> totalDeleted = Collections.synchronizedList(new LinkedList<>());
+    private DeleteWorker worker;
+    private final Collection<File> totalRemoved = new LinkedList<>();
+    private int totalFailed;
+    private int totalProgressed;
 
     public DeletePopup(View containerView, List<File> srcFiles, boolean prune) {
         super(containerView, R.layout.delete_popup);
@@ -50,9 +53,9 @@ public class DeletePopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.start, () -> remover == null, () -> true, v -> start());
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !remover.isCancelled(), v -> abort());
-        buttonBar.addButton(R.string.close, () -> remover != null && remover.isStopped(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.start, () -> worker == null, () -> true, v -> start());
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
+        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isRunning(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initProgress() {
@@ -62,23 +65,23 @@ public class DeletePopup extends ProcessingPopup {
 
     @Override
     protected boolean isProcessing() {
-        return remover != null && !remover.isStopped();
+        return worker != null && worker.isRunning();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
-        if (remover == null || remover.isStopped()) {
+        if (worker == null || !worker.isRunning()) {
             onStopped.run();
             return;
         }
-        remover.whenRemoveStopped(onStopped);
-        remover.cancel();
+        worker.whenStopped(onStopped);
+        worker.cancel();
     }
 
     @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(Collections.emptyList(), totalDeleted);
+            onPopupDismissed.accept(Collections.emptyList(), totalRemoved);
         }
     }
 
@@ -93,50 +96,45 @@ public class DeletePopup extends ProcessingPopup {
     private void start() {
         final int total = srcFiles.size();
 
-        remover = new FileRemoveUpdater();
-        remover.whenRemoveStarted(() -> containerView.post(() -> {
+        worker = new DeleteWorker();
+        worker.whenStarted(() -> containerView.post(() -> {
             progressArea.setVisibility(View.VISIBLE);
             progressBarView.setProgress(0);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
             progressBarSideTextView.setText(R.string.popup_progress_processing);
         }));
-        remover.whenRemoveUpdated(new FileRemoveUpdater.OnRemoveUpdatedListener() {
-            private int totalFailed;
-            private int totalProgressed;
-
-            @Override
-            public void accept(List<File> deleted, int failed, int progressed) {
-                totalDeleted.addAll(deleted);
-                totalFailed += failed;
-                totalProgressed += progressed;
-
-                containerView.post(() -> {
-                    progressBarView.setProgress(totalProgressed * 100 / total);
-                    progressBarTextView.setText(context.getString(R.string.popup_progress_text,
-                            Math.min(totalProgressed + 1, total), total));
-                    progressSummaryTextView.setText(context.getString(R.string.delete_progress_summary,
-                            totalDeleted.size(), totalFailed));
-                });
+        worker.whenUpdated((removed, failed, progressed) -> containerView.post(() -> {
+            for (String path : removed) {
+                totalRemoved.add(new File(Util.stripTrailingSlash(path)));
             }
-        });
-        remover.whenRemoveStopped(() -> containerView.post(() -> {
-            if (remover.isCompleted()) {
+            totalFailed += failed;
+            totalProgressed += progressed;
+
+            progressBarView.setProgress(totalProgressed * 100 / total);
+            progressBarTextView.setText(context.getString(R.string.popup_progress_text,
+                    Math.min(totalProgressed + 1, total), total));
+            progressSummaryTextView.setText(context.getString(R.string.delete_progress_summary,
+                    totalRemoved.size(), totalFailed));
+        }));
+        worker.whenStopped(() -> containerView.post(() -> {
+            if (worker.isCompleted()) {
                 progressBarSideTextView.setText(R.string.popup_progress_completed);
-            } else if (remover.isCancelled()) {
+            } else if (worker.isCancelled()) {
                 progressBarSideTextView.setText(R.string.popup_progress_aborted);
             } else {
                 progressBarSideTextView.setText(R.string.popup_progress_failed);
             }
             updateButtons();
         }));
-        remover.start(srcFiles, prune);
+        List<String> srcPaths = srcFiles.stream().map(File::getPath).collect(Collectors.toList());
+        worker.start(srcPaths, prune);
 
         updateButtons();
     }
 
     private void abort() {
-        if (remover != null) {
-            remover.cancel();
+        if (worker != null) {
+            worker.cancel();
         }
         updateButtons();
     }

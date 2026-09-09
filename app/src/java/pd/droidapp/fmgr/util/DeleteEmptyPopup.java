@@ -26,7 +26,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
     private Consumer<File> onJump;
     private PopupOnDismissedListener onPopupDismissed;
 
-    private FileScanUpdater scanner;
+    private DeleteEmptyWorker worker;
     private int totalScanned;
     private final Collection<File> removedFiles = new LinkedList<>();
 
@@ -101,28 +101,28 @@ public class DeleteEmptyPopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !scanner.isCancelled(), v -> {
-            if (scanner != null) {
-                scanner.cancel();
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
+            if (worker != null) {
+                worker.cancel();
             }
             updateButtons();
         });
-        buttonBar.addButton(R.string.close, () -> scanner != null && !scanner.isRunning(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isRunning(), () -> true, v -> selfWindow.dismiss());
     }
 
     @Override
     protected boolean isProcessing() {
-        return scanner != null && scanner.isRunning();
+        return worker != null && worker.isRunning();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
-        if (scanner == null || !scanner.isRunning()) {
+        if (worker == null || !worker.isRunning()) {
             onStopped.run();
             return;
         }
-        scanner.whenScanStopped(onStopped);
-        scanner.cancel();
+        worker.whenStopped(onStopped);
+        worker.cancel();
     }
 
     @Override
@@ -142,40 +142,29 @@ public class DeleteEmptyPopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
-        doScan();
-    }
-
-    private void doScan() {
-        scanner = new FileScanUpdater();
-        scanner.whenReached(path -> {
-            File file = new File(path);
-            if (path.endsWith("/")) {
-                File[] children = file.listFiles();
-                return children == null || children.length == 0;
-            }
-            return file.length() == 0;
-        });
-        scanner.whenScanStarted(() -> containerView.post(() -> {
+        worker = new DeleteEmptyWorker();
+        worker.whenStarted(() -> containerView.post(() -> {
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
         }));
-        scanner.whenScanUpdated((scanned, delta) -> containerView.post(() -> {
+        worker.whenUpdated((scanned, delta) -> containerView.post(() -> {
             totalScanned += scanned;
             itemsAdapter.addAll(delta);
             selectionBar.invalidate();
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));
-        scanner.whenScanStopped(() -> containerView.post(() -> {
+        worker.whenStopped(() -> containerView.post(() -> {
             updateButtons();
-            if (scanner.isCompleted()) {
+            if (worker.isCompleted()) {
                 statusBar.markDone();
             } else {
                 statusBar.markStopped();
             }
         }));
-        scanner.start(startDirectory.getPath());
+        worker.start(startDirectory.getPath());
+
         updateButtons();
     }
 }

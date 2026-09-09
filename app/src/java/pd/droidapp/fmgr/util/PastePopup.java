@@ -13,9 +13,10 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.FilePaster.ConflictResolution;
+import pd.droidapp.fmgr.util.PasteWorker.ConflictResolution;
 
 public class PastePopup extends ProcessingPopup {
 
@@ -36,8 +37,12 @@ public class PastePopup extends ProcessingPopup {
     // callbacks
     private PopupOnDismissedListener onPopupDismissed;
 
-    private FilePasteUpdater paster;
-    private final Collection<String> totalAdded = Collections.synchronizedList(new LinkedList<>());
+    private PasteWorker worker;
+    private final Collection<String> totalAdded = new LinkedList<>();
+    private int totalRemoved;
+    private int totalMoved;
+    private int totalFailed;
+    private int totalProcessed;
 
     public PastePopup(View containerView, boolean isCopy, List<File> srcFiles, File dstDirectory) {
         super(containerView, R.layout.paste_popup);
@@ -65,9 +70,9 @@ public class PastePopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.start, () -> paster == null, () -> true, v -> start());
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !paster.isCancelled(), v -> abort());
-        buttonBar.addButton(R.string.close, () -> paster != null && paster.isStopped(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.start, () -> worker == null, () -> true, v -> start());
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
+        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isRunning(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initConflictResolution() {
@@ -81,17 +86,17 @@ public class PastePopup extends ProcessingPopup {
 
     @Override
     protected boolean isProcessing() {
-        return paster != null && !paster.isStopped();
+        return worker != null && worker.isRunning();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
-        if (paster == null || paster.isStopped()) {
+        if (worker == null || !worker.isRunning()) {
             onStopped.run();
             return;
         }
-        paster.whenPasteStopped(onStopped);
-        paster.cancel();
+        worker.whenStopped(onStopped);
+        worker.cancel();
     }
 
     @Override
@@ -126,53 +131,52 @@ public class PastePopup extends ProcessingPopup {
         resolutionOptionsGroup.setVisibility(View.GONE);
         mergeDirectoriesCheckBox.setVisibility(View.GONE);
 
-        paster = new FilePasteUpdater();
-        paster.whenPasteStarted(() -> containerView.post(() -> {
+        worker = new PasteWorker();
+        worker.whenStarted(() -> containerView.post(() -> {
             progressArea.setVisibility(View.VISIBLE);
             progressBarView.setProgress(0);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
             progressBarSideTextView.setText(R.string.popup_progress_processing);
         }));
-        paster.whenPasteUpdated(new FilePasteUpdater.OnPasteUpdatedListener() {
-            private int totalDeleted;
-            private int totalRenamed;
-            private int totalFailed;
-            private int totalProcessed;
-
-            @Override
-            public void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> renamed, int failed, int progressed) {
-                totalAdded.addAll(added);
-                totalAdded.removeAll(removed);
-                for (Map.Entry<String, String> pair : renamed) {
-                    totalAdded.remove(pair.getKey());
-                    totalAdded.add(pair.getValue());
-                }
-                int reportAdded = added.size() + renamed.size();
-                totalDeleted += removed.size() + renamed.size();
-                totalRenamed += renamed.size();
-                totalFailed += failed;
-                totalProcessed += progressed;
-
-                containerView.post(() -> {
-                    progressBarView.setProgress(totalProcessed * 100 / total);
-                    progressBarTextView.setText(context.getString(R.string.popup_progress_text,
-                            Math.min(totalProcessed + 1, total), total));
-                    progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
-                            reportAdded, totalDeleted, totalRenamed, totalFailed));
-                });
+        worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
+            for (String path : added) {
+                totalAdded.add(Util.stripTrailingSlash(path));
             }
-        });
-        paster.whenPasteStopped(() -> containerView.post(() -> {
-            if (paster.isCompleted()) {
+            for (String path : removed) {
+                totalAdded.remove(Util.stripTrailingSlash(path));
+            }
+            for (Map.Entry<String, String> pair : moved) {
+                totalAdded.remove(Util.stripTrailingSlash(pair.getKey()));
+                totalAdded.add(Util.stripTrailingSlash(pair.getValue()));
+            }
+            int reportAdded = added.size() + moved.size();
+            totalRemoved += removed.size() + moved.size();
+            totalMoved += moved.size();
+            totalFailed += failed;
+            totalProcessed += progressed;
+
+            progressBarView.setProgress(totalProcessed * 100 / total);
+            progressBarTextView.setText(context.getString(R.string.popup_progress_text,
+                    Math.min(totalProcessed + 1, total), total));
+            progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
+                    reportAdded, totalRemoved, totalMoved, totalFailed));
+        }));
+        worker.whenStopped(() -> containerView.post(() -> {
+            if (worker.isCompleted()) {
                 progressBarSideTextView.setText(R.string.popup_progress_completed);
-            } else if (paster.isCancelled()) {
+            } else if (worker.isCancelled()) {
                 progressBarSideTextView.setText(R.string.popup_progress_aborted);
             } else {
                 progressBarSideTextView.setText(R.string.popup_progress_failed);
             }
             updateButtons();
         }));
-        paster.start(isCopy, srcFiles, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
+        List<String> srcPaths = srcFiles.stream().map(File::getPath).collect(Collectors.toList());
+        if (isCopy) {
+            worker.startCopy(srcPaths, dstDirectory.getPath(), resolution, mergeDirectoriesCheckBox.isChecked());
+        } else {
+            worker.startCut(srcPaths, dstDirectory.getPath(), resolution, mergeDirectoriesCheckBox.isChecked());
+        }
 
         updateButtons();
     }
@@ -190,8 +194,8 @@ public class PastePopup extends ProcessingPopup {
     }
 
     private void abort() {
-        if (paster != null) {
-            paster.cancel();
+        if (worker != null) {
+            worker.cancel();
         }
         updateButtons();
     }

@@ -43,7 +43,7 @@ public class SearchPopup extends ProcessingPopup {
     private Consumer<Collection<File>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
-    private FileSearchUpdater searcher;
+    private SearchWorker worker;
     private String lastQuery = "";
     private int totalScanned;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -76,13 +76,13 @@ public class SearchPopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, () -> searcher == null || isProcessing(), () -> isProcessing() && !searcher.isCancelled(), v -> {
-            if (searcher != null) {
-                searcher.cancel();
+        buttonBar.addButton(R.string.abort, () -> worker == null || isProcessing(), () -> isProcessing() && !worker.isCancelled(), v -> {
+            if (worker != null) {
+                worker.cancel();
             }
             updateButtons();
         });
-        buttonBar.addButton(R.string.close, () -> searcher != null && searcher.isStopped(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isRunning(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initSearchEdit() {
@@ -182,15 +182,15 @@ public class SearchPopup extends ProcessingPopup {
 
     @Override
     protected boolean isProcessing() {
-        return searcher != null && !searcher.isStopped();
+        return worker != null && worker.isRunning();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
         handler.removeCallbacks(this::doSearch);
-        if (searcher != null) {
-            searcher.cancel();
-            searcher = null; // late callbacks are dropped by the guards
+        if (worker != null) {
+            worker.cancel();
+            worker = null; // late callbacks are dropped by the guards
         }
         onStopped.run();
     }
@@ -236,30 +236,30 @@ public class SearchPopup extends ProcessingPopup {
             return;
         }
 
-        if (searcher != null) {
-            searcher.cancel();
-            searcher = null;
+        if (worker != null) {
+            worker.cancel();
+            worker = null;
         }
         clear();
         lastQuery = query;
         if (!query.isEmpty()) {
             totalScanned = 0;
-            searcher = createAndStartSearcher(startDirectory.getPath(), query);
+            worker = createAndStartSearcher(startDirectory.getPath(), query);
         }
         updateButtons();
     }
 
-    private FileSearchUpdater createAndStartSearcher(String startDirectory, String query) {
-        FileSearchUpdater current = new FileSearchUpdater(); // the guard
-        current.whenSearchStarted(() -> containerView.post(() -> {
-            if (searcher != current) {
+    private SearchWorker createAndStartSearcher(String startDirectory, String query) {
+        SearchWorker current = new SearchWorker(); // the guard
+        current.whenStarted(() -> containerView.post(() -> {
+            if (worker != current) {
                 return;
             }
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.search_status_searching));
         }));
-        current.whenSearchUpdated((scanned, matched) -> containerView.post(() -> {
-            if (searcher != current) {
+        current.whenUpdated((scanned, matched) -> containerView.post(() -> {
+            if (worker != current) {
                 return;
             }
             totalScanned += scanned;
@@ -267,8 +267,8 @@ public class SearchPopup extends ProcessingPopup {
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));
-        current.whenSearchStopped(() -> containerView.post(() -> {
-            if (searcher != current) {
+        current.whenStopped(() -> containerView.post(() -> {
+            if (worker != current) {
                 return;
             }
             updateButtons();
