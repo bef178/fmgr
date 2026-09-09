@@ -1,10 +1,11 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.popup;
 
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.Util;
 
 public class PopupFileItem {
 

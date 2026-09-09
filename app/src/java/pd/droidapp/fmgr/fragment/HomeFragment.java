@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr;
+package pd.droidapp.fmgr.fragment;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -9,8 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import pd.droidapp.fmgr.util.FavoritesCollapsible;
-import pd.droidapp.fmgr.util.LocationsCollapsible;
+import pd.droidapp.fmgr.MainActivity;
+import pd.droidapp.fmgr.R;
 
 public class HomeFragment extends Fragment {
 

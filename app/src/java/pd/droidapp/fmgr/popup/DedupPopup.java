@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.popup;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -27,7 +27,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.DedupWorker.FileProperties;
+import pd.droidapp.fmgr.popup.DedupWorker.FileProperties;
+import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.animateCollapsed;

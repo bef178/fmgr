@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.fragment;
 
 import android.view.View;
 import android.widget.ImageView;

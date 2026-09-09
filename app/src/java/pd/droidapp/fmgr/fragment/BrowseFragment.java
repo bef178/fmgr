@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr;
+package pd.droidapp.fmgr.fragment;
 
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
@@ -37,16 +37,16 @@ import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
+import pd.droidapp.fmgr.MainActivity;
+import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.popup.DedupPopup;
+import pd.droidapp.fmgr.popup.DeleteEmptyPopup;
+import pd.droidapp.fmgr.popup.DeletePopup;
+import pd.droidapp.fmgr.popup.EditPopup;
+import pd.droidapp.fmgr.popup.PastePopup;
+import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.Clipboard;
-import pd.droidapp.fmgr.util.DedupPopup;
-import pd.droidapp.fmgr.util.DeleteEmptyPopup;
-import pd.droidapp.fmgr.util.DeletePopup;
-import pd.droidapp.fmgr.util.EditPopup;
-import pd.droidapp.fmgr.util.PastePopup;
-import pd.droidapp.fmgr.util.PathBar;
-import pd.droidapp.fmgr.util.Progressor;
-import pd.droidapp.fmgr.util.SearchPopup;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.droidapp.fmgr.util.Util;
 

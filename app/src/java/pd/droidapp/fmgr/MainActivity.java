@@ -14,6 +14,9 @@ import androidx.viewpager2.widget.ViewPager2;
 import java.io.File;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import pd.droidapp.fmgr.fragment.BrowseFragment;
+import pd.droidapp.fmgr.fragment.HomeFragment;
+import pd.droidapp.fmgr.fragment.ProfileFragment;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -141,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setCurrentItem(1, true);
     }
 
-    void setBrowseFragment(BrowseFragment fragment) {
+    public void setBrowseFragment(BrowseFragment fragment) {
         this.browseFragment = fragment;
     }
 

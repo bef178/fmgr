@@ -1,7 +1,5 @@
 package pd.droidapp.fmgr.util;
 
-import static pd.droidapp.fmgr.util.FavoritesCollapsible.FavItem;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -9,6 +7,8 @@ import java.io.File;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import pd.util.PathOps;
 
 // TODO save to sqlite
 public class FavStore {
@@ -30,7 +30,7 @@ public class FavStore {
         return sharedPreferences.contains(buildPrefsKey(file.getAbsolutePath()));
     }
 
-    List<FavItem> getAll() {
+    public List<FavItem> getAll() {
         return sharedPreferences.getAll().entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith(PREFS_ITEM_PREFIX))
                 .map(entry -> new FavItem(
@@ -44,7 +44,7 @@ public class FavStore {
         put(new FavItem(file.getAbsolutePath()));
     }
 
-    void put(FavItem favItem) {
+    public void put(FavItem favItem) {
         sharedPreferences.edit()
                 .putString(buildPrefsKey(favItem.path), favItem.getDisplayName())
                 .apply();
@@ -54,11 +54,46 @@ public class FavStore {
         remove(file.getAbsolutePath());
     }
 
-    void remove(FavItem favItem) {
+    public void remove(FavItem favItem) {
         remove(favItem.path);
     }
 
     private void remove(String path) {
         sharedPreferences.edit().remove(buildPrefsKey(path)).apply();
+    }
+
+    public static class FavItem {
+
+        public final String path;
+
+        private String displayName;
+
+        FavItem(String path) {
+            this(path, null);
+        }
+
+        FavItem(String path, String displayName) {
+            this.path = path;
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            if (displayName == null || displayName.isEmpty()) {
+                return getDefaultName();
+            }
+            return displayName;
+        }
+
+        public void setDisplayName(String displayName) {
+            if (displayName != null && !displayName.isEmpty()) {
+                this.displayName = displayName;
+            } else {
+                this.displayName = null;
+            }
+        }
+
+        public String getDefaultName() {
+            return PathOps.singleton.basename(path);
+        }
     }
 }

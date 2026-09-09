@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.popup;
 
 import android.view.View;
 import android.widget.LinearLayout;
@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.Util;
 
 public class DeletePopup extends ProcessingPopup {
 

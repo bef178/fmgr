@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.popup;
 
 import android.content.Context;
 import android.os.Handler;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.SelectionBar;
 
 public class SearchPopup extends ProcessingPopup {
 

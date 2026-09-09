@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.popup;
 
 import android.view.View;
 import android.widget.CheckBox;
@@ -16,7 +16,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.PasteWorker.ConflictResolution;
+import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
+import pd.droidapp.fmgr.util.Util;
 
 public class PastePopup extends ProcessingPopup {
 

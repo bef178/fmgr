@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.popup;
 
 import android.view.View;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.SelectionBar;
 
 public class DeleteEmptyPopup extends ProcessingPopup {
 

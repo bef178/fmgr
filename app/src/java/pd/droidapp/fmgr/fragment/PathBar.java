@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.fragment;
 
 import android.content.Context;
 import android.util.TypedValue;
@@ -18,6 +18,7 @@ import java.util.Objects;
 
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.FavStore;
 
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 

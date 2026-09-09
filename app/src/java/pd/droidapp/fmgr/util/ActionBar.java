@@ -85,7 +85,7 @@ public class ActionBar {
         }
     }
 
-    static class ActionButton {
+    public static class ActionButton {
 
         public final View view;
         public final BooleanSupplier visible;

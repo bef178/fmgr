@@ -1,6 +1,5 @@
-package pd.droidapp.fmgr.util;
+package pd.droidapp.fmgr.fragment;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,8 +17,11 @@ import java.io.File;
 import java.util.List;
 
 import pd.droidapp.fmgr.R;
-import pd.util.PathOps;
+import pd.droidapp.fmgr.popup.EditPopup;
+import pd.droidapp.fmgr.util.FavStore;
+import pd.droidapp.fmgr.util.Util;
 
+import static pd.droidapp.fmgr.util.FavStore.FavItem;
 import static pd.droidapp.fmgr.util.Util.animateCollapsed;
 
 public class FavoritesCollapsible {
@@ -105,41 +107,6 @@ public class FavoritesCollapsible {
         animateCollapsed(favTriangle, favItemsView, isFavItemsViewCollapsed);
     }
 
-    static class FavItem {
-
-        public final String path;
-
-        private String displayName;
-
-        FavItem(String path) {
-            this(path, null);
-        }
-
-        FavItem(String path, String displayName) {
-            this.path = path;
-            this.displayName = displayName;
-        }
-
-        String getDisplayName() {
-            if (displayName == null || displayName.isEmpty()) {
-                return getDefaultName();
-            }
-            return displayName;
-        }
-
-        void setDisplayName(String displayName) {
-            if (displayName != null && !displayName.isEmpty()) {
-                this.displayName = displayName;
-            } else {
-                this.displayName = null;
-            }
-        }
-
-        String getDefaultName() {
-            return PathOps.singleton.basename(path);
-        }
-    }
-
     static class FavItemAdapter extends RecyclerView.Adapter<FavItemAdapter.FavItemViewHolder> {
 
         private List<FavItem> favItems;
@@ -199,7 +166,6 @@ public class FavoritesCollapsible {
             return favItems == null ? 0 : favItems.size();
         }
 
-        @SuppressLint("NotifyDataSetChanged")
         void invalidate(List<FavItem> favItems) {
             this.favItems = favItems;
 
