@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.FileDupGroupUpdater.FileProperties;
+import pd.droidapp.fmgr.util.FileDupGrouper.FileProperties;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.animateCollapsed;
@@ -48,8 +49,12 @@ public class DedupPopup extends ProcessingPopup {
     private Consumer<Collection<File>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
-    private FileDupGroupUpdater grouper;
+    private FileDupGroupUpdater dupGrouper;
     private final Collection<File> removedFiles = new LinkedList<>();
+
+    private final Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
+    private final Map<String, FileProperties> byPath = new HashMap<>();
+    private int totalScanned;
 
     public DedupPopup(View containerView, File startDirectory) {
         super(containerView, R.layout.dedup_popup);
@@ -69,13 +74,13 @@ public class DedupPopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !grouper.isCancelled(), v -> {
-            if (grouper != null) {
-                grouper.cancel();
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !dupGrouper.isCancelled(), v -> {
+            if (dupGrouper != null) {
+                dupGrouper.cancel();
             }
             updateButtons();
         });
-        buttonBar.addButton(R.string.close, () -> grouper != null && !grouper.isRunning(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.close, () -> dupGrouper != null && !dupGrouper.isRunning(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initSelectionBar() {
@@ -108,7 +113,17 @@ public class DedupPopup extends ProcessingPopup {
             deletePopup.whenPopupDismissed((added, removed) -> {
                 removedFiles.addAll(removed);
                 selectionBar.selectedItems.removeAll(removed);
-                grouper.remove(removed.stream().map(File::getPath).collect(Collectors.toList()));
+                for (File file : removed) {
+                    FileProperties props = byPath.remove(file.getPath());
+                    if (props == null) {
+                        continue;
+                    }
+                    List<FileProperties> group = byChecksum.get(props.md5sum);
+                    if (group != null) {
+                        group.remove(props);
+                    }
+                }
+                refreshGroups();
             });
             deletePopup.show();
         });
@@ -135,17 +150,17 @@ public class DedupPopup extends ProcessingPopup {
 
     @Override
     protected boolean isProcessing() {
-        return grouper != null && grouper.isRunning();
+        return dupGrouper != null && dupGrouper.isRunning();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
-        if (grouper == null || !grouper.isRunning()) {
+        if (dupGrouper == null || !dupGrouper.isRunning()) {
             onStopped.run();
             return;
         }
-        grouper.whenGroupStopped(onStopped);
-        grouper.cancel();
+        dupGrouper.whenDupGroupStopped(onStopped);
+        dupGrouper.cancel();
     }
 
     @Override
@@ -177,37 +192,62 @@ public class DedupPopup extends ProcessingPopup {
     }
 
     private void doScan() {
-        grouper = new FileDupGroupUpdater(containerView::post);
-        grouper.whenGroupStarted(() -> {
+        dupGrouper = new FileDupGroupUpdater();
+        totalScanned = 0;
+        byChecksum.clear();
+        byPath.clear();
+
+        dupGrouper.whenDupGroupStarted(() -> containerView.post(() -> {
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
-        });
-        grouper.whenGroupUpdated((totalScanned, totalGroups, totalGroupItems) -> {
-            itemsAdapter.load(buildFileGroups());
-            selectionBar.invalidate();
-            statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
-                    totalScanned, totalGroupItems, totalGroups));
-        });
-        grouper.whenGroupStopped(() -> {
+        }));
+        dupGrouper.whenDupGroupUpdated((scanned, completed) -> containerView.post(() -> {
+            totalScanned += scanned;
+            for (FileProperties props : completed) {
+                byChecksum.computeIfAbsent(props.md5sum, k -> new LinkedList<>()).add(props);
+                byPath.put(props.path, props);
+            }
+            refreshGroups();
+        }));
+        dupGrouper.whenDupGroupStopped(() -> containerView.post(() -> {
             updateButtons();
-            if (grouper.isCompleted()) {
+            if (dupGrouper.isCompleted()) {
                 statusBar.markDone();
             } else {
                 statusBar.markStopped();
             }
-        });
-        grouper.start(startDirectory.getPath());
+        }));
+        dupGrouper.start(startDirectory.getPath());
         updateButtons();
+    }
+
+    // derive the group totals from byChecksum, then refresh list and status
+    private void refreshGroups() {
+        int totalGroups = 0;
+        int totalGroupItems = 0;
+        for (List<FileProperties> group : byChecksum.values()) {
+            if (group.size() > 1) {
+                totalGroups++;
+                totalGroupItems += group.size();
+            }
+        }
+        itemsAdapter.load(buildFileGroups());
+        selectionBar.invalidate();
+        statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
+                totalScanned, totalGroupItems, totalGroups));
     }
 
     private List<FileGroup> buildFileGroups() {
         List<FileGroup> newFileGroups = new LinkedList<>();
-        for (List<FileProperties> group : grouper.getDupGroups()) {
-            newFileGroups.add(new FileGroup(
-                    group.get(0).size,
-                    group.get(0).md5sum,
-                    group.stream().map(props -> new File(props.path)).collect(Collectors.toList())));
+        for (List<FileProperties> group : byChecksum.values()) {
+            if (group.size() > 1) {
+                FileProperties first = group.get(0);
+                newFileGroups.add(new FileGroup(
+                        first.size,
+                        first.md5sum,
+                        group.stream().map(props -> new File(props.path)).collect(Collectors.toList())));
+            }
         }
         return newFileGroups;
     }
@@ -277,7 +317,7 @@ public class DedupPopup extends ProcessingPopup {
         }
 
         public String key() {
-            return md5sum + "_" + size;
+            return md5sum;
         }
     }
 
@@ -371,7 +411,7 @@ public class DedupPopup extends ProcessingPopup {
             List<File> files = group.getFiles();
 
             Context context = viewHolder.itemView.getContext();
-            viewHolder.titleTextView.setText(context.getString(R.string.x_files_y_each, files.size(), getSizeString(files.get(0).length())));
+            viewHolder.titleTextView.setText(context.getString(R.string.x_files_y_each, files.size(), getSizeString(group.size)));
             boolean collapsed = isCollapsed(group);
             viewHolder.triangleImageView.setRotation(collapsed ? -90f : 0f);
             viewHolder.filesView.setVisibility(collapsed ? View.GONE : View.VISIBLE);

@@ -1,278 +1,138 @@
 package pd.droidapp.fmgr.util;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import pd.util.DigestCodec;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class FileDupGroupUpdater {
 
-    private static final int updateInterval = 1000;
+    private final FileDupGrouper fileDupGrouper;
+    private final int updateInterval;
 
-    private final Executor mainThread;
-    private final FileScanUpdater scanner = new FileScanUpdater(updateInterval);
+    private Runnable onDupGroupStarted;
+    private OnDupGroupUpdatedListener onDupGroupUpdated;
+    private Runnable onDupGroupStopped;
 
-    private Runnable onGroupStarted;
-    private OnGroupUpdatedListener onGroupUpdated;
-    private Runnable onGroupStopped;
+    private final AtomicBoolean started = new AtomicBoolean(false);
+    private Timer updateTimer;
+    private int scanned = 0;
+    private List<FileDupGrouper.FileProperties> completed = new LinkedList<>();
+    private final Object lock = new Object();
 
-    private final Map<String, FileProperties> allFileProperties = new HashMap<>();
-    private final Map<Long, List<FileProperties>> bySizeFileProperties = new LinkedHashMap<>();
-    private final Map<String, List<FileProperties>> byChecksumFileProperties = new LinkedHashMap<>(); // key(checksum_size)
-    private final ThreadPoolExecutor checksumThread = new ThreadPoolExecutor(
-            0, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-    private Timer checksumTimer;
-    private int pendingChecksums = 0;
-    private boolean cancelled = false;
-    private boolean onGroupStoppedCalled = false;
-    private int totalScanned = 0;
-    private int totalGroups = 0;
-    private int totalGroupItems = 0;
-
-    public FileDupGroupUpdater(Executor mainThread) {
-        this.mainThread = mainThread;
+    FileDupGroupUpdater() {
+        this(200);
     }
 
-    public void whenGroupStarted(Runnable onGroupStarted) {
-        this.onGroupStarted = onGroupStarted;
+    FileDupGroupUpdater(int updateInterval) {
+        this.fileDupGrouper = new FileDupGrouper();
+        this.updateInterval = updateInterval;
     }
 
-    public void whenGroupUpdated(OnGroupUpdatedListener onGroupUpdated) {
-        this.onGroupUpdated = onGroupUpdated;
+    public void whenDupGroupStarted(Runnable onDupGroupStarted) {
+        this.onDupGroupStarted = onDupGroupStarted;
     }
 
-    public void whenGroupStopped(Runnable onGroupStopped) {
-        this.onGroupStopped = onGroupStopped;
+    public void whenDupGroupUpdated(OnDupGroupUpdatedListener onDupGroupUpdated) {
+        this.onDupGroupUpdated = onDupGroupUpdated;
+    }
+
+    public void whenDupGroupStopped(Runnable onDupGroupStopped) {
+        this.onDupGroupStopped = onDupGroupStopped;
     }
 
     public boolean start(String startDirectory) {
-        scanner.whenReached(path -> !path.endsWith("/"));
-        scanner.whenScanStarted(() -> mainThread.execute(() -> {
-            if (onGroupStarted != null) {
-                onGroupStarted.run();
+        if (!started.compareAndSet(false, true)) {
+            return false;
+        }
+
+        fileDupGrouper.whenReport((path, props) -> {
+            synchronized (lock) {
+                if (props == null) {
+                    scanned++;
+                } else {
+                    completed.add(props);
+                }
             }
-        }));
-        scanner.whenScanUpdated((scanned, matched) -> mainThread.execute(() -> {
-            totalScanned += scanned;
-            for (String path : matched) {
-                add(path);
-            }
-            reportUpdated();
-        }));
-        scanner.whenScanStopped(() -> mainThread.execute(() -> {
-            if (cancelled || !scanner.isCompleted()) {
-                reportStopped();
-            } else {
-                checksumTimer = new Timer();
-                checksumTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        mainThread.execute(() -> {
-                            if (cancelled) {
-                                return;
-                            }
-                            reportUpdated();
-                            if (pendingChecksums == 0) {
-                                clearChecksumTimer();
-                                reportStopped();
-                            }
-                        });
+        });
+
+        if (!fileDupGrouper.start(startDirectory)) {
+            return false;
+        }
+        startTimer();
+        return true;
+    }
+
+    private void startTimer() {
+        updateTimer = new Timer();
+        if (onDupGroupStarted != null) {
+            updateTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        onDupGroupStarted.run();
+                    } catch (Throwable ignored) {
                     }
-                }, 0, updateInterval);
-            }
-        }));
-        return scanner.start(startDirectory);
-    }
-
-    private void add(String path) {
-        if (allFileProperties.containsKey(path)) {
-            return;
+                }
+            }, 0);
         }
-
-        FileProperties fileProps = new FileProperties(path);
-        if (fileProps.size <= 0) {
-            return;
-        }
-        List<FileProperties> bySize = bySizeFileProperties.computeIfAbsent(fileProps.size, k -> new LinkedList<>());
-        bySize.add(fileProps);
-        allFileProperties.put(path, fileProps);
-
-        if (bySize.size() == 1) {
-            return; // checksum deferred until a sibling arrives
-        }
-
-        FileProperties first = bySize.get(0);
-        if (!first.checksumRequested) {
-            first.checksumRequested = true;
-            requestChecksum(first);
-        }
-        fileProps.checksumRequested = true;
-        requestChecksum(fileProps);
-    }
-
-    private void requestChecksum(FileProperties fileProps) {
-        pendingChecksums++;
-        try {
-            checksumThread.execute(() -> {
-                String md5sum = checksum(fileProps.path);
-                mainThread.execute(() -> {
-                    if (cancelled) {
-                        return;
+        updateTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                boolean running = fileDupGrouper.isRunning();
+                if (onDupGroupUpdated != null) {
+                    int nowScanned;
+                    List<FileDupGrouper.FileProperties> nowCompleted;
+                    synchronized (lock) {
+                        nowScanned = scanned;
+                        scanned = 0;
+                        nowCompleted = completed;
+                        completed = new LinkedList<>();
                     }
-                    fileProps.md5sum = md5sum;
-                    pendingChecksums--;
-                    if (md5sum != null && allFileProperties.get(fileProps.path) == fileProps) {
-                        addToByChecksumFileProperties(fileProps);
+                    try {
+                        onDupGroupUpdated.accept(nowScanned, nowCompleted);
+                    } catch (Throwable ignored) {
                     }
-                });
-            });
-        } catch (RejectedExecutionException ignored) {
-            pendingChecksums--;
-        }
-    }
-
-    private static String checksum(String path) {
-        try (FileInputStream inputStream = new FileInputStream(path)) {
-            return DigestCodec.md5().checksum(inputStream);
-        } catch (IOException ignored) {
-            return null;
-        }
-    }
-
-    private void addToByChecksumFileProperties(FileProperties fileProps) {
-        List<FileProperties> group = byChecksumFileProperties.computeIfAbsent(
-                fileProps.md5sum + "_" + fileProps.size, k -> new LinkedList<>());
-        group.add(fileProps);
-        if (group.size() == 2) {
-            totalGroups++;
-            totalGroupItems += 2;
-        } else if (group.size() > 2) {
-            totalGroupItems++;
-        }
-    }
-
-    private void removeFromByChecksumFileProperties(FileProperties fileProps) {
-        List<FileProperties> group = Objects.requireNonNull(
-                byChecksumFileProperties.get(fileProps.md5sum + "_" + fileProps.size));
-        group.remove(fileProps);
-        if (group.size() == 1) {
-            totalGroups--;
-            totalGroupItems -= 2;
-        } else if (group.size() >= 2) {
-            totalGroupItems--;
-        }
-    }
-
-    private void reportUpdated() {
-        if (onGroupUpdated != null) {
-            onGroupUpdated.accept(totalScanned, totalGroups, totalGroupItems);
-        }
-    }
-
-    private void reportStopped() {
-        if (onGroupStoppedCalled) {
-            return;
-        }
-        onGroupStoppedCalled = true;
-        if (onGroupStopped != null) {
-            onGroupStopped.run();
-        }
-    }
-
-    private void clearChecksumTimer() {
-        if (checksumTimer != null) {
-            checksumTimer.cancel();
-            checksumTimer.purge();
-            checksumTimer = null;
-        }
-    }
-
-    /**
-     * main thread only
-     */
-    public void remove(Iterable<String> paths) {
-        for (String path : paths) {
-            FileProperties fileProps = allFileProperties.remove(path);
-            if (fileProps == null) {
-                continue;
+                }
+                if (!running) {
+                    clearTimer();
+                    if (onDupGroupStopped != null) {
+                        try {
+                            onDupGroupStopped.run();
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                }
             }
-            if (fileProps.md5sum != null) {
-                removeFromByChecksumFileProperties(fileProps);
-            }
-            List<FileProperties> bySize = Objects.requireNonNull(bySizeFileProperties.get(fileProps.size));
-            bySize.remove(fileProps);
-            if (bySize.isEmpty()) {
-                bySizeFileProperties.remove(fileProps.size);
-            }
-        }
-        reportUpdated();
+        }, updateInterval, updateInterval);
     }
 
-    /**
-     * main thread only
-     */
-    public List<List<FileProperties>> getDupGroups() {
-        return byChecksumFileProperties.values().stream().filter(g -> g.size() > 1)
-                .collect(Collectors.toList());
+    private void clearTimer() {
+        if (updateTimer != null) {
+            updateTimer.cancel();
+            updateTimer.purge();
+            updateTimer = null;
+        }
     }
 
     public boolean isRunning() {
-        return !cancelled && (scanner.isRunning() || checksumTimer != null);
+        return fileDupGrouper.isRunning();
     }
 
     public boolean isCompleted() {
-        return scanner.isCompleted() && onGroupStoppedCalled;
+        return fileDupGrouper.isCompleted();
     }
 
-    /**
-     * main thread only
-     */
     public void cancel() {
-        cancelled = true;
-        clearChecksumTimer();
-        checksumThread.shutdownNow();
-        scanner.cancel();
-        reportStopped();
+        fileDupGrouper.cancel();
     }
 
     public boolean isCancelled() {
-        return cancelled;
+        return fileDupGrouper.isCancelled();
     }
 
-    public static class FileProperties {
-        String path;
-        long size;
-        String md5sum;
-        private boolean checksumRequested;
-
-        FileProperties(String path) {
-            this.path = path;
-            try {
-                this.size = Files.size(Paths.get(path));
-            } catch (IOException e) {
-                this.size = -1;
-            }
-        }
-    }
-
-    public interface OnGroupUpdatedListener {
-
-        void accept(int totalScanned, int totalGroups, int totalGroupItems);
+    public interface OnDupGroupUpdatedListener {
+        void accept(int scanned, List<FileDupGrouper.FileProperties> completed);
     }
 }
