@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.FileDupGrouper.FileProperties;
+import pd.droidapp.fmgr.util.DedupWorker.FileProperties;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.animateCollapsed;
@@ -49,7 +49,7 @@ public class DedupPopup extends ProcessingPopup {
     private Consumer<Collection<File>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
-    private FileDupGroupUpdater dupGrouper;
+    private DedupWorker worker;
     private final Collection<File> removedFiles = new LinkedList<>();
 
     private final Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
@@ -74,13 +74,13 @@ public class DedupPopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !dupGrouper.isCancelled(), v -> {
-            if (dupGrouper != null) {
-                dupGrouper.cancel();
+        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
+            if (worker != null) {
+                worker.cancel();
             }
             updateButtons();
         });
-        buttonBar.addButton(R.string.close, () -> dupGrouper != null && !dupGrouper.isRunning(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isRunning(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initSelectionBar() {
@@ -150,17 +150,17 @@ public class DedupPopup extends ProcessingPopup {
 
     @Override
     protected boolean isProcessing() {
-        return dupGrouper != null && dupGrouper.isRunning();
+        return worker != null && worker.isRunning();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
-        if (dupGrouper == null || !dupGrouper.isRunning()) {
+        if (worker == null || !worker.isRunning()) {
             onStopped.run();
             return;
         }
-        dupGrouper.whenDupGroupStopped(onStopped);
-        dupGrouper.cancel();
+        worker.whenStopped(onStopped);
+        worker.cancel();
     }
 
     @Override
@@ -192,17 +192,17 @@ public class DedupPopup extends ProcessingPopup {
     }
 
     private void doScan() {
-        dupGrouper = new FileDupGroupUpdater();
+        worker = new DedupWorker();
         totalScanned = 0;
         byChecksum.clear();
         byPath.clear();
 
-        dupGrouper.whenDupGroupStarted(() -> containerView.post(() -> {
+        worker.whenStarted(() -> containerView.post(() -> {
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
         }));
-        dupGrouper.whenDupGroupUpdated((scanned, completed) -> containerView.post(() -> {
+        worker.whenUpdated((scanned, completed) -> containerView.post(() -> {
             totalScanned += scanned;
             for (FileProperties props : completed) {
                 byChecksum.computeIfAbsent(props.md5sum, k -> new LinkedList<>()).add(props);
@@ -210,15 +210,15 @@ public class DedupPopup extends ProcessingPopup {
             }
             refreshGroups();
         }));
-        dupGrouper.whenDupGroupStopped(() -> containerView.post(() -> {
+        worker.whenStopped(() -> containerView.post(() -> {
             updateButtons();
-            if (dupGrouper.isCompleted()) {
+            if (worker.isCompleted()) {
                 statusBar.markDone();
             } else {
                 statusBar.markStopped();
             }
         }));
-        dupGrouper.start(startDirectory.getPath());
+        worker.start(startDirectory.getPath());
         updateButtons();
     }
 
