@@ -43,8 +43,8 @@ public class FileScanner {
     }
 
     private void doScan(String startDirectory) {
-        FileOps.singleton.listDirectory(startDirectory, maxDepth, cancelled, (action, src, dst, succeeded) -> {
-            if (onScanAction != null) {
+        FileOps.singleton.listDirectory(startDirectory, maxDepth, true, cancelled, (action, src, dst, succeeded) -> {
+            if (action == FileOps.Action.MEET && onScanAction != null) {
                 onScanAction.accept(src);
             }
         });

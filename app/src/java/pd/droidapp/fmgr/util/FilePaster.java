@@ -25,14 +25,20 @@ public class FilePaster {
 
     private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
         switch (action) {
-            case DELETE:
-                callback(PasteAction.DELETE, src, dst, succeeded);
+            case LIST:
+                // an unreadable directory aborts the copy without further CREATE events
+                if (succeeded != null && !succeeded) {
+                    callback(PasteAction.DELETE, Util.stripTrailingSlash(src), null, false);
+                }
                 break;
-            case COPY:
-                callback(PasteAction.ADD, src, dst, succeeded);
+            case CREATE:
+                callback(PasteAction.ADD, src, Util.stripTrailingSlash(dst), succeeded);
                 break;
-            case RENAME:
-                callback(PasteAction.RENAME, src, dst, succeeded);
+            case REMOVE:
+                callback(PasteAction.DELETE, Util.stripTrailingSlash(src), dst, succeeded);
+                break;
+            case MOVE:
+                callback(PasteAction.RENAME, Util.stripTrailingSlash(src), Util.stripTrailingSlash(dst), succeeded);
                 break;
             default:
                 break;
@@ -116,8 +122,12 @@ public class FilePaster {
     // `dst` must be a directory
     private void copyMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
         List<String> children = new LinkedList<>();
-        if (!FileOps.singleton.listDirectory(src.toString(), 1, cancelled,
-                (action, s, to, succeeded) -> children.add(s))) {
+        if (!FileOps.singleton.listDirectory(src.toString(), 1, true, cancelled,
+                (action, from, to, succeeded) -> {
+                    if (action == FileOps.Action.MEET) {
+                        children.add(from);
+                    }
+                })) {
             return;
         }
         for (String child : children) {
@@ -178,12 +188,12 @@ public class FilePaster {
         if (Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS)) {
             return FileOps.singleton.copyDirectory(src.toString(), dst.toString(), cancelled, onAction);
         }
-        return FileOps.singleton.copyFile(src.toString(), dst.toString(), cancelled, onAction);
+        return FileOps.singleton.copyFile(src.toString(), dst.toString(), true, cancelled, onAction);
     }
 
     // `dst` must not exist
     private boolean mv(Path src, Path dst) {
-        if (FileOps.singleton.rename(src.toString(), dst.toString(), onAction)) {
+        if (FileOps.singleton.move(src.toString(), dst.toString(), onAction)) {
             return true;
         }
         return cp(src, dst) && rm(src);
@@ -191,9 +201,9 @@ public class FilePaster {
 
     private boolean rm(Path path) {
         if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
-            return FileOps.singleton.deleteDirectory(path.toString(), true, false, cancelled, onAction);
+            return FileOps.singleton.removeDirectory(path.toString(), true, false, cancelled, onAction);
         }
-        return FileOps.singleton.deleteFile(path.toString(), onAction);
+        return FileOps.singleton.removeFile(path.toString(), onAction);
     }
 
     private boolean isSamePath(Path p1, Path p2) {
@@ -257,8 +267,12 @@ public class FilePaster {
 
     private void cutMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
         List<String> children = new LinkedList<>();
-        if (!FileOps.singleton.listDirectory(src.toString(), 1, cancelled,
-                (action, s, to, succeeded) -> children.add(s))) {
+        if (!FileOps.singleton.listDirectory(src.toString(), 1, true, cancelled,
+                (action, s, to, succeeded) -> {
+                    if (action == FileOps.Action.MEET) {
+                        children.add(s);
+                    }
+                })) {
             return;
         }
         for (String child : children) {
@@ -270,9 +284,13 @@ public class FilePaster {
         }
         // remove src only if empty: skipped/failed children must stay
         List<String> remaining = new LinkedList<>();
-        if (FileOps.singleton.listDirectory(src.toString(), 1, cancelled,
-                (action, s, to, succeeded) -> remaining.add(s)) && remaining.isEmpty()) {
-            FileOps.singleton.deleteDirectory(src.toString(), false, false, cancelled, onAction);
+        if (FileOps.singleton.listDirectory(src.toString(), 1, true, cancelled,
+                (action, s, to, succeeded) -> {
+                    if (action == FileOps.Action.MEET) {
+                        remaining.add(s);
+                    }
+                }) && remaining.isEmpty()) {
+            FileOps.singleton.removeDirectory(src.toString(), false, false, cancelled, onAction);
         }
     }
 

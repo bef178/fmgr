@@ -19,8 +19,13 @@ public class FileRemover {
 
     private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
         switch (action) {
-            case DELETE:
-                callback(DeleteAction.DELETE, src, succeeded);
+            case LIST:
+                if (succeeded != null && !succeeded) {
+                    callback(DeleteAction.DELETE, Util.stripTrailingSlash(src), false);
+                }
+                break;
+            case REMOVE:
+                callback(DeleteAction.DELETE, Util.stripTrailingSlash(src), succeeded);
                 break;
             default:
                 break;
@@ -64,9 +69,9 @@ public class FileRemover {
 
     private void doRemove(String src, boolean prune) {
         if (Files.isDirectory(Paths.get(src), LinkOption.NOFOLLOW_LINKS)) {
-            FileOps.singleton.deleteDirectory(src, true, prune, cancelled, onAction);
+            FileOps.singleton.removeDirectory(src, true, prune, cancelled, onAction);
         } else {
-            FileOps.singleton.deleteFile(src, onAction);
+            FileOps.singleton.removeFile(src, onAction);
         }
     }
 
