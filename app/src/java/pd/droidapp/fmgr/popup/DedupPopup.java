@@ -206,8 +206,14 @@ public class DedupPopup extends ProcessingPopup {
         worker.whenUpdated((scanned, completed) -> containerView.post(() -> {
             totalScanned += scanned;
             for (FileProperties props : completed) {
-                byChecksum.computeIfAbsent(props.sha256sum, k -> new LinkedList<>()).add(props);
+                List<FileProperties> group = byChecksum.computeIfAbsent(props.sha256sum, k -> new LinkedList<>());
+                group.add(props);
                 byPath.put(props.path, props);
+                if (group.size() == 2) {
+                    // keep the new visible group appended not inserted
+                    byChecksum.remove(props.sha256sum);
+                    byChecksum.put(props.sha256sum, group);
+                }
             }
             refreshGroups();
         }));
@@ -236,7 +242,7 @@ public class DedupPopup extends ProcessingPopup {
         itemsAdapter.load(buildFileGroups());
         selectionBar.invalidate();
         statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
-                totalScanned, totalGroupItems, totalGroups));
+                totalScanned, totalGroups, totalGroupItems));
     }
 
     private List<FileGroup> buildFileGroups() {
