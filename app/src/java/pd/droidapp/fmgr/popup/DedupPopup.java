@@ -119,7 +119,7 @@ public class DedupPopup extends ProcessingPopup {
                     if (props == null) {
                         continue;
                     }
-                    List<FileProperties> group = byChecksum.get(props.md5sum);
+                    List<FileProperties> group = byChecksum.get(props.sha256sum);
                     if (group != null) {
                         group.remove(props);
                     }
@@ -206,7 +206,7 @@ public class DedupPopup extends ProcessingPopup {
         worker.whenUpdated((scanned, completed) -> containerView.post(() -> {
             totalScanned += scanned;
             for (FileProperties props : completed) {
-                byChecksum.computeIfAbsent(props.md5sum, k -> new LinkedList<>()).add(props);
+                byChecksum.computeIfAbsent(props.sha256sum, k -> new LinkedList<>()).add(props);
                 byPath.put(props.path, props);
             }
             refreshGroups();
@@ -246,7 +246,7 @@ public class DedupPopup extends ProcessingPopup {
                 FileProperties first = group.get(0);
                 newFileGroups.add(new FileGroup(
                         first.size,
-                        first.md5sum,
+                        first.sha256sum,
                         group.stream().map(props -> new File(props.path)).collect(Collectors.toList())));
             }
         }
@@ -304,12 +304,12 @@ public class DedupPopup extends ProcessingPopup {
     private static class FileGroup {
 
         final long size;
-        final String md5sum;
+        final String sha256sum;
         private final List<File> files;
 
-        FileGroup(long size, String md5sum, List<File> files) {
+        FileGroup(long size, String sha256sum, List<File> files) {
             this.size = size;
-            this.md5sum = md5sum;
+            this.sha256sum = sha256sum;
             this.files = new LinkedList<>(files);
         }
 
@@ -318,7 +318,7 @@ public class DedupPopup extends ProcessingPopup {
         }
 
         public String key() {
-            return md5sum;
+            return sha256sum;
         }
     }
 
