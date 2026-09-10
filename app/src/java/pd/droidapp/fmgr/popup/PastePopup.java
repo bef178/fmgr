@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
@@ -78,6 +79,10 @@ public class PastePopup extends ProcessingPopup {
 
     private void initConflictResolution() {
         resolutionTitleTextView.setText(R.string.select_resolution);
+
+        boolean inPlacePaste = srcFiles.stream()
+                .allMatch(file -> Objects.equals(file.getParentFile(), dstDirectory));
+        mergeDirectoriesCheckBox.setChecked(!inPlacePaste);
     }
 
     private void initProgress() {
