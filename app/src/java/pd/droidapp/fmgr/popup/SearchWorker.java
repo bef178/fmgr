@@ -1,7 +1,7 @@
 package pd.droidapp.fmgr.popup;
 
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -10,7 +10,11 @@ import java.util.List;
 import java.util.Set;
 
 import pd.util.FileOps;
+import pd.util.FileStat;
 import pd.util.PathOps;
+
+import static pd.droidapp.fmgr.util.Util.encode;
+import static pd.util.Int8ArrayExtension.indexOf;
 
 class SearchWorker extends ProcessingWorker {
 
@@ -51,20 +55,6 @@ class SearchWorker extends ProcessingWorker {
                 });
     }
 
-    private void scanContents(String startDirectory, String query) {
-        FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
-                (action, src, dst, succeeded) -> {
-                    if (action == FileOps.Action.MEET) {
-                        boolean hit = !src.endsWith("/")
-                                && !allNameMatched.contains(src)
-                                && !FileOps.singleton.stat(src).isSymlink()
-                                && (isTextFile(src) || isSmallAnonymousFile(src))
-                                && fileContainsText(src, query);
-                        accumulate(src, hit);
-                    }
-                });
-    }
-
     private void accumulate(String path, boolean hit) {
         synchronized (lock) {
             scanned++;
@@ -74,37 +64,67 @@ class SearchWorker extends ProcessingWorker {
         }
     }
 
+    private void scanContents(String startDirectory, String query) {
+        final String[] charsets = {"UTF-8", "GB18030"};
+        List<byte[]> needles = encode(query, charsets);
+        if (needles.isEmpty()) {
+            return;
+        }
+        byte[] buffer = new byte[256 * 1024]; // avoid to allocate for every file
+        FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
+                (action, src, dst, succeeded) -> {
+                    if (action == FileOps.Action.MEET) {
+                        boolean hit = !src.endsWith("/")
+                                && !allNameMatched.contains(src)
+                                && searchSmallFileOrTextFile(src, needles, buffer);
+                        accumulate(src, hit);
+                    }
+                });
+    }
+
+    private boolean searchSmallFileOrTextFile(String path, List<byte[]> needles, byte[] buffer) {
+        FileStat srcStat = FileOps.singleton.stat(path);
+        if (srcStat.isFile(false) && (srcStat.size <= 1024 * 1024 || isTextFile(path))) {
+            return searchStreamContent(path, needles, buffer);
+        }
+        return false;
+    }
+
     private boolean isTextFile(String path) {
-        String lowerName = Paths.get(path).getFileName().toString().toLowerCase();
-        return lowerName.endsWith(".txt") || lowerName.endsWith(".md") || lowerName.endsWith(".json") ||
-                lowerName.endsWith(".xml") || lowerName.endsWith(".html") || lowerName.endsWith(".css") ||
-                lowerName.endsWith(".js") || lowerName.endsWith(".java") || lowerName.endsWith(".kt") ||
-                lowerName.endsWith(".py") || lowerName.endsWith(".c") || lowerName.endsWith(".cpp") ||
-                lowerName.endsWith(".h") || lowerName.endsWith(".hpp") || lowerName.endsWith(".sh") ||
-                lowerName.endsWith(".yaml") || lowerName.endsWith(".yml") || lowerName.endsWith(".properties") ||
-                lowerName.endsWith(".gradle") || lowerName.endsWith(".csv") || lowerName.endsWith(".log");
-    }
-
-    private boolean isSmallAnonymousFile(String path) {
-        if (PathOps.singleton.basename(path).startsWith(".")) {
+        String lowerBasename = PathOps.singleton.basename(path).toLowerCase();
+        if (lowerBasename.startsWith(".")) {
             return false;
         }
-        try {
-            return Files.size(Paths.get(path)) < 1024 * 1024;
-        } catch (IOException ignored) {
-            return false;
-        }
+        return lowerBasename.endsWith(".txt") || lowerBasename.endsWith(".md") || lowerBasename.endsWith(".json") ||
+                lowerBasename.endsWith(".xml") || lowerBasename.endsWith(".html") || lowerBasename.endsWith(".css") ||
+                lowerBasename.endsWith(".js") || lowerBasename.endsWith(".java") || lowerBasename.endsWith(".kt") ||
+                lowerBasename.endsWith(".py") || lowerBasename.endsWith(".c") || lowerBasename.endsWith(".cpp") ||
+                lowerBasename.endsWith(".h") || lowerBasename.endsWith(".hpp") || lowerBasename.endsWith(".sh") ||
+                lowerBasename.endsWith(".yaml") || lowerBasename.endsWith(".yml") || lowerBasename.endsWith(".properties") ||
+                lowerBasename.endsWith(".gradle") || lowerBasename.endsWith(".csv") || lowerBasename.endsWith(".log");
     }
 
-    private boolean fileContainsText(String path, String query) {
-        try (BufferedReader reader = Files.newBufferedReader(Paths.get(path))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
+    private boolean searchStreamContent(String path, List<byte[]> needles, byte[] buffer) {
+        int carryLength = needles.stream().mapToInt(needle -> needle.length).max().orElse(0);
+        try (InputStream inputStream = Files.newInputStream(Paths.get(path))) {
+            int startIndex = 0;
+            int nRead;
+            while ((nRead = inputStream.read(buffer, startIndex, buffer.length - startIndex)) > 0) {
                 if (isCancelled()) {
                     return false;
                 }
-                if (line.contains(query)) {
-                    return true;
+                int endIndex = startIndex + nRead;
+                for (byte[] needle : needles) {
+                    if (indexOf(buffer, 0, endIndex, needle, 0, needle.length) >= 0) {
+                        return true;
+                    }
+                }
+                if (endIndex > carryLength) {
+                    // keep the tail
+                    System.arraycopy(buffer, endIndex - carryLength, buffer, 0, carryLength);
+                    startIndex = carryLength;
+                } else {
+                    startIndex = endIndex;
                 }
             }
         } catch (IOException ignored) {

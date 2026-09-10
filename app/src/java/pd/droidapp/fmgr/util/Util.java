@@ -10,8 +10,17 @@ import android.view.View;
 import android.widget.ImageView;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Util {
 
@@ -150,5 +159,36 @@ public class Util {
             return path.substring(0, path.length() - 1);
         }
         return path;
+    }
+
+    public static int bitCeil(int n) {
+        if (n <= 0) {
+            return 1;
+        }
+        return 1 << (32 - Integer.numberOfLeadingZeros(n - 1));
+    }
+
+    public static List<byte[]> encode(String s, String[] charsets) {
+        return Arrays.stream(charsets)
+                .map(charset -> encode(s, charset))
+                .filter(Objects::nonNull)
+                .map(ByteBuffer::wrap)
+                .distinct()
+                .map(ByteBuffer::array)
+                .collect(Collectors.toList());
+    }
+
+    public static byte[] encode(String s, String charset) {
+        try {
+            ByteBuffer encoded = Charset.forName(charset).newEncoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .encode(CharBuffer.wrap(s));
+            byte[] bytes = new byte[encoded.remaining()];
+            encoded.get(bytes);
+            return bytes;
+        } catch (CharacterCodingException | IllegalArgumentException ignored) {
+            return null;
+        }
     }
 }
