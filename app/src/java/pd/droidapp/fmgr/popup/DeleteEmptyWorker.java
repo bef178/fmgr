@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import pd.util.FileOps;
+import pd.util.FileStat;
 
 class DeleteEmptyWorker extends ProcessingWorker {
 
@@ -22,13 +23,13 @@ class DeleteEmptyWorker extends ProcessingWorker {
     }
 
     public boolean start(String startDirectory) {
-        return start(() -> FileOps.singleton.listDirectory(startDirectory, 32, true, cancelRequested,
+        return start(() -> FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
-                        boolean acceptable = isEmptyDirectoryOrZeroLengthFile(src);
+                        boolean hit = isEmptyDirectoryOrZeroLengthFileOrDanglingSymlink(src);
                         synchronized (lock) {
                             scanned++;
-                            if (acceptable) {
+                            if (hit) {
                                 matched.add(src);
                             }
                         }
@@ -36,19 +37,20 @@ class DeleteEmptyWorker extends ProcessingWorker {
                 }));
     }
 
-    private boolean isEmptyDirectoryOrZeroLengthFile(String path) {
-        Path entry = Paths.get(path);
-        try {
-            if (path.endsWith("/")) {
-                try (DirectoryStream<Path> children = Files.newDirectoryStream(entry)) {
-                    return !children.iterator().hasNext();
-                }
-            }
-            return Files.size(entry) == 0;
-        } catch (IOException ignored) {
-            // an unreadable or vanished entry counts as empty
+    private boolean isEmptyDirectoryOrZeroLengthFileOrDanglingSymlink(String path) {
+        FileStat stat = FileOps.singleton.stat(path);
+        if (stat.isDanglingSymlink()) {
             return true;
         }
+        if (stat.isDirectory(false)) {
+            try (DirectoryStream<Path> children = Files.newDirectoryStream(Paths.get(path))) {
+                return !children.iterator().hasNext();
+            } catch (IOException ignored) {
+                // an unreadable directory counts as empty
+                return true;
+            }
+        }
+        return stat.size != null && stat.size == 0;
     }
 
     @Override

@@ -38,10 +38,11 @@ class SearchWorker extends ProcessingWorker {
     }
 
     private void scanNames(String startDirectory, String query) {
-        FileOps.singleton.listDirectory(startDirectory, 32, true, cancelRequested,
+        FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
-                        boolean hit = PathOps.singleton.basename(src).contains(query);
+                        boolean hit = PathOps.singleton.basename(src).contains(query)
+                                && !FileOps.singleton.stat(src).isSymlink();
                         if (hit) {
                             allNameMatched.add(src);
                         }
@@ -51,11 +52,12 @@ class SearchWorker extends ProcessingWorker {
     }
 
     private void scanContents(String startDirectory, String query) {
-        FileOps.singleton.listDirectory(startDirectory, 32, true, cancelRequested,
+        FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         boolean hit = !src.endsWith("/")
                                 && !allNameMatched.contains(src)
+                                && !FileOps.singleton.stat(src).isSymlink()
                                 && (isTextFile(src) || isSmallAnonymousFile(src))
                                 && fileContainsText(src, query);
                         accumulate(src, hit);

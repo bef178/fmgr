@@ -2,8 +2,6 @@ package pd.droidapp.fmgr.popup;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -13,6 +11,7 @@ import java.util.Set;
 
 import pd.util.DigestCodec;
 import pd.util.FileOps;
+import pd.util.FileStat;
 
 class DedupWorker extends ProcessingWorker {
 
@@ -34,7 +33,7 @@ class DedupWorker extends ProcessingWorker {
     }
 
     public boolean start(String startDirectory) {
-        return start(() -> FileOps.singleton.listDirectory(startDirectory, 32, true, cancelRequested,
+        return start(() -> FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         synchronized (lock) {
@@ -48,15 +47,11 @@ class DedupWorker extends ProcessingWorker {
     }
 
     private void addFile(String path) {
-        long size;
-        try {
-            size = Files.size(Paths.get(path));
-        } catch (IOException ignored) {
+        FileStat stat = FileOps.singleton.stat(path);
+        if (stat.isSymlink() || stat.size == null || stat.size <= 0) {
             return;
         }
-        if (size <= 0) {
-            return;
-        }
+        long size = stat.size;
         String first = firstBySize.putIfAbsent(size, path);
         if (first == null) {
             return;

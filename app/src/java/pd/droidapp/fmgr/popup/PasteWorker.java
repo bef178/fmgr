@@ -140,7 +140,7 @@ class PasteWorker extends ProcessingWorker {
 
     private List<String> listDirectory(Path src) {
         List<String> children = new LinkedList<>();
-        if (!FileOps.singleton.listDirectory(src.toString(), 1, true, cancelRequested,
+        if (!FileOps.singleton.listDirectory(src.toString(), 1, false, cancelRequested,
                 (action, from, to, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         children.add(from);
@@ -197,7 +197,7 @@ class PasteWorker extends ProcessingWorker {
         if (Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS)) {
             return FileOps.singleton.copyDirectory(src.toString(), dst.toString(), cancelRequested, onAction);
         }
-        return FileOps.singleton.copyFile(src.toString(), dst.toString(), true, cancelRequested, onAction);
+        return FileOps.singleton.copyFile(src.toString(), dst.toString(), false, cancelRequested, onAction);
     }
 
     // `dst` must not exist
@@ -298,7 +298,7 @@ class PasteWorker extends ProcessingWorker {
         }
         // remove src iff empty: skipped/failed children must stay
         List<String> remaining = new LinkedList<>();
-        if (FileOps.singleton.listDirectory(src.toString(), 1, true, cancelRequested,
+        if (FileOps.singleton.listDirectory(src.toString(), 1, false, cancelRequested,
                 (action, s, to, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         remaining.add(s);
