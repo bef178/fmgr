@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.popup.DedupWorker.FileProperties;
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
 
@@ -250,6 +250,9 @@ public class DedupPopup extends ProcessingPopup {
         for (List<FileProperties> group : byChecksum.values()) {
             if (group.size() > 1) {
                 FileProperties first = group.get(0);
+                if (first.size == null) {
+                    continue;
+                }
                 newFileGroups.add(new FileGroup(
                         first.size,
                         first.sha256sum,

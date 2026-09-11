@@ -26,7 +26,7 @@ public class Util {
 
     public static String getSizeString(long size) {
         if (size < 0) {
-            return "Error";
+            throw new IllegalArgumentException("E: `size` must not be negative");
         }
         if (size < 1024) {
             return size + " B";

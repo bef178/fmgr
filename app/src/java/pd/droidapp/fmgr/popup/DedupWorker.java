@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.DigestCodec;
 import pd.util.FileOps;
 import pd.util.FileStat;
@@ -94,19 +95,6 @@ class DedupWorker extends ProcessingWorker {
                 onUpdated.accept(nowScanned, nowCompleted);
             } catch (Throwable ignored) {
             }
-        }
-    }
-
-    public static class FileProperties {
-
-        public final String path;
-        public final long size;
-        public final String sha256sum;
-
-        FileProperties(String path, long size, String sha256sum) {
-            this.path = path;
-            this.size = size;
-            this.sha256sum = sha256sum;
         }
     }
 

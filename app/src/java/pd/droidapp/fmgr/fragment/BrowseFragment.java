@@ -47,6 +47,7 @@ import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.Clipboard;
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.droidapp.fmgr.util.Util;
 
@@ -59,7 +60,7 @@ public class BrowseFragment extends Fragment {
     private ActionBar actionBar;
     private SelectionBar selectionBar;
     private RecyclerView itemsView;
-    private FileItemsAdapter itemsAdapter;
+    private ItemsAdapter itemsAdapter;
 
     private final Stack<File> backStack = new Stack<>();
     private final Stack<File> forwardStack = new Stack<>();
@@ -107,7 +108,7 @@ public class BrowseFragment extends Fragment {
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
-        itemsAdapter = new FileItemsAdapter();
+        itemsAdapter = new ItemsAdapter();
 
         itemsView = view.findViewById(R.id.file_list);
         itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -594,7 +595,7 @@ public class BrowseFragment extends Fragment {
         }
     }
 
-    private class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.FileItemViewHolder> {
+    private class ItemsAdapter extends RecyclerView.Adapter<ItemsAdapter.ItemViewHolder> {
 
         private final Comparator<File> fileComparator = (f1, f2) -> {
             if (f1.isDirectory() && !f2.isDirectory()) {
@@ -606,16 +607,16 @@ public class BrowseFragment extends Fragment {
             }
         };
 
-        private final List<FileItem> fileItems = new LinkedList<>();
+        private final List<FileProperties> items = new LinkedList<>();
         private final Progressor<File> progressor = new Progressor<>();
 
         public List<File> getFiles() {
-            return fileItems.stream().map(x -> x.file).collect(Collectors.toList());
+            return items.stream().map(x -> new File(x.path)).collect(Collectors.toList());
         }
 
         public int indexOf(File file) {
-            for (int i = 0; i < fileItems.size(); i++) {
-                if (fileItems.get(i).file.equals(file)) {
+            for (int i = 0; i < items.size(); i++) {
+                if (items.get(i).path.equals(file.getPath())) {
                     return i;
                 }
             }
@@ -628,9 +629,9 @@ public class BrowseFragment extends Fragment {
                 if (position >= 0) {
                     RecyclerView.ViewHolder viewHolder = itemsView.findViewHolderForAdapterPosition(position);
                     if (viewHolder != null) {
-                        FileItem item = fileItems.get(position);
-                        if (item.getFile().equals(file)) {
-                            applyHighlightEffect(((FileItemViewHolder) viewHolder).fileHighlightView, velocity);
+                        FileProperties item = items.get(position);
+                        if (item.path.equals(file.getPath())) {
+                            applyHighlightEffect(((ItemViewHolder) viewHolder).fileHighlightView, velocity);
                         }
                     }
                 }
@@ -672,13 +673,13 @@ public class BrowseFragment extends Fragment {
         }
 
         public void addAll(Collection<File> files) {
-            List<FileItem> oldItems = new LinkedList<>(fileItems);
+            List<FileProperties> oldItems = new LinkedList<>(items);
             for (File file : files) {
-                if (!file.getName().startsWith(".") && fileItems.stream().noneMatch(item -> item.file.equals(file))) {
-                    fileItems.add(new FileItem(file));
+                if (!file.getName().startsWith(".") && items.stream().noneMatch(item -> item.path.equals(file.getPath()))) {
+                    items.add(new FileProperties(file.getPath()));
                 }
             }
-            fileItems.sort((a, b) -> fileComparator.compare(a.file, b.file));
+            items.sort((a, b) -> fileComparator.compare(new File(a.path), new File(b.path)));
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
                 @Override
                 public int getOldListSize() {
@@ -687,12 +688,12 @@ public class BrowseFragment extends Fragment {
 
                 @Override
                 public int getNewListSize() {
-                    return fileItems.size();
+                    return items.size();
                 }
 
                 @Override
                 public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                    return oldItems.get(oldItemPosition).file.equals(fileItems.get(newItemPosition).file);
+                    return oldItems.get(oldItemPosition).path.equals(items.get(newItemPosition).path);
                 }
 
                 @Override
@@ -703,8 +704,8 @@ public class BrowseFragment extends Fragment {
         }
 
         public void removeAll(Collection<File> files) {
-            List<FileItem> oldItems = new LinkedList<>(fileItems);
-            fileItems.removeIf(item -> files.contains(item.file));
+            List<FileProperties> oldItems = new LinkedList<>(items);
+            items.removeIf(item -> files.contains(new File(item.path)));
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
                 @Override
                 public int getOldListSize() {
@@ -713,12 +714,12 @@ public class BrowseFragment extends Fragment {
 
                 @Override
                 public int getNewListSize() {
-                    return fileItems.size();
+                    return items.size();
                 }
 
                 @Override
                 public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                    return oldItems.get(oldItemPosition).file.equals(fileItems.get(newItemPosition).file);
+                    return oldItems.get(oldItemPosition).path.equals(items.get(newItemPosition).path);
                 }
 
                 @Override
@@ -729,12 +730,12 @@ public class BrowseFragment extends Fragment {
         }
 
         public void invalidate(File directory) {
-            fileItems.clear();
-            fileItems.addAll(getFileItems(directory));
+            items.clear();
+            items.addAll(getFileItems(directory));
             notifyDataSetChanged();
         }
 
-        private List<FileItem> getFileItems(File directory) {
+        private List<FileProperties> getFileItems(File directory) {
             if (directory == null) {
                 return new LinkedList<>();
             }
@@ -748,32 +749,27 @@ public class BrowseFragment extends Fragment {
             return Arrays.stream(files)
                     .filter(f -> !f.getName().startsWith("."))
                     .sorted(fileComparator)
-                    .map(FileItem::new)
+                    .map(f -> new FileProperties(f.getPath()))
                     .collect(Collectors.toList());
         }
 
         @NonNull
         @Override
-        public FileItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        public ItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             Context context = parent.getContext();
             View view = LayoutInflater.from(context).inflate(R.layout.file_item, parent, false);
-            return new FileItemViewHolder(view);
+            return new ItemViewHolder(view);
         }
 
         @Override
-        public void onBindViewHolder(@NonNull FileItemViewHolder viewHolder, int position) {
-            FileItem item = fileItems.get(position);
-            File file = item.getFile();
+        public void onBindViewHolder(@NonNull ItemViewHolder viewHolder, int position) {
+            FileProperties item = items.get(position);
+            File file = new File(item.path);
 
             viewHolder.fileNameTextView.setText(file.getName());
-            if (file.isDirectory()) {
-                viewHolder.fileIconImageView.setImageResource(R.drawable.i_directory_24);
-                viewHolder.fileDetailsTextView.setText(getDirectoryDetailsString(item.getNumOrdinaryItems(), item.getNumHiddenItems()));
-            } else {
-                viewHolder.fileIconImageView.setImageResource(R.drawable.i_file_24);
-                String sizeText = getSizeString(item.getSize());
-                viewHolder.fileDetailsTextView.setText(sizeText);
-            }
+            viewHolder.fileIconImageView.setImageResource(
+                    file.isDirectory() ? R.drawable.i_directory_24 : R.drawable.i_file_24);
+            viewHolder.fileDetailsTextView.setText(getItemDetailsString(item));
 
             if (selectionBar.isSelected(file)) {
                 viewHolder.fileSelectedImageView.setVisibility(View.VISIBLE);
@@ -812,8 +808,8 @@ public class BrowseFragment extends Fragment {
         }
 
         private void invalidateItem(File item) {
-            for (int i = 0; i < fileItems.size(); i++) {
-                if (fileItems.get(i).getFile().equals(item)) {
+            for (int i = 0; i < items.size(); i++) {
+                if (items.get(i).path.equals(item.getPath())) {
                     notifyItemChanged(i);
                     break;
                 }
@@ -826,37 +822,36 @@ public class BrowseFragment extends Fragment {
             }
         }
 
-        private String getDirectoryDetailsString(int numOrdinary, int numHidden) {
-            if (numOrdinary < 0 || numHidden < 0) {
-                return "Error";
-            }
-
-            String ordinaryItemsString;
-            {
-                if (numOrdinary == 0) {
-                    ordinaryItemsString = null;
-                } else if (numOrdinary == 1) {
-                    ordinaryItemsString = numOrdinary + " item";
-                } else {
-                    ordinaryItemsString = numOrdinary + " items";
+        private String getItemDetailsString(FileProperties item) {
+            if (item.size == null) {
+                // directory
+                if (item.numOrdinaryItems == null || item.numHiddenItems == null) {
+                    return getString(R.string.error);
                 }
-            }
-
-            String hiddenItemsString = numHidden == 0 ? null : numHidden + " hidden";
-
-            if (ordinaryItemsString == null) {
-                return hiddenItemsString == null ? "Empty" : hiddenItemsString;
+                if (item.numOrdinaryItems == 0) {
+                    if (item.numHiddenItems == 0) {
+                        return getString(R.string.empty);
+                    } else {
+                        return getString(R.string.x_hidden, item.numHiddenItems);
+                    }
+                } else {
+                    if (item.numHiddenItems == 0) {
+                        return getString(R.string.x_ordinary, item.numOrdinaryItems);
+                    } else {
+                        return getString(R.string.x_ordinary_y_hidden, item.numOrdinaryItems, item.numHiddenItems);
+                    }
+                }
             } else {
-                return hiddenItemsString == null ? ordinaryItemsString : ordinaryItemsString + " + " + hiddenItemsString;
+                return getSizeString(item.size);
             }
         }
 
         @Override
         public int getItemCount() {
-            return fileItems.size();
+            return items.size();
         }
 
-        class FileItemViewHolder extends RecyclerView.ViewHolder {
+        class ItemViewHolder extends RecyclerView.ViewHolder {
 
             private final View fileHighlightView;
             private final ImageView fileIconImageView;
@@ -864,62 +859,13 @@ public class BrowseFragment extends Fragment {
             private final TextView fileNameTextView;
             private final TextView fileDetailsTextView;
 
-            public FileItemViewHolder(@NonNull View itemView) {
+            public ItemViewHolder(@NonNull View itemView) {
                 super(itemView);
                 fileHighlightView = itemView.findViewById(R.id.file_highlight);
                 fileIconImageView = itemView.findViewById(R.id.file_icon);
                 fileSelectedImageView = itemView.findViewById(R.id.file_selected_icon);
                 fileNameTextView = itemView.findViewById(R.id.file_name);
                 fileDetailsTextView = itemView.findViewById(R.id.file_details);
-            }
-        }
-
-        class FileItem {
-
-            private final File file;
-
-            private final long size;
-
-            private final int numOrdinaryItems;
-
-            private final int numHiddenItems;
-
-            public FileItem(File file) {
-                this.file = file;
-                this.size = file.length();
-
-                int ordinarys = 0;
-                int hiddens = 0;
-                if (file.isDirectory()) {
-                    File[] subitems = file.listFiles();
-                    if (subitems != null) {
-                        for (File subitem : subitems) {
-                            if (subitem.getName().startsWith(".")) {
-                                hiddens++;
-                            } else {
-                                ordinarys++;
-                            }
-                        }
-                    }
-                }
-                this.numOrdinaryItems = ordinarys;
-                this.numHiddenItems = hiddens;
-            }
-
-            public File getFile() {
-                return file;
-            }
-
-            public long getSize() {
-                return size;
-            }
-
-            public int getNumOrdinaryItems() {
-                return numOrdinaryItems;
-            }
-
-            public int getNumHiddenItems() {
-                return numHiddenItems;
             }
         }
     }
