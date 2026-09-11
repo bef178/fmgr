@@ -43,9 +43,7 @@
     <string name="x_selected">%d selected</string>
     <string name="empty">Empty</string>
     <string name="error">Error</string>
-    <string name="x_hidden">%d hidden</string>
-    <string name="x_ordinary">%d ordinary</string>
-    <string name="x_ordinary_y_hidden">%d ordinary + %d hidden</string>
+    <string name="x_items">%d item(s)</string>
 
     <string name="rename">Rename</string>
     <string name="renamed">Renamed</string>

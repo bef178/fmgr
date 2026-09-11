@@ -2,7 +2,6 @@ package pd.droidapp.fmgr.util;
 
 import pd.util.FileOps;
 import pd.util.FileStat;
-import pd.util.PathOps;
 
 public class FileProperties {
 
@@ -12,8 +11,7 @@ public class FileProperties {
     public final Long size;
     public String sha256sum;
 
-    public Integer numOrdinaryItems;
-    public Integer numHiddenItems;
+    public Integer numChildren;
 
     public FileProperties(String path) {
         this.path = path;
@@ -21,17 +19,12 @@ public class FileProperties {
         FileStat stat = FileOps.singleton.stat(path);
         if (stat.isDirectory(true)) {
             size = null;
-            numOrdinaryItems = 0;
-            numHiddenItems = 0;
+            numChildren = 0;
             FileOps.singleton.listDirectory(path, 1, true, null, (action, src, dst, succeeded) -> {
                 if (action != FileOps.Action.MEET) {
                     return;
                 }
-                if (PathOps.singleton.basename(src).startsWith(".")) {
-                    numHiddenItems++;
-                } else {
-                    numOrdinaryItems++;
-                }
+                numChildren++;
             });
         } else {
             size = stat.size;

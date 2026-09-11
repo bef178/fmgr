@@ -29,7 +29,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -50,6 +49,8 @@ import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.droidapp.fmgr.util.Util;
+import pd.util.FileOps;
+import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.getSizeString;
 
@@ -125,7 +126,9 @@ public class BrowseFragment extends Fragment {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addAll(itemsAdapter.getFiles());
+            selectionBar.addAll(itemsAdapter.items.stream()
+                    .map(x -> new File(x.path))
+                    .collect(Collectors.toList()));
             selectionBar.invalidate();
             itemsAdapter.notifyDataSetChanged();
         });
@@ -185,7 +188,7 @@ public class BrowseFragment extends Fragment {
             doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
         } else if (mightGrantedAllFilesAccess) {
             mightGrantedAllFilesAccess = false;
-            itemsAdapter.invalidate(pathBar.getCurrentDirectory());
+            itemsAdapter.load(pathBar.getCurrentDirectory());
         }
         askForAllFilesAccessIfNecessary();
     }
@@ -231,7 +234,7 @@ public class BrowseFragment extends Fragment {
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.invalidate(directory);
+        itemsAdapter.load(directory);
     }
 
     public void navigateToDirectory(File target) {
@@ -404,7 +407,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        itemsAdapter.invalidate(pathBar.getCurrentDirectory());
+        itemsAdapter.load(pathBar.getCurrentDirectory());
         return true;
     }
 
@@ -420,7 +423,7 @@ public class BrowseFragment extends Fragment {
             return R.string.error_invalid_name;
         }
 
-        if (name.contains("/") || name.contains("\\") || name.contains("\0")) {
+        if (name.contains("/") || name.contains("\\")) {
             return R.string.error_invalid_name;
         }
 
@@ -430,11 +433,6 @@ public class BrowseFragment extends Fragment {
             if (c < 32) {
                 return R.string.error_invalid_name;
             }
-        }
-
-        // Check for leading/trailing dots or spaces (can cause issues on some systems)
-        if (name.startsWith(".") || name.endsWith(".") || name.startsWith(" ") || name.endsWith(" ")) {
-            return R.string.error_invalid_name;
         }
 
         return null;
@@ -545,7 +543,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        itemsAdapter.invalidate(pathBar.getCurrentDirectory());
+        itemsAdapter.load(pathBar.getCurrentDirectory());
         return true;
     }
 
@@ -597,22 +595,13 @@ public class BrowseFragment extends Fragment {
 
     private class ItemsAdapter extends RecyclerView.Adapter<ItemsAdapter.ItemViewHolder> {
 
-        private final Comparator<File> fileComparator = (f1, f2) -> {
-            if (f1.isDirectory() && !f2.isDirectory()) {
-                return -1;
-            } else if (!f1.isDirectory() && f2.isDirectory()) {
-                return 1;
-            } else {
-                return f1.getName().compareTo(f2.getName());
-            }
-        };
+        private final Comparator<FileProperties> fileComparator = (p1, p2) ->
+                PathOps.singleton.compare(
+                        p1.numChildren == null ? p1.path : p1.path + "/",
+                        p2.numChildren == null ? p2.path : p2.path + "/");
 
         private final List<FileProperties> items = new LinkedList<>();
         private final Progressor<File> progressor = new Progressor<>();
-
-        public List<File> getFiles() {
-            return items.stream().map(x -> new File(x.path)).collect(Collectors.toList());
-        }
 
         public int indexOf(File file) {
             for (int i = 0; i < items.size(); i++) {
@@ -675,11 +664,11 @@ public class BrowseFragment extends Fragment {
         public void addAll(Collection<File> files) {
             List<FileProperties> oldItems = new LinkedList<>(items);
             for (File file : files) {
-                if (!file.getName().startsWith(".") && items.stream().noneMatch(item -> item.path.equals(file.getPath()))) {
+                if (items.stream().noneMatch(item -> item.path.equals(file.getPath()))) {
                     items.add(new FileProperties(file.getPath()));
                 }
             }
-            items.sort((a, b) -> fileComparator.compare(new File(a.path), new File(b.path)));
+            items.sort(fileComparator);
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
                 @Override
                 public int getOldListSize() {
@@ -729,28 +718,19 @@ public class BrowseFragment extends Fragment {
             }).dispatchUpdatesTo(this);
         }
 
-        public void invalidate(File directory) {
+        public void load(File directory) {
             items.clear();
-            items.addAll(getFileItems(directory));
+            if (directory != null) {
+                List<FileProperties> newItems = new LinkedList<>();
+                FileOps.singleton.listDirectory(directory.getPath(), 1, true, null,
+                        (action, src, dst, succeeded) -> {
+                            if (action == FileOps.Action.MEET) {
+                                newItems.add(new FileProperties(PathOps.singleton.normalize(src)));
+                            }
+                        });
+                items.addAll(newItems);
+            }
             notifyDataSetChanged();
-        }
-
-        private List<FileProperties> getFileItems(File directory) {
-            if (directory == null) {
-                return new LinkedList<>();
-            }
-
-            File[] files = directory.listFiles();
-            if (files == null) {
-                // possible not directory or no privilege
-                return new LinkedList<>();
-            }
-
-            return Arrays.stream(files)
-                    .filter(f -> !f.getName().startsWith("."))
-                    .sorted(fileComparator)
-                    .map(f -> new FileProperties(f.getPath()))
-                    .collect(Collectors.toList());
         }
 
         @NonNull
@@ -825,21 +805,12 @@ public class BrowseFragment extends Fragment {
         private String getItemDetailsString(FileProperties item) {
             if (item.size == null) {
                 // directory
-                if (item.numOrdinaryItems == null || item.numHiddenItems == null) {
+                if (item.numChildren == null) {
                     return getString(R.string.error);
-                }
-                if (item.numOrdinaryItems == 0) {
-                    if (item.numHiddenItems == 0) {
-                        return getString(R.string.empty);
-                    } else {
-                        return getString(R.string.x_hidden, item.numHiddenItems);
-                    }
+                } else if (item.numChildren == 0) {
+                    return getString(R.string.empty);
                 } else {
-                    if (item.numHiddenItems == 0) {
-                        return getString(R.string.x_ordinary, item.numOrdinaryItems);
-                    } else {
-                        return getString(R.string.x_ordinary_y_hidden, item.numOrdinaryItems, item.numHiddenItems);
-                    }
+                    return getString(R.string.x_items, item.numChildren);
                 }
             } else {
                 return getSizeString(item.size);
