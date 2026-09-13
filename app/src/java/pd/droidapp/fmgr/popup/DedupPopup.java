@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
@@ -81,7 +82,7 @@ public class DedupPopup extends ProcessingPopup {
             }
             updateButtons();
         });
-        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isRunning(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initSelectionBar() {
@@ -151,16 +152,16 @@ public class DedupPopup extends ProcessingPopup {
 
     @Override
     protected boolean isProcessing() {
-        return worker != null && worker.isRunning();
+        return worker != null && worker.isWorking();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
-        if (worker == null || !worker.isRunning()) {
+        if (worker == null || !worker.isWorking()) {
             onStopped.run();
             return;
         }
-        worker.whenStopped(onStopped);
+        worker.whenStopped(ignored -> onStopped.run());
         worker.cancel();
     }
 
@@ -217,9 +218,9 @@ public class DedupPopup extends ProcessingPopup {
             }
             refreshGroups();
         }));
-        worker.whenStopped(() -> containerView.post(() -> {
+        worker.whenStopped(reason -> containerView.post(() -> {
             updateButtons();
-            if (worker.isCompleted()) {
+            if (reason == StopReason.COMPLETED) {
                 statusBar.markDone();
             } else {
                 statusBar.markStopped();

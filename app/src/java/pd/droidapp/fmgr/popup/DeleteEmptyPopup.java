@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.SelectionBar;
 
 public class DeleteEmptyPopup extends ProcessingPopup {
@@ -108,21 +109,21 @@ public class DeleteEmptyPopup extends ProcessingPopup {
             }
             updateButtons();
         });
-        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isRunning(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
     @Override
     protected boolean isProcessing() {
-        return worker != null && worker.isRunning();
+        return worker != null && worker.isWorking();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
-        if (worker == null || !worker.isRunning()) {
+        if (worker == null || !worker.isWorking()) {
             onStopped.run();
             return;
         }
-        worker.whenStopped(onStopped);
+        worker.whenStopped(ignored -> onStopped.run());
         worker.cancel();
     }
 
@@ -156,9 +157,9 @@ public class DeleteEmptyPopup extends ProcessingPopup {
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));
-        worker.whenStopped(() -> containerView.post(() -> {
+        worker.whenStopped(reason -> containerView.post(() -> {
             updateButtons();
-            if (worker.isCompleted()) {
+            if (reason == StopReason.COMPLETED) {
                 statusBar.markDone();
             } else {
                 statusBar.markStopped();

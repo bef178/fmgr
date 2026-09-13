@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.Util;
 
 public class DeletePopup extends ProcessingPopup {
@@ -56,7 +57,7 @@ public class DeletePopup extends ProcessingPopup {
         super.initPopupButtons();
         buttonBar.addButton(R.string.start, () -> worker == null, () -> true, v -> start());
         buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
-        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isRunning(), () -> true, v -> selfWindow.dismiss());
+        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
     private void initProgress() {
@@ -66,16 +67,16 @@ public class DeletePopup extends ProcessingPopup {
 
     @Override
     protected boolean isProcessing() {
-        return worker != null && worker.isRunning();
+        return worker != null && worker.isWorking();
     }
 
     @Override
     protected void stopProcessing(Runnable onStopped) {
-        if (worker == null || !worker.isRunning()) {
+        if (worker == null || !worker.isWorking()) {
             onStopped.run();
             return;
         }
-        worker.whenStopped(onStopped);
+        worker.whenStopped(ignored -> onStopped.run());
         worker.cancel();
     }
 
@@ -117,10 +118,10 @@ public class DeletePopup extends ProcessingPopup {
             progressSummaryTextView.setText(context.getString(R.string.delete_progress_summary,
                     totalRemoved.size(), totalFailed));
         }));
-        worker.whenStopped(() -> containerView.post(() -> {
-            if (worker.isCompleted()) {
+        worker.whenStopped(reason -> containerView.post(() -> {
+            if (reason == StopReason.COMPLETED) {
                 progressBarSideTextView.setText(R.string.popup_progress_completed);
-            } else if (worker.isCancelled()) {
+            } else if (reason == StopReason.CANCELLED) {
                 progressBarSideTextView.setText(R.string.popup_progress_aborted);
             } else {
                 progressBarSideTextView.setText(R.string.popup_progress_failed);
