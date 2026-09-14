@@ -31,8 +31,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
@@ -146,6 +150,14 @@ public class BrowseFragment extends Fragment {
         return view;
     }
 
+    private void doChangeCurrentDirectory(File directory) {
+        pathBar.invalidate(directory);
+        actionBar.invalidate();
+        selectionBar.clear();
+        selectionBar.invalidate();
+        itemsAdapter.load(directory);
+    }
+
     private void restoreState(@NonNull Bundle savedInstanceState) {
         File currentDirectory = (File) savedInstanceState.getSerializable(STATE_CURRENT_DIRECTORY);
         if (validateDirectory(currentDirectory)) {
@@ -170,6 +182,10 @@ public class BrowseFragment extends Fragment {
         }
 
         actionBar.invalidate();
+    }
+
+    private boolean validateDirectory(File directory) {
+        return directory != null && directory.exists();
     }
 
     @Override
@@ -225,16 +241,10 @@ public class BrowseFragment extends Fragment {
                 .show();
     }
 
-    private boolean validateDirectory(File directory) {
-        return directory != null && directory.exists();
-    }
-
-    private void doChangeCurrentDirectory(File directory) {
-        pathBar.invalidate(directory);
-        actionBar.invalidate();
-        selectionBar.clear();
-        selectionBar.invalidate();
-        itemsAdapter.load(directory);
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        itemsAdapter.cancel();
     }
 
     public void navigateToDirectory(File target) {
@@ -346,7 +356,7 @@ public class BrowseFragment extends Fragment {
 
         // scroll to and highlight the file
         itemsView.post(() -> {
-            int position = itemsAdapter.indexOf(file);
+            int position = itemsAdapter.indexOf(file.getPath());
             if (position >= 0) {
                 itemsView.scrollToPosition(position);
                 itemsView.postDelayed(() -> itemsAdapter.highlightItem(file), 100);
@@ -445,12 +455,7 @@ public class BrowseFragment extends Fragment {
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        for (File file : files) {
-            int i = itemsAdapter.indexOf(file);
-            if (i >= 0) {
-                itemsAdapter.notifyItemChanged(i);
-            }
-        }
+        itemsAdapter.invalidateItems(files);
     }
 
     private void markSelectedItemsForCopy() {
@@ -460,12 +465,7 @@ public class BrowseFragment extends Fragment {
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        for (File file : files) {
-            int i = itemsAdapter.indexOf(file);
-            if (i >= 0) {
-                itemsAdapter.notifyItemChanged(i);
-            }
-        }
+        itemsAdapter.invalidateItems(files);
     }
 
     private void copyToClipboard(Collection<File> files) {
@@ -572,40 +572,52 @@ public class BrowseFragment extends Fragment {
         popup.show();
     }
 
-    private void onPopupDismissed(Collection<String> addedItems, Collection<File> removedItems) {
-        if (!addedItems.isEmpty()) {
+    private void onPopupDismissed(Collection<String> added, Collection<File> removed) {
+        if (!added.isEmpty()) {
             clipboard.clear();
             actionBar.invalidate();
             selectionBar.invalidate();
             File currentDirectory = pathBar.getCurrentDirectory();
-            itemsAdapter.addAll(addedItems.stream()
-                    .map(File::new)
-                    .filter(file -> currentDirectory != null
-                            && currentDirectory.equals(file.getParentFile()))
+            itemsAdapter.addAll(added.stream()
+                    .filter(path -> currentDirectory != null
+                            && currentDirectory.equals(new File(path).getParentFile()))
                     .collect(Collectors.toList()));
         }
-        if (!removedItems.isEmpty()) {
-            clipboard.removeAllIfSameAsOrDescendantOf(removedItems);
+        if (!removed.isEmpty()) {
+            clipboard.removeAllIfSameAsOrDescendantOf(removed);
             actionBar.invalidate();
-            selectionBar.selectedItems.removeAll(removedItems);
+            selectionBar.selectedItems.removeAll(removed);
             selectionBar.invalidate();
-            itemsAdapter.removeAll(removedItems);
+            itemsAdapter.removeAll(removed);
         }
     }
 
     private class ItemsAdapter extends RecyclerView.Adapter<ItemsAdapter.ItemViewHolder> {
 
-        private final Comparator<FileProperties> fileComparator = (p1, p2) ->
+        private final Comparator<FileProperties> itemComparator = (p1, p2) ->
                 PathOps.singleton.compare(
-                        p1.numChildren == null ? p1.path : p1.path + "/",
-                        p2.numChildren == null ? p2.path : p2.path + "/");
+                        p1.isDirectory ? p1.path + "/" : p1.path,
+                        p2.isDirectory ? p2.path + "/" : p2.path);
 
         private final List<FileProperties> items = new LinkedList<>();
         private final Progressor<File> progressor = new Progressor<>();
+        private final PropertiesLoader itemsLoader;
 
-        public int indexOf(File file) {
+        ItemsAdapter() {
+            itemsLoader = new PropertiesLoader();
+            itemsLoader.whenUpdated(updated -> itemsView.post(() -> {
+                Set<FileProperties> updatedSet = new HashSet<>(updated);
+                for (int i = 0; i < items.size(); i++) {
+                    if (updatedSet.contains(items.get(i))) {
+                        notifyItemChanged(i);
+                    }
+                }
+            }));
+        }
+
+        private int indexOf(String path) {
             for (int i = 0; i < items.size(); i++) {
-                if (items.get(i).path.equals(file.getPath())) {
+                if (items.get(i).path.equals(path)) {
                     return i;
                 }
             }
@@ -614,7 +626,7 @@ public class BrowseFragment extends Fragment {
 
         public void highlightItem(final File file) {
             progressor.start(file, 1500, new AccelerateDecelerateInterpolator(), (distance, velocity) -> {
-                int position = indexOf(file);
+                int position = indexOf(file.getPath());
                 if (position >= 0) {
                     RecyclerView.ViewHolder viewHolder = itemsView.findViewHolderForAdapterPosition(position);
                     if (viewHolder != null) {
@@ -661,14 +673,30 @@ public class BrowseFragment extends Fragment {
             view.setBackgroundColor(color);
         }
 
-        public void addAll(Collection<File> files) {
+        public void addAll(Collection<String> paths) {
             List<FileProperties> oldItems = new LinkedList<>(items);
-            for (File file : files) {
-                if (items.stream().noneMatch(item -> item.path.equals(file.getPath()))) {
-                    items.add(new FileProperties(file.getPath()));
-                }
+            Map<String, Integer> indexByPath = new HashMap<>();
+            for (int i = 0; i < items.size(); i++) {
+                indexByPath.put(items.get(i).path, i);
             }
-            items.sort(fileComparator);
+            List<FileProperties> newItems = new LinkedList<>();
+            for (String path : paths) {
+                String normalized = PathOps.singleton.normalize(path);
+                Integer index = indexByPath.get(normalized);
+                FileProperties item;
+                if (index == null) {
+                    item = new FileProperties(normalized, path.endsWith("/"));
+                    indexByPath.put(normalized, items.size());
+                    items.add(item);
+                } else {
+                    // same path: re-load in place
+                    item = items.get(index);
+                    item.computed = false;
+                }
+                newItems.add(item);
+            }
+            itemsLoader.add(newItems);
+            items.sort(itemComparator);
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
                 @Override
                 public int getOldListSize() {
@@ -718,19 +746,35 @@ public class BrowseFragment extends Fragment {
             }).dispatchUpdatesTo(this);
         }
 
+        public void invalidateItems(Collection<File> files) {
+            Set<String> pathsSet = new HashSet<>();
+            for (File file : files) {
+                pathsSet.add(file.getPath());
+            }
+            for (int i = 0; i < items.size(); i++) {
+                if (pathsSet.contains(items.get(i).path)) {
+                    notifyItemChanged(i);
+                }
+            }
+        }
+
         public void load(File directory) {
+            itemsLoader.clear();
             items.clear();
             if (directory != null) {
-                List<FileProperties> newItems = new LinkedList<>();
-                FileOps.singleton.listDirectory(directory.getPath(), 1, true, null,
-                        (action, src, dst, succeeded) -> {
-                            if (action == FileOps.Action.MEET) {
-                                newItems.add(new FileProperties(PathOps.singleton.normalize(src)));
-                            }
-                        });
-                items.addAll(newItems);
+                FileOps.singleton.listDirectory(directory.getPath(), 1, true, null, (action, src, dst, succeeded) -> {
+                    if (action == FileOps.Action.MEET) {
+                        items.add(new FileProperties(PathOps.singleton.normalize(src), src.endsWith("/")));
+                    }
+                });
+                items.sort(itemComparator);
             }
             notifyDataSetChanged();
+            itemsLoader.add(new LinkedList<>(items));
+        }
+
+        public void cancel() {
+            itemsLoader.cancel();
         }
 
         @NonNull
@@ -748,7 +792,7 @@ public class BrowseFragment extends Fragment {
 
             viewHolder.fileNameTextView.setText(file.getName());
             viewHolder.fileIconImageView.setImageResource(
-                    file.isDirectory() ? R.drawable.i_directory_24 : R.drawable.i_file_24);
+                    item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24);
             viewHolder.fileDetailsTextView.setText(getItemDetailsString(item));
 
             if (selectionBar.isSelected(file)) {
@@ -764,7 +808,7 @@ public class BrowseFragment extends Fragment {
                     toggleSelected(file);
                     return;
                 }
-                if (file.isDirectory()) {
+                if (item.isDirectory) {
                     navigateToDirectory(file);
                 } else if (file.isFile()) {
                     openFile(file);
@@ -781,39 +825,33 @@ public class BrowseFragment extends Fragment {
             Util.forwardViewActionsTo(viewHolder.fileNameTextView, viewHolder.itemView);
         }
 
+        private String getItemDetailsString(FileProperties item) {
+            if (!item.computed) {
+                return "...";
+            }
+            if (item.isDirectory) {
+                if (item.numChildren == null) {
+                    return getString(R.string.error_directory_not_accessible);
+                }
+                if (item.numChildren == 0) {
+                    return getString(R.string.empty);
+                }
+                return getString(R.string.x_items, item.numChildren);
+            } else if (item.size != null) {
+                return getSizeString(item.size);
+            } else {
+                return getString(R.string.error);
+            }
+        }
+
         private void toggleSelected(File file) {
             selectionBar.toggleSelected(file);
             selectionBar.invalidate();
-            invalidateItem(file);
-        }
-
-        private void invalidateItem(File item) {
             for (int i = 0; i < items.size(); i++) {
-                if (items.get(i).path.equals(item.getPath())) {
+                if (items.get(i).path.equals(file.getPath())) {
                     notifyItemChanged(i);
                     break;
                 }
-            }
-        }
-
-        public void invalidateItems(Iterable<File> items) {
-            for (File item : items) {
-                invalidateItem(item);
-            }
-        }
-
-        private String getItemDetailsString(FileProperties item) {
-            if (item.size == null) {
-                // directory
-                if (item.numChildren == null) {
-                    return getString(R.string.error);
-                } else if (item.numChildren == 0) {
-                    return getString(R.string.empty);
-                } else {
-                    return getString(R.string.x_items, item.numChildren);
-                }
-            } else {
-                return getSizeString(item.size);
             }
         }
 

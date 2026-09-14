@@ -3,7 +3,6 @@ package pd.droidapp.fmgr.popup;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DiffUtil;
@@ -11,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -48,31 +48,6 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
     public void removeAll(Collection<File> files) {
         List<File> oldFiles = new LinkedList<>(items);
         items.removeAll(files);
-        diffAndDispatch(oldFiles);
-    }
-
-    public void clear() {
-        int oldSize = items.size();
-        items.clear();
-        notifyItemRangeRemoved(0, oldSize);
-    }
-
-    private void invalidateItem(File item) {
-        for (int i = 0; i < items.size(); i++) {
-            if (items.get(i).equals(item)) {
-                notifyItemChanged(i);
-                break;
-            }
-        }
-    }
-
-    public void invalidateItems(Iterable<File> items) {
-        for (File item : items) {
-            invalidateItem(item);
-        }
-    }
-
-    private void diffAndDispatch(List<File> oldFiles) {
         DiffUtil.calculateDiff(new DiffUtil.Callback() {
             @Override
             public int getOldListSize() {
@@ -100,6 +75,21 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
                 return Boolean.TRUE;
             }
         }).dispatchUpdatesTo(this);
+    }
+
+    public void clear() {
+        int oldSize = items.size();
+        items.clear();
+        notifyItemRangeRemoved(0, oldSize);
+    }
+
+    public void invalidateItems(Collection<File> files) {
+        Set<File> fileSet = new HashSet<>(files);
+        for (int i = 0; i < items.size(); i++) {
+            if (fileSet.contains(items.get(i))) {
+                notifyItemChanged(i);
+            }
+        }
     }
 
     public List<File> copyItems() {
