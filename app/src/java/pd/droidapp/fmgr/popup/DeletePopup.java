@@ -31,7 +31,7 @@ public class DeletePopup extends ProcessingPopup {
     private PopupOnDismissedListener onPopupDismissed;
 
     private DeleteWorker worker;
-    private final Collection<File> netRemoved = new LinkedList<>();
+    private final Collection<String> netRemoved = new LinkedList<>();
     private int totalRemoved;
     private int totalFailed;
     private int totalProgressed;
@@ -106,9 +106,7 @@ public class DeletePopup extends ProcessingPopup {
             progressBarSideTextView.setText(R.string.popup_progress_processing);
         }));
         worker.whenUpdated((removed, failed, progressed) -> containerView.post(() -> {
-            for (String path : removed) {
-                netRemoved.add(new File(path));
-            }
+            netRemoved.addAll(removed);
             totalRemoved += removed.size();
             totalFailed += failed;
             totalProgressed += progressed;

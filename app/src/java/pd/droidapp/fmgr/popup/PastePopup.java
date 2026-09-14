@@ -41,7 +41,7 @@ public class PastePopup extends ProcessingPopup {
 
     private PasteWorker worker;
     private final Collection<String> netAdded = new LinkedHashSet<>();
-    private final Collection<File> netRemoved = new LinkedHashSet<>();
+    private final Collection<String> netRemoved = new LinkedHashSet<>();
     private int totalAdded;
     private int totalRemoved;
     private int totalMoved;
@@ -149,17 +149,17 @@ public class PastePopup extends ProcessingPopup {
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
             for (String path : added) {
                 netAdded.add(path);
-                netRemoved.remove(new File(path));
+                netRemoved.remove(path);
             }
             for (Map.Entry<String, String> pair : moved) {
                 netAdded.add(pair.getValue());
                 netAdded.remove(pair.getKey());
-                netRemoved.add(new File(pair.getKey()));
-                netRemoved.remove(new File(pair.getValue()));
+                netRemoved.add(pair.getKey());
+                netRemoved.remove(pair.getValue());
             }
             for (String path : removed) {
                 netAdded.remove(path);
-                netRemoved.add(new File(path));
+                netRemoved.add(path);
             }
             totalAdded += added.size() + moved.size();
             totalRemoved += removed.size() + moved.size();

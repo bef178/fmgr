@@ -49,7 +49,7 @@ public class SearchPopup extends ProcessingPopup {
     private String lastQuery = "";
     private int totalScanned;
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Collection<File> removedFiles = new LinkedList<>();
+    private final Collection<String> netRemoved = new LinkedList<>();
 
     public SearchPopup(View containerView, File startDirectory) {
         super(containerView, R.layout.search_popup);
@@ -153,9 +153,9 @@ public class SearchPopup extends ProcessingPopup {
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
-                removedFiles.addAll(removed);
+                netRemoved.addAll(removed);
                 itemsAdapter.removeAll(removed);
-                selectionBar.selectedItems.removeAll(removed);
+                selectionBar.selectedItems.removeIf(file -> removed.contains(file.getPath()));
                 selectionBar.invalidate();
             });
             deletePopup.show();
@@ -200,7 +200,7 @@ public class SearchPopup extends ProcessingPopup {
     @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(Collections.emptyList(), removedFiles);
+            onPopupDismissed.accept(Collections.emptyList(), netRemoved);
         }
     }
 

@@ -45,9 +45,9 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
         notifyItemRangeInserted(start, paths.size());
     }
 
-    public void removeAll(Collection<File> files) {
+    public void removeAll(Collection<String> paths) {
         List<File> oldFiles = new LinkedList<>(items);
-        items.removeAll(files);
+        items.removeIf(file -> paths.contains(file.getPath()));
         DiffUtil.calculateDiff(new DiffUtil.Callback() {
             @Override
             public int getOldListSize() {

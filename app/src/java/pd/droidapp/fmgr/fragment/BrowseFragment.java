@@ -572,7 +572,7 @@ public class BrowseFragment extends Fragment {
         popup.show();
     }
 
-    private void onPopupDismissed(Collection<String> added, Collection<File> removed) {
+    private void onPopupDismissed(Collection<String> added, Collection<String> removed) {
         if (!added.isEmpty()) {
             clipboard.clear();
             actionBar.invalidate();
@@ -584,9 +584,10 @@ public class BrowseFragment extends Fragment {
                     .collect(Collectors.toList()));
         }
         if (!removed.isEmpty()) {
-            clipboard.removeAllIfSameAsOrDescendantOf(removed);
+            Set<File> removedFiles = removed.stream().map(File::new).collect(Collectors.toSet());
+            clipboard.removeAllIfSameAsOrDescendantOf(removedFiles);
             actionBar.invalidate();
-            selectionBar.selectedItems.removeAll(removed);
+            selectionBar.selectedItems.removeAll(removedFiles);
             selectionBar.invalidate();
             itemsAdapter.removeAll(removed);
         }
@@ -720,9 +721,9 @@ public class BrowseFragment extends Fragment {
             }).dispatchUpdatesTo(this);
         }
 
-        public void removeAll(Collection<File> files) {
+        public void removeAll(Collection<String> paths) {
             List<FileProperties> oldItems = new LinkedList<>(items);
-            items.removeIf(item -> files.contains(new File(item.path)));
+            items.removeIf(item -> paths.contains(item.path));
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
                 @Override
                 public int getOldListSize() {

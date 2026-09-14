@@ -52,7 +52,7 @@ public class DedupPopup extends ProcessingPopup {
     private PopupOnDismissedListener onPopupDismissed;
 
     private DedupWorker worker;
-    private final Collection<File> removedFiles = new LinkedList<>();
+    private final Collection<String> netRemoved = new LinkedList<>();
 
     private final Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
     private final Map<String, FileProperties> byPath = new HashMap<>();
@@ -113,10 +113,10 @@ public class DedupPopup extends ProcessingPopup {
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
             DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
-                removedFiles.addAll(removed);
-                selectionBar.selectedItems.removeAll(removed);
-                for (File file : removed) {
-                    FileProperties props = byPath.remove(file.getPath());
+                netRemoved.addAll(removed);
+                selectionBar.selectedItems.removeIf(file -> removed.contains(file.getPath()));
+                for (String path : removed) {
+                    FileProperties props = byPath.remove(path);
                     if (props == null) {
                         continue;
                     }
@@ -166,7 +166,7 @@ public class DedupPopup extends ProcessingPopup {
     @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(Collections.emptyList(), removedFiles);
+            onPopupDismissed.accept(Collections.emptyList(), netRemoved);
         }
     }
 
