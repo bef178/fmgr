@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
-import pd.droidapp.fmgr.util.Util;
 
 public class DeletePopup extends ProcessingPopup {
 
@@ -32,7 +31,8 @@ public class DeletePopup extends ProcessingPopup {
     private PopupOnDismissedListener onPopupDismissed;
 
     private DeleteWorker worker;
-    private final Collection<File> totalRemoved = new LinkedList<>();
+    private final Collection<File> netRemoved = new LinkedList<>();
+    private int totalRemoved;
     private int totalFailed;
     private int totalProgressed;
 
@@ -83,7 +83,7 @@ public class DeletePopup extends ProcessingPopup {
     @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(Collections.emptyList(), totalRemoved);
+            onPopupDismissed.accept(Collections.emptyList(), netRemoved);
         }
     }
 
@@ -107,8 +107,9 @@ public class DeletePopup extends ProcessingPopup {
         }));
         worker.whenUpdated((removed, failed, progressed) -> containerView.post(() -> {
             for (String path : removed) {
-                totalRemoved.add(new File(Util.stripTrailingSlash(path)));
+                netRemoved.add(new File(path));
             }
+            totalRemoved += removed.size();
             totalFailed += failed;
             totalProgressed += progressed;
 
@@ -116,7 +117,7 @@ public class DeletePopup extends ProcessingPopup {
             progressBarTextView.setText(context.getString(R.string.popup_progress_text,
                     Math.min(totalProgressed + 1, total), total));
             progressSummaryTextView.setText(context.getString(R.string.delete_progress_summary,
-                    totalRemoved.size(), totalFailed));
+                    totalRemoved, totalFailed));
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
             if (reason == StopReason.COMPLETED) {

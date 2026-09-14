@@ -9,7 +9,7 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
-import pd.droidapp.fmgr.util.Util;
 
 public class PastePopup extends ProcessingPopup {
 
@@ -41,7 +40,9 @@ public class PastePopup extends ProcessingPopup {
     private PopupOnDismissedListener onPopupDismissed;
 
     private PasteWorker worker;
-    private final Collection<String> totalAdded = new LinkedList<>();
+    private final Collection<String> netAdded = new LinkedHashSet<>();
+    private final Collection<File> netRemoved = new LinkedHashSet<>();
+    private int totalAdded;
     private int totalRemoved;
     private int totalMoved;
     private int totalFailed;
@@ -109,7 +110,7 @@ public class PastePopup extends ProcessingPopup {
     @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(totalAdded, Collections.emptyList());
+            onPopupDismissed.accept(netAdded, netRemoved);
         }
     }
 
@@ -147,16 +148,20 @@ public class PastePopup extends ProcessingPopup {
         }));
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
             for (String path : added) {
-                totalAdded.add(Util.stripTrailingSlash(path));
-            }
-            for (String path : removed) {
-                totalAdded.remove(Util.stripTrailingSlash(path));
+                netAdded.add(path);
+                netRemoved.remove(new File(path));
             }
             for (Map.Entry<String, String> pair : moved) {
-                totalAdded.remove(Util.stripTrailingSlash(pair.getKey()));
-                totalAdded.add(Util.stripTrailingSlash(pair.getValue()));
+                netAdded.add(pair.getValue());
+                netAdded.remove(pair.getKey());
+                netRemoved.add(new File(pair.getKey()));
+                netRemoved.remove(new File(pair.getValue()));
             }
-            int reportAdded = added.size() + moved.size();
+            for (String path : removed) {
+                netAdded.remove(path);
+                netRemoved.add(new File(path));
+            }
+            totalAdded += added.size() + moved.size();
             totalRemoved += removed.size() + moved.size();
             totalMoved += moved.size();
             totalFailed += failed;
@@ -166,7 +171,7 @@ public class PastePopup extends ProcessingPopup {
             progressBarTextView.setText(context.getString(R.string.popup_progress_text,
                     Math.min(totalProcessed + 1, total), total));
             progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
-                    reportAdded, totalRemoved, totalMoved, totalFailed));
+                    totalAdded, totalRemoved, totalMoved, totalFailed));
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
             if (reason == StopReason.COMPLETED) {
