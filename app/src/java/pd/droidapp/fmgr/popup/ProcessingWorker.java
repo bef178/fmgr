@@ -1,5 +1,7 @@
 package pd.droidapp.fmgr.popup;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,8 +21,9 @@ abstract class ProcessingWorker {
     private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
     protected final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
-    private Runnable onStarted;
-    private Consumer<StopReason> onStopped;
+    private Runnable onStartedCallback;
+    private final List<Consumer<StopReason>> onStoppedCallbacks = new LinkedList<>();
+    private final Object stopLock = new Object();
 
     protected ProcessingWorker() {
         this(200);
@@ -34,11 +37,20 @@ abstract class ProcessingWorker {
     }
 
     public void whenStarted(Runnable onStarted) {
-        this.onStarted = onStarted;
+        this.onStartedCallback = onStarted;
     }
 
-    public void whenStopped(Consumer<StopReason> onStopped) {
-        this.onStopped = onStopped;
+    /**
+     * Return `true` iff the callback is registered and will be called after `start`
+     */
+    public boolean whenStopped(Consumer<StopReason> onStopped) {
+        synchronized (stopLock) {
+            if (state.get() == State.STOPPED) {
+                return false;
+            }
+            this.onStoppedCallbacks.add(onStopped);
+            return true;
+        }
     }
 
     protected boolean start(Runnable work) {
@@ -116,10 +128,6 @@ abstract class ProcessingWorker {
                     cancelRequested.set(true);
                     return;
                 }
-            } else if (current == State.IDLE) {
-                if (state.compareAndSet(State.IDLE, State.CANCELLED)) {
-                    return;
-                }
             } else {
                 return;
             }
@@ -127,16 +135,15 @@ abstract class ProcessingWorker {
     }
 
     public boolean isCancelled() {
-        State state = this.state.get();
-        return state == State.CANCELLING || state == State.CANCELLED;
+        return cancelRequested.get();
     }
 
     /**
      * Runs on timer thread
      */
     protected void reportStarted() {
-        if (onStarted != null) {
-            onStarted.run();
+        if (onStartedCallback != null) {
+            onStartedCallback.run();
         }
     }
 
@@ -149,13 +156,22 @@ abstract class ProcessingWorker {
      * Runs on timer thread
      */
     protected void reportStopped(StopReason reason) {
-        if (onStopped != null) {
-            onStopped.accept(reason);
+        List<Consumer<StopReason>> callbacks;
+        synchronized (stopLock) {
+            callbacks = new LinkedList<>(onStoppedCallbacks);
+            onStoppedCallbacks.clear();
+            state.set(State.STOPPED);
+        }
+        for (Consumer<StopReason> callback : callbacks) {
+            try {
+                callback.accept(reason);
+            } catch (Throwable ignored) {
+            }
         }
     }
 
     private enum State {
-        IDLE, RUNNING, CANCELLING, CANCELLED, COMPLETED, FAILED
+        IDLE, RUNNING, CANCELLING, CANCELLED, COMPLETED, FAILED, STOPPED
     }
 
     public enum StopReason {

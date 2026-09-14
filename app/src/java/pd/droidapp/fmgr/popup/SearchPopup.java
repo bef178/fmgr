@@ -188,13 +188,13 @@ public class SearchPopup extends ProcessingPopup {
     }
 
     @Override
-    protected void stopProcessing(Runnable onStopped) {
+    protected void onDismissing(Runnable continueDismiss) {
         handler.removeCallbacks(this::doSearch);
         if (worker != null) {
             worker.cancel();
             worker = null; // late callbacks are dropped by the guards
         }
-        onStopped.run();
+        continueDismiss.run();
     }
 
     @Override

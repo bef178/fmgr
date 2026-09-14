@@ -97,13 +97,13 @@ public class PastePopup extends ProcessingPopup {
     }
 
     @Override
-    protected void stopProcessing(Runnable onStopped) {
-        if (worker == null || !worker.isWorking()) {
-            onStopped.run();
-            return;
+    protected void onDismissing(Runnable continueDismiss) {
+        if (worker != null) {
+            worker.cancel();
         }
-        worker.whenStopped(ignored -> onStopped.run());
-        worker.cancel();
+        if (worker == null || !worker.whenStopped(reason -> continueDismiss.run())) {
+            continueDismiss.run();
+        }
     }
 
     @Override

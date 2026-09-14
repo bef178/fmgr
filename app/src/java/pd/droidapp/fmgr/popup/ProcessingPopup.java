@@ -43,7 +43,7 @@ public abstract class ProcessingPopup {
                 }
                 dismissing = true;
                 titleBar.enableCloseButton(false);
-                stopProcessing(() -> selfView.post(() -> {
+                onDismissing(() -> selfView.post(() -> {
                     dismissing = false;
                     super.dismiss();
                 }));
@@ -85,7 +85,7 @@ public abstract class ProcessingPopup {
 
     protected abstract boolean isProcessing();
 
-    protected abstract void stopProcessing(Runnable onStopped);
+    protected abstract void onDismissing(Runnable continueDismiss);
 
     protected abstract void onDismissed();
 
