@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -178,7 +179,7 @@ public class BrowseFragment extends Fragment {
         if (savedSelectedItems != null) {
             selectionBar.addAll(savedSelectedItems);
             selectionBar.invalidate();
-            itemsAdapter.invalidateItems(selectionBar.selectedItems);
+            itemsAdapter.invalidate(selectionBar.selectedItems.stream().map(File::getPath).collect(Collectors.toList()));
         }
 
         actionBar.invalidate();
@@ -455,7 +456,7 @@ public class BrowseFragment extends Fragment {
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.invalidateItems(files);
+        itemsAdapter.invalidate(files.stream().map(File::getPath).collect(Collectors.toList()));
     }
 
     private void markSelectedItemsForCopy() {
@@ -465,7 +466,7 @@ public class BrowseFragment extends Fragment {
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.invalidateItems(files);
+        itemsAdapter.invalidate(files.stream().map(File::getPath).collect(Collectors.toList()));
     }
 
     private void copyToClipboard(Collection<File> files) {
@@ -573,15 +574,17 @@ public class BrowseFragment extends Fragment {
     }
 
     private void onPopupDismissed(Collection<String> added, Collection<String> removed) {
+        String d = pathBar.getCurrentDirectory().getPath();
+        String currentDirectory = d.endsWith("/") ? d : d + "/";
         if (!added.isEmpty()) {
             clipboard.clear();
             actionBar.invalidate();
             selectionBar.invalidate();
-            File currentDirectory = pathBar.getCurrentDirectory();
-            itemsAdapter.addAll(added.stream()
-                    .filter(path -> currentDirectory != null
-                            && currentDirectory.equals(new File(path).getParentFile()))
-                    .collect(Collectors.toList()));
+            Set<String> explicit = new LinkedHashSet<>();
+            Set<String> implicit = new LinkedHashSet<>();
+            getDirectChildren(currentDirectory, added, explicit, implicit);
+            itemsAdapter.add(explicit);
+            itemsAdapter.loadProperties(implicit);
         }
         if (!removed.isEmpty()) {
             Set<File> removedFiles = removed.stream().map(File::new).collect(Collectors.toSet());
@@ -589,7 +592,51 @@ public class BrowseFragment extends Fragment {
             actionBar.invalidate();
             selectionBar.selectedItems.removeAll(removedFiles);
             selectionBar.invalidate();
-            itemsAdapter.removeAll(removed);
+            Set<String> explicit = new LinkedHashSet<>();
+            Set<String> implicit = new LinkedHashSet<>();
+            getDirectChildren(currentDirectory, removed, explicit, implicit);
+            itemsAdapter.remove(explicit);
+            itemsAdapter.loadProperties(implicit);
+        }
+    }
+
+    private void getDirectChildren(String currentDirectory, Collection<String> paths,
+            Collection<String> outExplicit, Collection<String> outImplicit) {
+        Set<String> explicit = new LinkedHashSet<>();
+        Set<String> implicit = new LinkedHashSet<>();
+        for (String path : paths) {
+            String directChild = getDirectChild(currentDirectory, path);
+            if (directChild == null) {
+                continue;
+            }
+            if (directChild.equals(path)) {
+                outExplicit.add(path);
+                explicit.add(path);
+            } else {
+                implicit.add(directChild);
+            }
+        }
+        implicit.removeAll(explicit);
+        outImplicit.addAll(implicit);
+    }
+
+    // `currentDirectory` must end with "/"
+    private String getDirectChild(String currentDirectory, String path) {
+        while (true) {
+            String parent = PathOps.singleton.dirname(path);
+            if (parent.isEmpty()) {
+                return null;
+            }
+            if (!parent.endsWith("/")) {
+                parent += "/";
+            }
+            if (parent.equals(path)) {
+                return null;
+            }
+            if (parent.equals(currentDirectory)) {
+                return path;
+            }
+            path = parent;
         }
     }
 
@@ -674,7 +721,26 @@ public class BrowseFragment extends Fragment {
             view.setBackgroundColor(color);
         }
 
-        public void addAll(Collection<String> paths) {
+        public void load(File directory) {
+            itemsLoader.clear();
+            items.clear();
+            if (directory != null) {
+                FileOps.singleton.listDirectory(directory.getPath(), 1, true, null, (action, src, dst, succeeded) -> {
+                    if (action == FileOps.Action.MEET) {
+                        items.add(new FileProperties(PathOps.singleton.normalize(src), src.endsWith("/")));
+                    }
+                });
+                items.sort(itemComparator);
+            }
+            notifyDataSetChanged();
+            itemsLoader.add(new LinkedList<>(items));
+        }
+
+        public void cancel() {
+            itemsLoader.cancel();
+        }
+
+        public void add(Collection<String> paths) {
             List<FileProperties> oldItems = new LinkedList<>(items);
             Map<String, Integer> indexByPath = new HashMap<>();
             for (int i = 0; i < items.size(); i++) {
@@ -690,11 +756,13 @@ public class BrowseFragment extends Fragment {
                     indexByPath.put(normalized, items.size());
                     items.add(item);
                 } else {
-                    // same path: re-load in place
                     item = items.get(index);
                     item.computed = false;
                 }
                 newItems.add(item);
+            }
+            if (newItems.isEmpty()) {
+                return;
             }
             itemsLoader.add(newItems);
             items.sort(itemComparator);
@@ -721,9 +789,13 @@ public class BrowseFragment extends Fragment {
             }).dispatchUpdatesTo(this);
         }
 
-        public void removeAll(Collection<String> paths) {
+        public void remove(Collection<String> paths) {
+            Set<String> normalizedPaths = new HashSet<>();
+            for (String path : paths) {
+                normalizedPaths.add(PathOps.singleton.normalize(path));
+            }
             List<FileProperties> oldItems = new LinkedList<>(items);
-            items.removeIf(item -> paths.contains(item.path));
+            items.removeIf(item -> normalizedPaths.contains(item.path));
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
                 @Override
                 public int getOldListSize() {
@@ -747,11 +819,11 @@ public class BrowseFragment extends Fragment {
             }).dispatchUpdatesTo(this);
         }
 
-        public void invalidateItems(Collection<File> files) {
-            Set<String> pathsSet = new HashSet<>();
-            for (File file : files) {
-                pathsSet.add(file.getPath());
+        public void invalidate(Collection<String> paths) {
+            if (paths.isEmpty()) {
+                return;
             }
+            Set<String> pathsSet = new HashSet<>(paths);
             for (int i = 0; i < items.size(); i++) {
                 if (pathsSet.contains(items.get(i).path)) {
                     notifyItemChanged(i);
@@ -759,23 +831,24 @@ public class BrowseFragment extends Fragment {
             }
         }
 
-        public void load(File directory) {
-            itemsLoader.clear();
-            items.clear();
-            if (directory != null) {
-                FileOps.singleton.listDirectory(directory.getPath(), 1, true, null, (action, src, dst, succeeded) -> {
-                    if (action == FileOps.Action.MEET) {
-                        items.add(new FileProperties(PathOps.singleton.normalize(src), src.endsWith("/")));
-                    }
-                });
-                items.sort(itemComparator);
+        public void loadProperties(Collection<String> paths) {
+            if (paths.isEmpty()) {
+                return;
             }
-            notifyDataSetChanged();
-            itemsLoader.add(new LinkedList<>(items));
-        }
-
-        public void cancel() {
-            itemsLoader.cancel();
+            Set<String> pathsSet = new HashSet<>();
+            for (String path : paths) {
+                pathsSet.add(PathOps.singleton.normalize(path));
+            }
+            List<FileProperties> toReload = new LinkedList<>();
+            for (FileProperties item : items) {
+                if (pathsSet.contains(item.path)) {
+                    item.computed = false;
+                    toReload.add(item);
+                }
+            }
+            if (!toReload.isEmpty()) {
+                itemsLoader.add(toReload);
+            }
         }
 
         @NonNull

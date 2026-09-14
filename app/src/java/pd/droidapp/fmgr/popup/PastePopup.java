@@ -152,10 +152,15 @@ public class PastePopup extends ProcessingPopup {
                 netRemoved.remove(path);
             }
             for (Map.Entry<String, String> pair : moved) {
-                netAdded.add(pair.getValue());
-                netAdded.remove(pair.getKey());
-                netRemoved.add(pair.getKey());
-                netRemoved.remove(pair.getValue());
+                String src = pair.getKey();
+                String dst = pair.getValue();
+                netAdded.add(dst);
+                if (src.endsWith("/")) {
+                    netAdded.removeIf(path -> path.startsWith(src));
+                }
+                netAdded.remove(src);
+                netRemoved.add(src);
+                netRemoved.remove(dst);
             }
             for (String path : removed) {
                 netAdded.remove(path);
