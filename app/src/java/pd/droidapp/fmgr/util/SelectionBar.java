@@ -108,7 +108,7 @@ public class SelectionBar {
         toggleSelected(new File(path));
     }
 
-    public Collection<File> getSelectedItems() {
+    public Collection<File> getSelectedFiles() {
         return selectedItems;
     }
 }

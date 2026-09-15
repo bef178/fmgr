@@ -76,6 +76,16 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
         notifyItemRangeRemoved(0, oldSize);
     }
 
+    public List<String> getSelectedPaths() {
+        List<String> selected = new LinkedList<>();
+        for (String path : items) {
+            if (selectionBar.hasSelected(path)) {
+                selected.add(path);
+            }
+        }
+        return selected;
+    }
+
     @NonNull
     @Override
     public ItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {

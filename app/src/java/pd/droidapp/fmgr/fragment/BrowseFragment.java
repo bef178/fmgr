@@ -179,7 +179,7 @@ public class BrowseFragment extends Fragment {
         if (savedSelectedItems != null) {
             selectionBar.addFiles(savedSelectedItems);
             selectionBar.invalidate();
-            itemsAdapter.invalidate(selectionBar.getSelectedItems().stream().map(File::getPath).collect(Collectors.toList()));
+            itemsAdapter.invalidate(selectionBar.getSelectedFiles().stream().map(File::getPath).collect(Collectors.toList()));
         }
 
         actionBar.invalidate();
@@ -195,7 +195,7 @@ public class BrowseFragment extends Fragment {
         outState.putSerializable(STATE_CURRENT_DIRECTORY, pathBar.getCurrentDirectory());
         outState.putSerializable(STATE_BACK_STACK, new LinkedList<>(backStack));
         outState.putSerializable(STATE_FORWARD_STACK, new LinkedList<>(forwardStack));
-        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.getSelectedItems()));
+        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.getSelectedFiles()));
     }
 
     @Override
@@ -335,8 +335,9 @@ public class BrowseFragment extends Fragment {
         return null;
     }
 
-    private void jumpToFile(File file) {
-        if (file == null || !file.exists()) {
+    private void jumpToFile(String path) {
+        File file = new File(path);
+        if (!file.exists()) {
             Toast.makeText(requireContext(), R.string.error_file_not_exist, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -450,7 +451,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCut() {
-        Collection<File> files = new LinkedList<>(selectionBar.getSelectedItems());
+        Collection<File> files = new LinkedList<>(selectionBar.getSelectedFiles());
         clipboard.setFilesToCut(files);
         Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
@@ -460,7 +461,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCopy() {
-        Collection<File> files = new LinkedList<>(selectionBar.getSelectedItems());
+        Collection<File> files = new LinkedList<>(selectionBar.getSelectedFiles());
         clipboard.setFilesToCopy(files);
         Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
@@ -469,38 +470,38 @@ public class BrowseFragment extends Fragment {
         itemsAdapter.invalidate(files.stream().map(File::getPath).collect(Collectors.toList()));
     }
 
-    private void copyToClipboard(Collection<File> files) {
-        clipboard.setFilesToCopy(new LinkedList<>(files));
-        Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
+    private void copyToClipboard(Collection<String> paths) {
+        clipboard.setFilesToCopy(paths.stream().map(File::new).collect(Collectors.toList()));
+        Toast.makeText(requireContext(), getString(R.string.copied_report_format, paths.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
     }
 
-    private void cutToClipboard(Collection<File> files) {
-        clipboard.setFilesToCut(new LinkedList<>(files));
-        Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
+    private void cutToClipboard(Collection<String> paths) {
+        clipboard.setFilesToCut(paths.stream().map(File::new).collect(Collectors.toList()));
+        Toast.makeText(requireContext(), getString(R.string.cut_report_format, paths.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
     }
 
     private void showPastePopup() {
         boolean isCopy;
-        List<File> srcFiles;
+        List<String> srcPaths;
         if (clipboard.toCut()) {
             isCopy = false;
-            srcFiles = clipboard.getFilesToCut();
+            srcPaths = clipboard.getFilesToCut().stream().map(File::getPath).collect(Collectors.toList());
         } else if (clipboard.toCopy()) {
             isCopy = true;
-            srcFiles = clipboard.getFilesToCopy();
+            srcPaths = clipboard.getFilesToCopy().stream().map(File::getPath).collect(Collectors.toList());
         } else {
             return;
         }
 
-        PastePopup pastePopup = new PastePopup(getView(), isCopy, srcFiles, pathBar.getCurrentDirectory());
+        PastePopup pastePopup = new PastePopup(getView(), isCopy, srcPaths, pathBar.getCurrentDirectory().getPath());
         pastePopup.whenPopupDismissed(this::onPopupDismissed);
         pastePopup.show();
     }
 
     private void showDeletePopup() {
-        DeletePopup deletePopup = new DeletePopup(getView(), selectionBar.getSelectedItems(), false);
+        DeletePopup deletePopup = new DeletePopup(getView(), itemsAdapter.getSelectedPaths(), false);
         deletePopup.whenPopupDismissed(this::onPopupDismissed);
         deletePopup.show();
     }
@@ -549,7 +550,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showSearchPopup() {
-        SearchPopup popup = new SearchPopup(getView(), pathBar.getCurrentDirectory());
+        SearchPopup popup = new SearchPopup(getView(), pathBar.getCurrentDirectory().getPath());
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
@@ -558,14 +559,14 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeleteEmptyPopup() {
-        DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), pathBar.getCurrentDirectory());
+        DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), pathBar.getCurrentDirectory().getPath());
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
 
     private void showDedupPopup() {
-        DedupPopup popup = new DedupPopup(getView(), pathBar.getCurrentDirectory());
+        DedupPopup popup = new DedupPopup(getView(), pathBar.getCurrentDirectory().getPath());
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
@@ -849,6 +850,17 @@ public class BrowseFragment extends Fragment {
             if (!toReload.isEmpty()) {
                 itemsLoader.add(toReload);
             }
+        }
+
+        public List<String> getSelectedPaths() {
+            List<String> selected = new LinkedList<>();
+            for (FileProperties item : items) {
+                String path = item.isDirectory ? item.path + "/" : item.path;
+                if (selectionBar.hasSelected(path)) {
+                    selected.add(path);
+                }
+            }
+            return selected;
         }
 
         @NonNull

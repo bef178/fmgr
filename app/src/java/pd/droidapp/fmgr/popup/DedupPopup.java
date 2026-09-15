@@ -4,7 +4,6 @@ import android.view.View;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,7 +23,7 @@ import pd.util.PathOps;
 
 public class DedupPopup extends ProcessingPopup {
 
-    private final File startDirectory;
+    private final String startDirectory;
 
     // views
     private final StatusBar statusBar;
@@ -33,9 +32,9 @@ public class DedupPopup extends ProcessingPopup {
     private final PopupFileGroupsAdapter groupsAdapter;
 
     // callbacks
-    private Consumer<File> onJump;
-    private Consumer<Collection<File>> onCopy;
-    private Consumer<Collection<File>> onCut;
+    private Consumer<String> onJump;
+    private Consumer<Collection<String>> onCopy;
+    private Consumer<Collection<String>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
     private DedupWorker worker;
@@ -45,14 +44,14 @@ public class DedupPopup extends ProcessingPopup {
     private final Map<String, FileProperties> byPath = new HashMap<>();
     private int totalScanned;
 
-    public DedupPopup(View containerView, File startDirectory) {
+    public DedupPopup(View containerView, String startDirectory) {
         super(containerView, R.layout.dedup_popup);
         this.startDirectory = startDirectory;
 
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         groupsView = mainAreaView.findViewById(R.id.popup_items_list);
-        groupsAdapter = new PopupFileGroupsAdapter(startDirectory.getPath(), selectionBar);
+        groupsAdapter = new PopupFileGroupsAdapter(startDirectory, selectionBar);
 
         titleBar.setTitle(R.string.delete_duplicate_files);
 
@@ -75,9 +74,8 @@ public class DedupPopup extends ProcessingPopup {
     private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.size() == 1) {
-                File file = selectionBar.getFirst();
                 if (onJump != null) {
-                    onJump.accept(file);
+                    onJump.accept(groupsAdapter.getSelectedPaths().get(0));
                 }
                 selfWindow.dismiss();
             }
@@ -85,20 +83,20 @@ public class DedupPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
             if (onCopy != null) {
-                onCopy.accept(selectionBar.getSelectedItems());
+                onCopy.accept(groupsAdapter.getSelectedPaths());
             }
             selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
-                onCut.accept(selectionBar.getSelectedItems());
+                onCut.accept(groupsAdapter.getSelectedPaths());
             }
             selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.getSelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, groupsAdapter.getSelectedPaths(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 selectionBar.remove(removed);
@@ -156,15 +154,15 @@ public class DedupPopup extends ProcessingPopup {
         }
     }
 
-    public void whenJumpClicked(Consumer<File> onJump) {
+    public void whenJumpClicked(Consumer<String> onJump) {
         this.onJump = onJump;
     }
 
-    public void whenCopyClicked(Consumer<Collection<File>> onCopy) {
+    public void whenCopyClicked(Consumer<Collection<String>> onCopy) {
         this.onCopy = onCopy;
     }
 
-    public void whenCutClicked(Consumer<Collection<File>> onCut) {
+    public void whenCutClicked(Consumer<Collection<String>> onCut) {
         this.onCut = onCut;
     }
 
@@ -210,7 +208,7 @@ public class DedupPopup extends ProcessingPopup {
                 statusBar.markStopped();
             }
         }));
-        worker.start(startDirectory.getPath());
+        worker.start(startDirectory);
         updateButtons();
     }
 

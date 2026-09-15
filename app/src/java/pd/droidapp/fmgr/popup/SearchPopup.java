@@ -14,7 +14,6 @@ import android.widget.ImageButton;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -28,7 +27,7 @@ public class SearchPopup extends ProcessingPopup {
 
     private static final int SEARCH_START_DELAY_IN_MILLISECONDS = 1000;
 
-    private final File startDirectory;
+    private final String startDirectory;
 
     // views
     private final EditText searchEdit;
@@ -39,9 +38,9 @@ public class SearchPopup extends ProcessingPopup {
     private final PopupFileItemsAdapter itemsAdapter;
 
     // callbacks
-    private Consumer<File> onJump;
-    private Consumer<Collection<File>> onCopy;
-    private Consumer<Collection<File>> onCut;
+    private Consumer<String> onJump;
+    private Consumer<Collection<String>> onCopy;
+    private Consumer<Collection<String>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
     private SearchWorker worker;
@@ -50,7 +49,7 @@ public class SearchPopup extends ProcessingPopup {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Collection<String> netRemoved = new LinkedList<>();
 
-    public SearchPopup(View containerView, File startDirectory) {
+    public SearchPopup(View containerView, String startDirectory) {
         super(containerView, R.layout.search_popup);
         this.startDirectory = startDirectory;
 
@@ -59,7 +58,7 @@ public class SearchPopup extends ProcessingPopup {
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemsAdapter(startDirectory.getPath(), selectionBar);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar);
 
         titleBar.setTitle(R.string.search_files);
 
@@ -129,9 +128,8 @@ public class SearchPopup extends ProcessingPopup {
     private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.size() == 1) {
-                File file = selectionBar.getFirst();
                 if (onJump != null) {
-                    onJump.accept(file);
+                    onJump.accept(itemsAdapter.getSelectedPaths().get(0));
                 }
                 selfWindow.dismiss();
             }
@@ -139,18 +137,18 @@ public class SearchPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
             if (onCopy != null) {
-                onCopy.accept(selectionBar.getSelectedItems());
+                onCopy.accept(itemsAdapter.getSelectedPaths());
             }
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
-                onCut.accept(selectionBar.getSelectedItems());
+                onCut.accept(itemsAdapter.getSelectedPaths());
             }
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.getSelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedPaths(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);
@@ -201,15 +199,15 @@ public class SearchPopup extends ProcessingPopup {
         }
     }
 
-    public void whenJumpClicked(Consumer<File> onJump) {
+    public void whenJumpClicked(Consumer<String> onJump) {
         this.onJump = onJump;
     }
 
-    public void whenCopyClicked(Consumer<Collection<File>> onCopy) {
+    public void whenCopyClicked(Consumer<Collection<String>> onCopy) {
         this.onCopy = onCopy;
     }
 
-    public void whenCutClicked(Consumer<Collection<File>> onCut) {
+    public void whenCutClicked(Consumer<Collection<String>> onCut) {
         this.onCut = onCut;
     }
 
@@ -243,7 +241,7 @@ public class SearchPopup extends ProcessingPopup {
         lastQuery = query;
         if (!query.isEmpty()) {
             totalScanned = 0;
-            worker = createAndStartSearcher(startDirectory.getPath(), query);
+            worker = createAndStartSearcher(startDirectory, query);
         }
         updateButtons();
     }

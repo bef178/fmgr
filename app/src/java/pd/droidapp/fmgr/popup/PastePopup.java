@@ -7,24 +7,22 @@ import android.widget.ProgressBar;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.util.PathOps;
 
 public class PastePopup extends ProcessingPopup {
 
     private final boolean isCopy;
-    private final List<File> srcFiles;
-    private final File dstDirectory;
+    private final List<String> srcPaths;
+    private final String dstDirectory;
 
     // views
     private final TextView resolutionTitleTextView;
@@ -48,11 +46,11 @@ public class PastePopup extends ProcessingPopup {
     private int totalFailed;
     private int totalProcessed;
 
-    public PastePopup(View containerView, boolean isCopy, List<File> srcFiles, File dstDirectory) {
+    public PastePopup(View containerView, boolean isCopy, List<String> srcPaths, String dstDirectory) {
         super(containerView, R.layout.paste_popup);
         this.isCopy = isCopy;
         this.dstDirectory = dstDirectory;
-        this.srcFiles = new LinkedList<>(srcFiles);
+        this.srcPaths = new LinkedList<>(srcPaths);
 
         resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
@@ -65,7 +63,7 @@ public class PastePopup extends ProcessingPopup {
 
         titleBar.setTitle(context.getString(
                 isCopy ? R.string.copy_x_items : R.string.move_x_items,
-                srcFiles.size()));
+                srcPaths.size()));
 
         initConflictResolution();
         initProgress();
@@ -82,13 +80,13 @@ public class PastePopup extends ProcessingPopup {
     private void initConflictResolution() {
         resolutionTitleTextView.setText(R.string.select_resolution);
 
-        boolean inPlacePaste = srcFiles.stream()
-                .allMatch(file -> Objects.equals(file.getParentFile(), dstDirectory));
+        boolean inPlacePaste = srcPaths.stream()
+                .allMatch(path -> dstDirectory.equals(PathOps.singleton.dirname(path)));
         mergeDirectoriesCheckBox.setChecked(!inPlacePaste);
     }
 
     private void initProgress() {
-        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcFiles.size()));
+        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcPaths.size()));
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
@@ -124,7 +122,7 @@ public class PastePopup extends ProcessingPopup {
 
     private void start() {
         final ConflictResolution resolution = getSelectedResolution();
-        final int total = srcFiles.size();
+        final int total = srcPaths.size();
 
         int shortId;
         if (resolution == ConflictResolution.OVERWRITE) {
@@ -188,11 +186,10 @@ public class PastePopup extends ProcessingPopup {
             }
             updateButtons();
         }));
-        List<String> srcPaths = srcFiles.stream().map(File::getPath).collect(Collectors.toList());
         if (isCopy) {
-            worker.startCopy(srcPaths, dstDirectory.getPath(), resolution, mergeDirectoriesCheckBox.isChecked());
+            worker.startCopy(srcPaths, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
         } else {
-            worker.startCut(srcPaths, dstDirectory.getPath(), resolution, mergeDirectoriesCheckBox.isChecked());
+            worker.startCut(srcPaths, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
         }
 
         updateButtons();

@@ -4,7 +4,6 @@ import android.view.View;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -16,7 +15,7 @@ import pd.droidapp.fmgr.util.SelectionBar;
 
 public class DeleteEmptyPopup extends ProcessingPopup {
 
-    private final File startDirectory;
+    private final String startDirectory;
 
     // views
     private final StatusBar statusBar;
@@ -25,21 +24,21 @@ public class DeleteEmptyPopup extends ProcessingPopup {
     private final PopupFileItemsAdapter itemsAdapter;
 
     // callbacks
-    private Consumer<File> onJump;
+    private Consumer<String> onJump;
     private PopupOnDismissedListener onPopupDismissed;
 
     private DeleteEmptyWorker worker;
     private int totalScanned;
     private final Collection<String> netRemoved = new LinkedList<>();
 
-    public DeleteEmptyPopup(View containerView, File startDirectory) {
+    public DeleteEmptyPopup(View containerView, String startDirectory) {
         super(containerView, R.layout.delete_empty_popup);
         this.startDirectory = startDirectory;
 
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemsAdapter(startDirectory.getPath(), selectionBar);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar);
 
         titleBar.setTitle(R.string.delete_empty_files);
 
@@ -50,16 +49,15 @@ public class DeleteEmptyPopup extends ProcessingPopup {
     private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.size() == 1) {
-                File file = selectionBar.getFirst();
                 if (onJump != null) {
-                    onJump.accept(file);
+                    onJump.accept(itemsAdapter.getSelectedPaths().get(0));
                 }
                 selfWindow.dismiss();
             }
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.getSelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedPaths(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);
@@ -70,7 +68,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.getSelectedItems(), true);
+            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedPaths(), true);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);
@@ -131,7 +129,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         }
     }
 
-    public void whenJumpClicked(Consumer<File> onJump) {
+    public void whenJumpClicked(Consumer<String> onJump) {
         this.onJump = onJump;
     }
 
@@ -162,7 +160,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
                 statusBar.markStopped();
             }
         }));
-        worker.start(startDirectory.getPath());
+        worker.start(startDirectory);
 
         updateButtons();
     }

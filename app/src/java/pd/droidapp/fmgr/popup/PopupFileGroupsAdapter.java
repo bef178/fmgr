@@ -86,12 +86,16 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         return groups;
     }
 
-    private boolean isCollapsed(PopupFileGroup group) {
-        return collapsedStates.getOrDefault(group.key(), false);
-    }
-
-    private void toggleCollapsed(PopupFileGroup group) {
-        collapsedStates.put(group.key(), !isCollapsed(group));
+    public List<String> getSelectedPaths() {
+        List<String> selected = new LinkedList<>();
+        for (PopupFileGroup group : groups) {
+            for (String path : group.getPaths()) {
+                if (selectionBar.hasSelected(path)) {
+                    selected.add(path);
+                }
+            }
+        }
+        return selected;
     }
 
     @NonNull
@@ -114,7 +118,7 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         viewHolder.filesView.setVisibility(collapsed ? View.GONE : View.VISIBLE);
 
         viewHolder.titleBarView.setOnClickListener(v -> {
-            toggleCollapsed(group);
+            collapsedStates.put(group.key(), !isCollapsed(group));
             animateCollapsed(viewHolder.triangleImageView, viewHolder.filesView, isCollapsed(group));
         });
 
@@ -155,6 +159,10 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         if (nowCount > requiredCount) {
             viewHolder.filesView.removeViews(requiredCount, nowCount - requiredCount);
         }
+    }
+
+    private boolean isCollapsed(PopupFileGroup group) {
+        return collapsedStates.getOrDefault(group.key(), false);
     }
 
     private void toggleSelected(String path, int position) {

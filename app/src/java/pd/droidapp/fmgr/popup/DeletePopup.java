@@ -5,19 +5,17 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 
 public class DeletePopup extends ProcessingPopup {
 
-    private final List<File> srcFiles;
+    private final List<String> srcPaths;
     private final boolean prune;
 
     // views
@@ -36,9 +34,9 @@ public class DeletePopup extends ProcessingPopup {
     private int totalFailed;
     private int totalProgressed;
 
-    public DeletePopup(View containerView, Collection<File> srcFiles, boolean prune) {
+    public DeletePopup(View containerView, Collection<String> srcPaths, boolean prune) {
         super(containerView, R.layout.delete_popup);
-        this.srcFiles = new LinkedList<>(srcFiles);
+        this.srcPaths = new LinkedList<>(srcPaths);
         this.prune = prune;
 
         progressArea = mainAreaView.findViewById(R.id.progress_area);
@@ -47,7 +45,7 @@ public class DeletePopup extends ProcessingPopup {
         progressBarSideTextView = mainAreaView.findViewById(R.id.progress_bar_side_text);
         progressSummaryTextView = mainAreaView.findViewById(R.id.progress_summary);
 
-        titleBar.setTitle(context.getString(R.string.delete_x_items, srcFiles.size()));
+        titleBar.setTitle(context.getString(R.string.delete_x_items, srcPaths.size()));
 
         initProgress();
     }
@@ -61,7 +59,7 @@ public class DeletePopup extends ProcessingPopup {
     }
 
     private void initProgress() {
-        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcFiles.size()));
+        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcPaths.size()));
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
@@ -96,7 +94,7 @@ public class DeletePopup extends ProcessingPopup {
     }
 
     private void start() {
-        final int total = srcFiles.size();
+        final int total = srcPaths.size();
 
         worker = new DeleteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
@@ -127,7 +125,6 @@ public class DeletePopup extends ProcessingPopup {
             }
             updateButtons();
         }));
-        List<String> srcPaths = srcFiles.stream().map(File::getPath).collect(Collectors.toList());
         worker.start(srcPaths, prune);
 
         updateButtons();
