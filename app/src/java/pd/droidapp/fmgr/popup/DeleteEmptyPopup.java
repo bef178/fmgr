@@ -39,7 +39,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedItems);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory.getPath(), selectionBar);
 
         titleBar.setTitle(R.string.delete_empty_files);
 
@@ -62,8 +62,8 @@ public class DeleteEmptyPopup extends ProcessingPopup {
             DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                itemsAdapter.removeAll(removed);
-                selectionBar.selectedItems.removeIf(file -> removed.contains(file.getPath()));
+                itemsAdapter.remove(removed);
+                selectionBar.remove(removed);
                 selectionBar.invalidate();
             });
             deletePopup.show();
@@ -73,8 +73,8 @@ public class DeleteEmptyPopup extends ProcessingPopup {
             DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), true);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                itemsAdapter.removeAll(removed);
-                selectionBar.selectedItems.removeIf(file -> removed.contains(file.getPath()));
+                itemsAdapter.remove(removed);
+                selectionBar.remove(removed);
                 selectionBar.invalidate();
             });
             deletePopup.show();
@@ -82,7 +82,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.selectedItems.addAll(itemsAdapter.copyItems());
+            selectionBar.add(itemsAdapter.getItems());
             selectionBar.invalidate();
             itemsAdapter.notifyDataSetChanged();
         });
@@ -97,7 +97,6 @@ public class DeleteEmptyPopup extends ProcessingPopup {
     private void initItemsView() {
         itemsView.setLayoutManager(new LinearLayoutManager(context));
         itemsView.setAdapter(itemsAdapter);
-        itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
     }
 
     @Override
@@ -150,7 +149,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         }));
         worker.whenUpdated((scanned, delta) -> containerView.post(() -> {
             totalScanned += scanned;
-            itemsAdapter.addAll(delta);
+            itemsAdapter.add(delta);
             selectionBar.invalidate();
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));

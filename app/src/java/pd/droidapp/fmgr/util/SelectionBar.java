@@ -8,6 +8,7 @@ import androidx.annotation.LayoutRes;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,12 +53,16 @@ public class SelectionBar {
         }
     }
 
-    public boolean isSelected(File file) {
+    public boolean hasSelected(File file) {
         return selectedItems.contains(file);
     }
 
-    public boolean hasSelection() {
-        return !selectedItems.isEmpty();
+    public boolean hasSelected(String path) {
+        return selectedItems.contains(new File(path));
+    }
+
+    public boolean isEmpty() {
+        return selectedItems.isEmpty();
     }
 
     public void toggleSelected(File file) {
@@ -68,8 +73,31 @@ public class SelectionBar {
         }
     }
 
-    public void addAll(List<File> files) {
+    public void toggleSelected(String path) {
+        File file = new File(path);
+        if (selectedItems.contains(file)) {
+            selectedItems.remove(file);
+        } else {
+            selectedItems.add(file);
+        }
+    }
+
+    public void addFiles(List<File> files) {
         selectedItems.addAll(files);
+    }
+
+    public void add(Collection<String> paths) {
+        for (String path : paths) {
+            selectedItems.add(new File(path));
+        }
+    }
+
+    public void remove(Collection<String> paths) {
+        Set<File> files = new HashSet<>();
+        for (String path : paths) {
+            files.add(new File(path));
+        }
+        selectedItems.removeAll(files);
     }
 
     public void clear() {

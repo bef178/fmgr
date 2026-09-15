@@ -18,7 +18,6 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -60,7 +59,7 @@ public class SearchPopup extends ProcessingPopup {
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedItems);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory.getPath(), selectionBar);
 
         titleBar.setTitle(R.string.search_files);
 
@@ -154,8 +153,8 @@ public class SearchPopup extends ProcessingPopup {
             DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                itemsAdapter.removeAll(removed);
-                selectionBar.selectedItems.removeIf(file -> removed.contains(file.getPath()));
+                itemsAdapter.remove(removed);
+                selectionBar.remove(removed);
                 selectionBar.invalidate();
             });
             deletePopup.show();
@@ -163,23 +162,21 @@ public class SearchPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addAll(itemsAdapter.copyItems());
+            selectionBar.add(itemsAdapter.getItems());
             selectionBar.invalidate();
             itemsAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
-            List<File> selected = selectionBar.copySelectedItems();
             selectionBar.clear();
             selectionBar.invalidate();
-            itemsAdapter.invalidateItems(selected);
+            itemsAdapter.notifyDataSetChanged();
         });
     }
 
     private void initItemsView() {
         itemsView.setLayoutManager(new LinearLayoutManager(context));
         itemsView.setAdapter(itemsAdapter);
-        itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
     }
 
     @Override
@@ -265,7 +262,7 @@ public class SearchPopup extends ProcessingPopup {
                 return;
             }
             totalScanned += scanned;
-            itemsAdapter.addAll(matched);
+            itemsAdapter.add(matched);
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));

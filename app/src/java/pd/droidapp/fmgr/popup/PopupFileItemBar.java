@@ -7,7 +7,7 @@ import android.widget.TextView;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.Util;
 
-public class PopupFileItemBar {
+class PopupFileItemBar {
 
     private final ImageView iconView;
     private final ImageView selectedIcon;

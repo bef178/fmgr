@@ -114,7 +114,7 @@ public class DedupPopup extends ProcessingPopup {
             DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                selectionBar.selectedItems.removeIf(file -> removed.contains(file.getPath()));
+                selectionBar.remove(removed);
                 for (String path : removed) {
                     FileProperties props = byPath.remove(path);
                     if (props == null) {

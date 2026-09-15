@@ -131,7 +131,7 @@ public class BrowseFragment extends Fragment {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addAll(itemsAdapter.items.stream()
+            selectionBar.addFiles(itemsAdapter.items.stream()
                     .map(x -> new File(x.path))
                     .collect(Collectors.toList()));
             selectionBar.invalidate();
@@ -177,7 +177,7 @@ public class BrowseFragment extends Fragment {
 
         List<File> savedSelectedItems = (List<File>) savedInstanceState.getSerializable(STATE_SELECTED_ITEMS);
         if (savedSelectedItems != null) {
-            selectionBar.addAll(savedSelectedItems);
+            selectionBar.addFiles(savedSelectedItems);
             selectionBar.invalidate();
             itemsAdapter.invalidate(selectionBar.selectedItems.stream().map(File::getPath).collect(Collectors.toList()));
         }
@@ -590,7 +590,7 @@ public class BrowseFragment extends Fragment {
             Set<File> removedFiles = removed.stream().map(File::new).collect(Collectors.toSet());
             clipboard.removeAllIfSameAsOrDescendantOf(removedFiles);
             actionBar.invalidate();
-            selectionBar.selectedItems.removeAll(removedFiles);
+            selectionBar.remove(removed);
             selectionBar.invalidate();
             Set<String> explicit = new LinkedHashSet<>();
             Set<String> implicit = new LinkedHashSet<>();
@@ -869,7 +869,7 @@ public class BrowseFragment extends Fragment {
                     item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24);
             viewHolder.fileDetailsTextView.setText(getItemDetailsString(item));
 
-            if (selectionBar.isSelected(file)) {
+            if (selectionBar.hasSelected(file)) {
                 viewHolder.fileSelectedImageView.setVisibility(View.VISIBLE);
             } else {
                 viewHolder.fileSelectedImageView.setVisibility(View.GONE);
@@ -878,7 +878,7 @@ public class BrowseFragment extends Fragment {
             applyHighlightEffect(viewHolder.fileHighlightView, progressor.getVelocity(file));
 
             viewHolder.itemView.setOnClickListener(v -> {
-                if (selectionBar.hasSelection()) {
+                if (!selectionBar.isEmpty()) {
                     toggleSelected(file);
                     return;
                 }

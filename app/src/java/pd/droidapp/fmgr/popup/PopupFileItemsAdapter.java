@@ -4,54 +4,48 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.File;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
 
-public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.ItemViewHolder> {
+class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.ItemViewHolder> {
 
-    private final File startDirectory;
-    private final Set<File> selectedFiles;
-    private final List<File> items = new LinkedList<>();
-    private Runnable onItemFileToggled;
+    private final String startDirectory;
+    private final SelectionBar selectionBar;
+    private final List<String> items = new LinkedList<>();
 
-    public PopupFileItemsAdapter(File startDirectory, Set<File> selectedFiles) {
+    public PopupFileItemsAdapter(String startDirectory, SelectionBar selectionBar) {
         this.startDirectory = startDirectory;
-        this.selectedFiles = selectedFiles;
+        this.selectionBar = selectionBar;
     }
 
-    public void whenItemFileToggled(Runnable onItemFileToggled) {
-        this.onItemFileToggled = onItemFileToggled;
+    public List<String> getItems() {
+        return items;
     }
 
-    public void addAll(List<String> paths) {
+    public void add(Collection<String> paths) {
         if (paths.isEmpty()) {
             return;
         }
         int start = items.size();
-        for (String path : paths) {
-            items.add(new File(path));
-        }
+        items.addAll(paths);
         notifyItemRangeInserted(start, paths.size());
     }
 
-    public void removeAll(Collection<String> paths) {
-        List<File> oldFiles = new LinkedList<>(items);
-        items.removeIf(file -> paths.contains(file.getPath()));
+    public void remove(Collection<String> paths) {
+        List<String> oldItems = new LinkedList<>(items);
+        items.removeIf(paths::contains);
         DiffUtil.calculateDiff(new DiffUtil.Callback() {
             @Override
             public int getOldListSize() {
-                return oldFiles.size();
+                return oldItems.size();
             }
 
             @Override
@@ -61,7 +55,7 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
 
             @Override
             public boolean areItemsTheSame(int oldPos, int newPos) {
-                return oldFiles.get(oldPos).equals(items.get(newPos));
+                return oldItems.get(oldPos).equals(items.get(newPos));
             }
 
             @Override
@@ -69,7 +63,6 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
                 return oldPos == newPos;
             }
 
-            @Nullable
             @Override
             public Object getChangePayload(int oldPos, int newPos) {
                 return Boolean.TRUE;
@@ -83,19 +76,6 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
         notifyItemRangeRemoved(0, oldSize);
     }
 
-    public void invalidateItems(Collection<File> files) {
-        Set<File> fileSet = new HashSet<>(files);
-        for (int i = 0; i < items.size(); i++) {
-            if (fileSet.contains(items.get(i))) {
-                notifyItemChanged(i);
-            }
-        }
-    }
-
-    public List<File> copyItems() {
-        return new LinkedList<>(items);
-    }
-
     @NonNull
     @Override
     public ItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -106,44 +86,38 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
 
     @Override
     public void onBindViewHolder(@NonNull ItemViewHolder viewHolder, int position) {
-        File file = items.get(position);
+        String path = items.get(position);
 
-        if (file.isDirectory()) {
+        if (path.endsWith("/")) {
             viewHolder.itemBar.setIcon(R.drawable.i_directory_24);
         } else {
             viewHolder.itemBar.setIcon(R.drawable.i_file_24);
         }
 
-        viewHolder.itemBar.setSelected(selectedFiles.contains(file));
+        viewHolder.itemBar.setSelected(selectionBar.hasSelected(path));
 
-        viewHolder.itemBar.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
+        viewHolder.itemBar.setPath(PathOps.singleton.relativize(startDirectory, path));
 
         viewHolder.itemBar.setIndex(position + 1);
 
         viewHolder.itemView.setOnClickListener(v -> {
-            if (!selectedFiles.isEmpty()) {
-                toggleSelected(file, position);
+            if (!selectionBar.isEmpty()) {
+                toggleSelected(path, position);
             }
         });
 
         viewHolder.itemView.setOnLongClickListener(v -> {
-            toggleSelected(file, position);
+            toggleSelected(path, position);
             return true;
         });
 
         viewHolder.itemBar.forwardPathViewClicksTo(viewHolder.itemView);
     }
 
-    private void toggleSelected(File file, int position) {
-        if (selectedFiles.contains(file)) {
-            selectedFiles.remove(file);
-        } else {
-            selectedFiles.add(file);
-        }
+    private void toggleSelected(String path, int position) {
+        selectionBar.toggleSelected(path);
         notifyItemChanged(position);
-        if (onItemFileToggled != null) {
-            onItemFileToggled.run();
-        }
+        selectionBar.invalidate();
     }
 
     @Override
