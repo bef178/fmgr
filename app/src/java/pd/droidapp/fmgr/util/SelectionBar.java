@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.function.IntPredicate;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.ActionBar.ActionButton;
 
 public class SelectionBar {
 
@@ -37,7 +38,7 @@ public class SelectionBar {
         View button = LayoutInflater.from(selfView.getContext()).inflate(layoutResId, buttonsView, false);
         button.setOnClickListener(listener);
         buttonsView.addView(button);
-        actionButtons.add(new ActionButton(button, visible));
+        actionButtons.add(new ActionButton(button, () -> visible.test(selectedItems.size()), null));
     }
 
     public void invalidate() {
@@ -49,7 +50,7 @@ public class SelectionBar {
             selfView.setVisibility(View.VISIBLE);
         }
         for (ActionButton action : actionButtons) {
-            action.view.setVisibility(action.visible.test(count) ? View.VISIBLE : View.GONE);
+            action.view.setVisibility(action.visible.getAsBoolean() ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -109,16 +110,5 @@ public class SelectionBar {
 
     public Collection<File> getSelectedItems() {
         return selectedItems;
-    }
-
-    private static class ActionButton {
-
-        final View view;
-        final IntPredicate visible;
-
-        ActionButton(View view, IntPredicate visible) {
-            this.view = view;
-            this.visible = visible;
-        }
     }
 }
