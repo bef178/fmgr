@@ -121,8 +121,8 @@ public class BrowseFragment extends Fragment {
         itemsView.setAdapter(itemsAdapter);
 
         selectionBar.addButton(R.layout.selection_button_rename, c -> c == 1, v -> {
-            if (selectionBar.selectedItems.size() == 1) {
-                showRenamePopup(selectionBar.selectedItems.iterator().next());
+            if (selectionBar.size() == 1) {
+                showRenamePopup(selectionBar.getFirst());
             }
         });
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> markSelectedItemsForCopy());
@@ -179,7 +179,7 @@ public class BrowseFragment extends Fragment {
         if (savedSelectedItems != null) {
             selectionBar.addFiles(savedSelectedItems);
             selectionBar.invalidate();
-            itemsAdapter.invalidate(selectionBar.selectedItems.stream().map(File::getPath).collect(Collectors.toList()));
+            itemsAdapter.invalidate(selectionBar.getSelectedItems().stream().map(File::getPath).collect(Collectors.toList()));
         }
 
         actionBar.invalidate();
@@ -195,7 +195,7 @@ public class BrowseFragment extends Fragment {
         outState.putSerializable(STATE_CURRENT_DIRECTORY, pathBar.getCurrentDirectory());
         outState.putSerializable(STATE_BACK_STACK, new LinkedList<>(backStack));
         outState.putSerializable(STATE_FORWARD_STACK, new LinkedList<>(forwardStack));
-        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.selectedItems));
+        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.getSelectedItems()));
     }
 
     @Override
@@ -450,7 +450,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCut() {
-        List<File> files = selectionBar.copySelectedItems();
+        Collection<File> files = new LinkedList<>(selectionBar.getSelectedItems());
         clipboard.setFilesToCut(files);
         Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
@@ -460,7 +460,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCopy() {
-        List<File> files = selectionBar.copySelectedItems();
+        Collection<File> files = new LinkedList<>(selectionBar.getSelectedItems());
         clipboard.setFilesToCopy(files);
         Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
@@ -500,7 +500,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeletePopup() {
-        DeletePopup deletePopup = new DeletePopup(getView(), selectionBar.copySelectedItems(), false);
+        DeletePopup deletePopup = new DeletePopup(getView(), selectionBar.getSelectedItems(), false);
         deletePopup.whenPopupDismissed(this::onPopupDismissed);
         deletePopup.show();
     }

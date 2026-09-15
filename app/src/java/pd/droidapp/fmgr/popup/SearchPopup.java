@@ -128,8 +128,8 @@ public class SearchPopup extends ProcessingPopup {
 
     private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
-            if (selectionBar.selectedItems.size() == 1) {
-                File file = selectionBar.selectedItems.iterator().next();
+            if (selectionBar.size() == 1) {
+                File file = selectionBar.getFirst();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
@@ -139,18 +139,18 @@ public class SearchPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
             if (onCopy != null) {
-                onCopy.accept(selectionBar.copySelectedItems());
+                onCopy.accept(selectionBar.getSelectedItems());
             }
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
-                onCut.accept(selectionBar.copySelectedItems());
+                onCut.accept(selectionBar.getSelectedItems());
             }
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);

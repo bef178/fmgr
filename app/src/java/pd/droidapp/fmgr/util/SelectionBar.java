@@ -10,7 +10,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntPredicate;
@@ -25,7 +25,7 @@ public class SelectionBar {
 
     private final List<ActionButton> actionButtons = new ArrayList<>();
 
-    public final Set<File> selectedItems = new HashSet<>();
+    private final Set<File> selectedItems = new LinkedHashSet<>();
 
     public SelectionBar(View selfView) {
         this.selfView = selfView;
@@ -41,44 +41,15 @@ public class SelectionBar {
     }
 
     public void invalidate() {
-        if (selectedItems.isEmpty()) {
+        int count = selectedItems.size();
+        if (count == 0) {
             selfView.setVisibility(View.GONE);
         } else {
-            numSelectedTextView.setText(selfView.getContext().getString(R.string.x_selected, selectedItems.size()));
+            numSelectedTextView.setText(selfView.getContext().getString(R.string.x_selected, count));
             selfView.setVisibility(View.VISIBLE);
         }
-        int count = selectedItems.size();
         for (ActionButton action : actionButtons) {
             action.view.setVisibility(action.visible.test(count) ? View.VISIBLE : View.GONE);
-        }
-    }
-
-    public boolean hasSelected(File file) {
-        return selectedItems.contains(file);
-    }
-
-    public boolean hasSelected(String path) {
-        return selectedItems.contains(new File(path));
-    }
-
-    public boolean isEmpty() {
-        return selectedItems.isEmpty();
-    }
-
-    public void toggleSelected(File file) {
-        if (selectedItems.contains(file)) {
-            selectedItems.remove(file);
-        } else {
-            selectedItems.add(file);
-        }
-    }
-
-    public void toggleSelected(String path) {
-        File file = new File(path);
-        if (selectedItems.contains(file)) {
-            selectedItems.remove(file);
-        } else {
-            selectedItems.add(file);
         }
     }
 
@@ -104,8 +75,40 @@ public class SelectionBar {
         selectedItems.clear();
     }
 
-    public List<File> copySelectedItems() {
-        return new LinkedList<>(selectedItems);
+    public boolean isEmpty() {
+        return selectedItems.isEmpty();
+    }
+
+    public int size() {
+        return selectedItems.size();
+    }
+
+    public File getFirst() {
+        return selectedItems.iterator().next();
+    }
+
+    public boolean hasSelected(File file) {
+        return selectedItems.contains(file);
+    }
+
+    public boolean hasSelected(String path) {
+        return selectedItems.contains(new File(path));
+    }
+
+    public void toggleSelected(File file) {
+        if (selectedItems.contains(file)) {
+            selectedItems.remove(file);
+        } else {
+            selectedItems.add(file);
+        }
+    }
+
+    public void toggleSelected(String path) {
+        toggleSelected(new File(path));
+    }
+
+    public Collection<File> getSelectedItems() {
+        return selectedItems;
     }
 
     private static class ActionButton {

@@ -36,7 +36,7 @@ public class DeletePopup extends ProcessingPopup {
     private int totalFailed;
     private int totalProgressed;
 
-    public DeletePopup(View containerView, List<File> srcFiles, boolean prune) {
+    public DeletePopup(View containerView, Collection<File> srcFiles, boolean prune) {
         super(containerView, R.layout.delete_popup);
         this.srcFiles = new LinkedList<>(srcFiles);
         this.prune = prune;

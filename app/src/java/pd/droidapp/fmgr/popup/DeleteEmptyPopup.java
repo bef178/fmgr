@@ -49,8 +49,8 @@ public class DeleteEmptyPopup extends ProcessingPopup {
 
     private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
-            if (selectionBar.selectedItems.size() == 1) {
-                File file = selectionBar.selectedItems.iterator().next();
+            if (selectionBar.size() == 1) {
+                File file = selectionBar.getFirst();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
@@ -59,7 +59,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);
@@ -70,7 +70,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), true);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.getSelectedItems(), true);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);

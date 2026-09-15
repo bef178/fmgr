@@ -1,20 +1,10 @@
 package pd.droidapp.fmgr.popup;
 
-import android.content.Context;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,7 +12,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -30,10 +19,8 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
+import pd.util.FileOps;
 import pd.util.PathOps;
-
-import static pd.droidapp.fmgr.util.Util.animateCollapsed;
-import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 public class DedupPopup extends ProcessingPopup {
 
@@ -65,7 +52,7 @@ public class DedupPopup extends ProcessingPopup {
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         groupsView = mainAreaView.findViewById(R.id.popup_items_list);
-        groupsAdapter = new PopupFileGroupsAdapter(startDirectory, selectionBar.selectedItems);
+        groupsAdapter = new PopupFileGroupsAdapter(startDirectory.getPath(), selectionBar);
 
         titleBar.setTitle(R.string.delete_duplicate_files);
 
@@ -87,8 +74,8 @@ public class DedupPopup extends ProcessingPopup {
 
     private void initSelectionBar() {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
-            if (selectionBar.selectedItems.size() == 1) {
-                File file = selectionBar.selectedItems.iterator().next();
+            if (selectionBar.size() == 1) {
+                File file = selectionBar.getFirst();
                 if (onJump != null) {
                     onJump.accept(file);
                 }
@@ -98,20 +85,20 @@ public class DedupPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
             if (onCopy != null) {
-                onCopy.accept(selectionBar.copySelectedItems());
+                onCopy.accept(selectionBar.getSelectedItems());
             }
             selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
-                onCut.accept(selectionBar.copySelectedItems());
+                onCut.accept(selectionBar.getSelectedItems());
             }
             selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.copySelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, selectionBar.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 selectionBar.remove(removed);
@@ -131,8 +118,8 @@ public class DedupPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_smart_select, c -> c > 0, v -> {
-            List<File> newlySelected = suggestToSelect(selectionBar.selectedItems);
-            selectionBar.selectedItems.addAll(newlySelected);
+            List<String> newlySelected = suggestToSelect();
+            selectionBar.add(newlySelected);
             selectionBar.invalidate();
             groupsAdapter.notifyDataSetChanged();
         });
@@ -147,7 +134,6 @@ public class DedupPopup extends ProcessingPopup {
     private void initItemsView() {
         groupsView.setLayoutManager(new LinearLayoutManager(context));
         groupsView.setAdapter(groupsAdapter);
-        groupsAdapter.whenItemFileToggled(selectionBar::invalidate);
     }
 
     @Override
@@ -244,18 +230,18 @@ public class DedupPopup extends ProcessingPopup {
                 totalScanned, totalGroups, totalGroupItems));
     }
 
-    private List<FileGroup> buildFileGroups() {
-        List<FileGroup> newFileGroups = new LinkedList<>();
+    private List<PopupFileGroupsAdapter.PopupFileGroup> buildFileGroups() {
+        List<PopupFileGroupsAdapter.PopupFileGroup> newFileGroups = new LinkedList<>();
         for (List<FileProperties> group : byChecksum.values()) {
             if (group.size() > 1) {
                 FileProperties first = group.get(0);
                 if (first.size == null) {
                     continue;
                 }
-                newFileGroups.add(new FileGroup(
+                newFileGroups.add(new PopupFileGroupsAdapter.PopupFileGroup(
                         first.size,
                         first.sha256sum,
-                        group.stream().map(props -> new File(props.path)).collect(Collectors.toList())));
+                        group.stream().map(props -> props.path).collect(Collectors.toList())));
             }
         }
         return newFileGroups;
@@ -265,241 +251,52 @@ public class DedupPopup extends ProcessingPopup {
      * Returns files to newly select, leaving already-selected ones untouched.
      * Keeps at most one file per group unselected.
      */
-    private List<File> suggestToSelect(Set<File> alreadySelectedFiles) {
-        List<File> newlySelectedFiles = new LinkedList<>();
-        for (FileGroup group : groupsAdapter.getFileGroups()) {
-            List<File> files = group.getFiles();
-            List<File> unselected = new LinkedList<>();
-            for (File f : files) {
-                if (!alreadySelectedFiles.contains(f)) {
-                    unselected.add(f);
+    private List<String> suggestToSelect() {
+        List<String> newlySelected = new LinkedList<>();
+        for (PopupFileGroupsAdapter.PopupFileGroup group : groupsAdapter.getGroups()) {
+            List<String> paths = group.getPaths();
+            List<String> unselected = new LinkedList<>();
+            for (String path : paths) {
+                if (!selectionBar.hasSelected(path)) {
+                    unselected.add(path);
                 }
             }
             if (unselected.size() <= 1) {
                 // 0: group fully selected; 1: keep it, nothing else to select
                 continue;
             }
-            File fileToKeep = unselected.get(0);
+            String pathToKeep = unselected.get(0);
             for (int i = 1; i < unselected.size(); i++) {
-                File f = unselected.get(i);
-                if (smartCompare(f, fileToKeep) < 0) {
-                    newlySelectedFiles.add(fileToKeep);
-                    fileToKeep = f;
+                String path = unselected.get(i);
+                if (smartCompare(path, pathToKeep) < 0) {
+                    newlySelected.add(pathToKeep);
+                    pathToKeep = path;
                 } else {
-                    newlySelectedFiles.add(f);
+                    newlySelected.add(path);
                 }
             }
         }
-        return newlySelectedFiles;
+        return newlySelected;
     }
 
-    private int smartCompare(File f1, File f2) {
-        long f1Time = f1.lastModified();
-        long f2Time = f2.lastModified();
-        if (f1Time != f2Time) {
-            return -Long.compare(f1Time, f2Time);
+    private int smartCompare(String path1, String path2) {
+        long time1 = mtimeOf(path1);
+        long time2 = mtimeOf(path2);
+        if (time1 != time2) {
+            return -Long.compare(time1, time2);
         }
 
-        String f1Basename = f1.getName();
-        String f2Basename = f2.getName();
-        if (!f1Basename.equals(f2Basename)) {
-            return Integer.compare(f1Basename.length(), f2Basename.length());
+        String basename1 = PathOps.singleton.basename(path1);
+        String basename2 = PathOps.singleton.basename(path2);
+        if (!basename1.equals(basename2)) {
+            return Integer.compare(basename1.length(), basename2.length());
         }
 
-        return f1.getAbsolutePath().length() - f2.getAbsolutePath().length();
+        return path1.length() - path2.length();
     }
 
-    private static class FileGroup {
-
-        final long size;
-        final String sha256sum;
-        private final List<File> files;
-
-        FileGroup(long size, String sha256sum, List<File> files) {
-            this.size = size;
-            this.sha256sum = sha256sum;
-            this.files = new LinkedList<>(files);
-        }
-
-        public List<File> getFiles() {
-            return files;
-        }
-
-        public String key() {
-            return sha256sum;
-        }
-    }
-
-    private static class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter.FileGroupViewHolder> {
-
-        private final File startDirectory;
-        private final Set<File> selectedFiles;
-        private final List<FileGroup> fileGroups = new ArrayList<>();
-        private final Map<String, Boolean> collapsedStates = new HashMap<>();
-        private int[] startIndexes = new int[0];
-        private Runnable onItemFileToggled;
-
-        PopupFileGroupsAdapter(File startDirectory, Set<File> selectedFiles) {
-            this.startDirectory = startDirectory;
-            this.selectedFiles = selectedFiles;
-        }
-
-        void whenItemFileToggled(Runnable onItemFileToggled) {
-            this.onItemFileToggled = onItemFileToggled;
-        }
-
-        void load(List<FileGroup> newGroups) {
-            List<FileGroup> oldGroups = new ArrayList<>(fileGroups);
-            int[] oldStartIndexes = startIndexes;
-            fileGroups.clear();
-            fileGroups.addAll(newGroups);
-            startIndexes = calculateStartIndexes(fileGroups);
-            DiffUtil.calculateDiff(new DiffUtil.Callback() {
-                @Override
-                public int getOldListSize() {
-                    return oldGroups.size();
-                }
-
-                @Override
-                public int getNewListSize() {
-                    return fileGroups.size();
-                }
-
-                @Override
-                public boolean areItemsTheSame(int oldPos, int newPos) {
-                    return oldGroups.get(oldPos).key().equals(fileGroups.get(newPos).key());
-                }
-
-                @Override
-                public boolean areContentsTheSame(int oldPos, int newPos) {
-                    return oldStartIndexes[oldPos] == startIndexes[newPos]
-                            && oldGroups.get(oldPos).getFiles().size() == fileGroups.get(newPos).getFiles().size();
-                }
-
-                @Nullable
-                @Override
-                public Object getChangePayload(int oldPos, int newPos) {
-                    return Boolean.TRUE;
-                }
-            }).dispatchUpdatesTo(this);
-        }
-
-        private static int[] calculateStartIndexes(List<FileGroup> groups) {
-            int[] indexes = new int[groups.size()];
-            int index = 1;
-            for (int i = 0; i < groups.size(); i++) {
-                indexes[i] = index;
-                index += groups.get(i).getFiles().size();
-            }
-            return indexes;
-        }
-
-        List<FileGroup> getFileGroups() {
-            return fileGroups;
-        }
-
-        private boolean isCollapsed(FileGroup group) {
-            return collapsedStates.getOrDefault(group.key(), false);
-        }
-
-        private void toggleCollapsed(FileGroup group) {
-            collapsedStates.put(group.key(), !isCollapsed(group));
-        }
-
-        @NonNull
-        @Override
-        public FileGroupViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View groupView = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.dedup_group, parent, false);
-            return new FileGroupViewHolder(groupView);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull FileGroupViewHolder viewHolder, int position) {
-            FileGroup group = fileGroups.get(position);
-            List<File> files = group.getFiles();
-
-            Context context = viewHolder.itemView.getContext();
-            viewHolder.titleTextView.setText(context.getString(R.string.x_files_y_each, files.size(), getSizeString(group.size)));
-            boolean collapsed = isCollapsed(group);
-            viewHolder.triangleImageView.setRotation(collapsed ? -90f : 0f);
-            viewHolder.filesView.setVisibility(collapsed ? View.GONE : View.VISIBLE);
-
-            viewHolder.titleBarView.setOnClickListener(v -> {
-                toggleCollapsed(group);
-                animateCollapsed(viewHolder.triangleImageView, viewHolder.filesView, isCollapsed(group));
-            });
-
-            int nowCount = viewHolder.filesView.getChildCount();
-            int requiredCount = files.size();
-
-            int startIndex = startIndexes[position];
-
-            LayoutInflater layoutInflater = LayoutInflater.from(context);
-            for (int i = 0; i < requiredCount; i++) {
-                File file = files.get(i);
-                View fileView;
-
-                if (i < nowCount) {
-                    fileView = viewHolder.filesView.getChildAt(i);
-                } else {
-                    fileView = layoutInflater.inflate(R.layout.popup_file_item, viewHolder.filesView, false);
-                    viewHolder.filesView.addView(fileView);
-                }
-
-                PopupFileItemBar itemBar = new PopupFileItemBar(fileView);
-                itemBar.setIndex(startIndex + i);
-                itemBar.forwardPathViewClicksTo(fileView);
-                itemBar.setIcon(R.drawable.i_file_24);
-                itemBar.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
-                itemBar.setSelected(selectedFiles.contains(file));
-
-                fileView.setOnClickListener(v -> {
-                    if (!selectedFiles.isEmpty()) {
-                        toggleSelected(file, position);
-                    }
-                });
-                fileView.setOnLongClickListener(v -> {
-                    toggleSelected(file, position);
-                    return true;
-                });
-            }
-            if (nowCount > requiredCount) {
-                viewHolder.filesView.removeViews(requiredCount, nowCount - requiredCount);
-            }
-        }
-
-        private void toggleSelected(File file, int position) {
-            if (selectedFiles.contains(file)) {
-                selectedFiles.remove(file);
-            } else {
-                selectedFiles.add(file);
-            }
-            notifyItemChanged(position);
-            if (onItemFileToggled != null) {
-                onItemFileToggled.run();
-            }
-        }
-
-        @Override
-        public int getItemCount() {
-            return fileGroups.size();
-        }
-
-        static class FileGroupViewHolder extends RecyclerView.ViewHolder {
-
-            final View titleBarView;
-            final ImageView triangleImageView;
-            final TextView titleTextView;
-            final LinearLayout filesView;
-
-            FileGroupViewHolder(View view) {
-                super(view);
-                titleBarView = view.findViewById(R.id.group_title_bar);
-                triangleImageView = view.findViewById(R.id.group_triangle);
-                titleTextView = view.findViewById(R.id.group_title);
-                filesView = view.findViewById(R.id.group_files);
-            }
-        }
+    private static long mtimeOf(String path) {
+        Long mtime = FileOps.singleton.stat(path).mtime;
+        return mtime == null ? 0 : mtime;
     }
 }

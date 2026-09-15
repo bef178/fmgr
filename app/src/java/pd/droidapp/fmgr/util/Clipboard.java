@@ -15,7 +15,7 @@ public class Clipboard {
         return new ArrayList<>(filesToCopy);
     }
 
-    public synchronized void setFilesToCopy(List<File> files) {
+    public synchronized void setFilesToCopy(Collection<File> files) {
         filesToCopy = new ArrayList<>(files);
         filesToCut = Collections.emptyList();
     }
@@ -28,7 +28,7 @@ public class Clipboard {
         return new ArrayList<>(filesToCut);
     }
 
-    public synchronized void setFilesToCut(List<File> files) {
+    public synchronized void setFilesToCut(Collection<File> files) {
         filesToCopy = Collections.emptyList();
         filesToCut = new ArrayList<>(files);
     }
