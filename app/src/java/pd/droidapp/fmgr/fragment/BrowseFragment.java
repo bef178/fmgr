@@ -116,7 +116,7 @@ public class BrowseFragment extends Fragment {
 
         itemsAdapter = new ItemsAdapter();
 
-        itemsView = view.findViewById(R.id.file_list);
+        itemsView = view.findViewById(R.id.items_list);
         itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
         itemsView.setAdapter(itemsAdapter);
 

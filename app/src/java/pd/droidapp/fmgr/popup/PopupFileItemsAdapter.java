@@ -109,16 +109,16 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
         File file = items.get(position);
 
         if (file.isDirectory()) {
-            viewHolder.fileItem.setIcon(R.drawable.i_directory_24);
+            viewHolder.itemBar.setIcon(R.drawable.i_directory_24);
         } else {
-            viewHolder.fileItem.setIcon(R.drawable.i_file_24);
+            viewHolder.itemBar.setIcon(R.drawable.i_file_24);
         }
 
-        viewHolder.fileItem.setSelected(selectedFiles.contains(file));
+        viewHolder.itemBar.setSelected(selectedFiles.contains(file));
 
-        viewHolder.fileItem.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
+        viewHolder.itemBar.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
 
-        viewHolder.fileItem.setIndex(position + 1);
+        viewHolder.itemBar.setIndex(position + 1);
 
         viewHolder.itemView.setOnClickListener(v -> {
             if (!selectedFiles.isEmpty()) {
@@ -131,7 +131,7 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
             return true;
         });
 
-        viewHolder.fileItem.forwardPathViewClicksTo(viewHolder.itemView);
+        viewHolder.itemBar.forwardPathViewClicksTo(viewHolder.itemView);
     }
 
     private void toggleSelected(File file, int position) {
@@ -153,11 +153,11 @@ public class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAd
 
     public static class ItemViewHolder extends RecyclerView.ViewHolder {
 
-        final PopupFileItem fileItem;
+        final PopupFileItemBar itemBar;
 
         ItemViewHolder(View view) {
             super(view);
-            fileItem = new PopupFileItem(view);
+            itemBar = new PopupFileItemBar(view);
         }
     }
 }

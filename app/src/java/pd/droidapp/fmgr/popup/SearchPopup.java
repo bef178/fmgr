@@ -59,7 +59,7 @@ public class SearchPopup extends ProcessingPopup {
         searchEditClearButton = mainAreaView.findViewById(R.id.search_edit_clear);
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
-        itemsView = mainAreaView.findViewById(R.id.files_list);
+        itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar.selectedItems);
 
         titleBar.setTitle(R.string.search_files);

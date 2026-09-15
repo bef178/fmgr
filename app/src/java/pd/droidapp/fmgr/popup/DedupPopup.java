@@ -42,8 +42,8 @@ public class DedupPopup extends ProcessingPopup {
     // views
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
-    private final RecyclerView itemsView;
-    private final FileGroupsAdapter itemsAdapter;
+    private final RecyclerView groupsView;
+    private final PopupFileGroupsAdapter groupsAdapter;
 
     // callbacks
     private Consumer<File> onJump;
@@ -64,8 +64,8 @@ public class DedupPopup extends ProcessingPopup {
 
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
-        itemsView = mainAreaView.findViewById(R.id.files_list);
-        itemsAdapter = new FileGroupsAdapter(startDirectory, selectionBar.selectedItems);
+        groupsView = mainAreaView.findViewById(R.id.popup_items_list);
+        groupsAdapter = new PopupFileGroupsAdapter(startDirectory, selectionBar.selectedItems);
 
         titleBar.setTitle(R.string.delete_duplicate_files);
 
@@ -134,20 +134,20 @@ public class DedupPopup extends ProcessingPopup {
             List<File> newlySelected = suggestToSelect(selectionBar.selectedItems);
             selectionBar.selectedItems.addAll(newlySelected);
             selectionBar.invalidate();
-            itemsAdapter.notifyDataSetChanged();
+            groupsAdapter.notifyDataSetChanged();
         });
 
         selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
             selectionBar.clear();
             selectionBar.invalidate();
-            itemsAdapter.notifyDataSetChanged();
+            groupsAdapter.notifyDataSetChanged();
         });
     }
 
     private void initItemsView() {
-        itemsView.setLayoutManager(new LinearLayoutManager(context));
-        itemsView.setAdapter(itemsAdapter);
-        itemsAdapter.whenItemFileToggled(selectionBar::invalidate);
+        groupsView.setLayoutManager(new LinearLayoutManager(context));
+        groupsView.setAdapter(groupsAdapter);
+        groupsAdapter.whenItemFileToggled(selectionBar::invalidate);
     }
 
     @Override
@@ -238,7 +238,7 @@ public class DedupPopup extends ProcessingPopup {
                 totalGroupItems += group.size();
             }
         }
-        itemsAdapter.load(buildFileGroups());
+        groupsAdapter.load(buildFileGroups());
         selectionBar.invalidate();
         statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
                 totalScanned, totalGroups, totalGroupItems));
@@ -267,7 +267,7 @@ public class DedupPopup extends ProcessingPopup {
      */
     private List<File> suggestToSelect(Set<File> alreadySelectedFiles) {
         List<File> newlySelectedFiles = new LinkedList<>();
-        for (FileGroup group : itemsAdapter.getFileGroups()) {
+        for (FileGroup group : groupsAdapter.getFileGroups()) {
             List<File> files = group.getFiles();
             List<File> unselected = new LinkedList<>();
             for (File f : files) {
@@ -330,7 +330,7 @@ public class DedupPopup extends ProcessingPopup {
         }
     }
 
-    private static class FileGroupsAdapter extends RecyclerView.Adapter<FileGroupsAdapter.FileGroupViewHolder> {
+    private static class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter.FileGroupViewHolder> {
 
         private final File startDirectory;
         private final Set<File> selectedFiles;
@@ -339,7 +339,7 @@ public class DedupPopup extends ProcessingPopup {
         private int[] startIndexes = new int[0];
         private Runnable onItemFileToggled;
 
-        FileGroupsAdapter(File startDirectory, Set<File> selectedFiles) {
+        PopupFileGroupsAdapter(File startDirectory, Set<File> selectedFiles) {
             this.startDirectory = startDirectory;
             this.selectedFiles = selectedFiles;
         }
@@ -447,12 +447,12 @@ public class DedupPopup extends ProcessingPopup {
                     viewHolder.filesView.addView(fileView);
                 }
 
-                PopupFileItem fileItem = new PopupFileItem(fileView);
-                fileItem.setIndex(startIndex + i);
-                fileItem.forwardPathViewClicksTo(fileView);
-                fileItem.setIcon(R.drawable.i_file_24);
-                fileItem.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
-                fileItem.setSelected(selectedFiles.contains(file));
+                PopupFileItemBar itemBar = new PopupFileItemBar(fileView);
+                itemBar.setIndex(startIndex + i);
+                itemBar.forwardPathViewClicksTo(fileView);
+                itemBar.setIcon(R.drawable.i_file_24);
+                itemBar.setPath(PathOps.singleton.relativize(startDirectory.getPath(), file.getPath()));
+                itemBar.setSelected(selectedFiles.contains(file));
 
                 fileView.setOnClickListener(v -> {
                     if (!selectedFiles.isEmpty()) {

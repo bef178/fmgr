@@ -7,14 +7,14 @@ import android.widget.TextView;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.Util;
 
-public class PopupFileItem {
+public class PopupFileItemBar {
 
     private final ImageView iconView;
     private final ImageView selectedIcon;
     private final TextView pathView;
     private final TextView indexView;
 
-    public PopupFileItem(View selfView) {
+    public PopupFileItemBar(View selfView) {
         iconView = selfView.findViewById(R.id.popup_file_icon);
         selectedIcon = selfView.findViewById(R.id.popup_file_selected);
         pathView = selfView.findViewById(R.id.popup_file_name);
