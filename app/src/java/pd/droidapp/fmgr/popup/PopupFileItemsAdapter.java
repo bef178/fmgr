@@ -8,10 +8,13 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
 
@@ -19,29 +22,30 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
 
     private final String startDirectory;
     private final SelectionBar selectionBar;
-    private final List<String> items = new LinkedList<>();
+    private final List<FileProperties> items = new LinkedList<>();
 
     public PopupFileItemsAdapter(String startDirectory, SelectionBar selectionBar) {
         this.startDirectory = startDirectory;
         this.selectionBar = selectionBar;
     }
 
-    public List<String> getItems() {
+    public List<FileProperties> getItems() {
         return items;
     }
 
-    public void append(Collection<String> paths) {
-        if (paths.isEmpty()) {
+    public void append(Collection<FileProperties> newItems) {
+        if (newItems.isEmpty()) {
             return;
         }
         int start = items.size();
-        items.addAll(paths);
-        notifyItemRangeInserted(start, paths.size());
+        items.addAll(newItems);
+        notifyItemRangeInserted(start, newItems.size());
     }
 
     public void remove(Collection<String> paths) {
-        List<String> oldItems = new LinkedList<>(items);
-        items.removeIf(paths::contains);
+        Set<String> pathsSet = new HashSet<>(paths);
+        List<FileProperties> oldItems = new LinkedList<>(items);
+        items.removeIf(item -> pathsSet.contains(item.path));
         DiffUtil.calculateDiff(new DiffUtil.Callback() {
             @Override
             public int getOldListSize() {
@@ -55,7 +59,7 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
 
             @Override
             public boolean areItemsTheSame(int oldPos, int newPos) {
-                return oldItems.get(oldPos).equals(items.get(newPos));
+                return oldItems.get(oldPos).path.equals(items.get(newPos).path);
             }
 
             @Override
@@ -78,9 +82,9 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
 
     public List<String> getSelectedPaths() {
         List<String> selected = new LinkedList<>();
-        for (String path : items) {
-            if (selectionBar.hasSelected(path)) {
-                selected.add(path);
+        for (FileProperties item : items) {
+            if (selectionBar.hasSelected(item.path)) {
+                selected.add(item.path);
             }
         }
         return selected;
@@ -96,28 +100,28 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
 
     @Override
     public void onBindViewHolder(@NonNull ItemViewHolder viewHolder, int position) {
-        String path = items.get(position);
+        FileProperties item = items.get(position);
 
-        if (path.endsWith("/")) {
+        if (item.isDirectory) {
             viewHolder.itemBar.setIcon(R.drawable.i_directory_24);
         } else {
             viewHolder.itemBar.setIcon(R.drawable.i_file_24);
         }
 
-        viewHolder.itemBar.setSelected(selectionBar.hasSelected(path));
+        viewHolder.itemBar.setSelected(selectionBar.hasSelected(item.path));
 
-        viewHolder.itemBar.setPath(PathOps.singleton.relativize(startDirectory, path));
+        viewHolder.itemBar.setPath(PathOps.singleton.relativize(startDirectory, item.path));
 
         viewHolder.itemBar.setIndex(position + 1);
 
         viewHolder.itemView.setOnClickListener(v -> {
             if (!selectionBar.isEmpty()) {
-                toggleSelected(path, position);
+                toggleSelected(item.path, position);
             }
         });
 
         viewHolder.itemView.setOnLongClickListener(v -> {
-            toggleSelected(path, position);
+            toggleSelected(item.path, position);
             return true;
         });
 

@@ -12,9 +12,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
@@ -228,18 +228,15 @@ public class DedupPopup extends ProcessingPopup {
                 totalScanned, totalGroups, totalGroupItems));
     }
 
-    private List<PopupFileGroupsAdapter.PopupFileGroup> buildFileGroups() {
-        List<PopupFileGroupsAdapter.PopupFileGroup> newFileGroups = new LinkedList<>();
+    private List<PopupFileGroup> buildFileGroups() {
+        List<PopupFileGroup> newFileGroups = new LinkedList<>();
         for (List<FileProperties> group : byChecksum.values()) {
             if (group.size() > 1) {
                 FileProperties first = group.get(0);
                 if (first.size == null) {
                     continue;
                 }
-                newFileGroups.add(new PopupFileGroupsAdapter.PopupFileGroup(
-                        first.size,
-                        first.sha256sum,
-                        group.stream().map(props -> props.path).collect(Collectors.toList())));
+                newFileGroups.add(new PopupFileGroup(first.size, first.sha256sum, group));
             }
         }
         return newFileGroups;
@@ -251,12 +248,12 @@ public class DedupPopup extends ProcessingPopup {
      */
     private List<String> suggestToSelect() {
         List<String> newlySelected = new LinkedList<>();
-        for (PopupFileGroupsAdapter.PopupFileGroup group : groupsAdapter.getGroups()) {
-            List<String> paths = group.getPaths();
+        for (PopupFileGroup group : groupsAdapter.getGroups()) {
+            List<FileProperties> items = group.getItems();
             List<String> unselected = new LinkedList<>();
-            for (String path : paths) {
-                if (!selectionBar.hasSelected(path)) {
-                    unselected.add(path);
+            for (FileProperties item : items) {
+                if (!selectionBar.hasSelected(item.path)) {
+                    unselected.add(item.path);
                 }
             }
             if (unselected.size() <= 1) {

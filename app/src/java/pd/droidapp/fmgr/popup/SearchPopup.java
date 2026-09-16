@@ -18,10 +18,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.SelectionBar;
+
+import static pd.droidapp.fmgr.util.Util.toFileProperties;
+import static pd.droidapp.fmgr.util.Util.toNormalizedPaths;
 
 public class SearchPopup extends ProcessingPopup {
 
@@ -151,7 +155,7 @@ public class SearchPopup extends ProcessingPopup {
             DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedPaths(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                itemsAdapter.remove(removed);
+                itemsAdapter.remove(toNormalizedPaths(removed));
                 selectionBar.remove(removed);
                 selectionBar.invalidate();
             });
@@ -160,7 +164,9 @@ public class SearchPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.add(itemsAdapter.getItems());
+            selectionBar.add(itemsAdapter.getItems().stream()
+                    .map(item -> item.path)
+                    .collect(Collectors.toList()));
             selectionBar.invalidate();
             itemsAdapter.notifyDataSetChanged();
         });
@@ -260,7 +266,7 @@ public class SearchPopup extends ProcessingPopup {
                 return;
             }
             totalScanned += scanned;
-            itemsAdapter.append(matched);
+            itemsAdapter.append(toFileProperties(matched));
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));

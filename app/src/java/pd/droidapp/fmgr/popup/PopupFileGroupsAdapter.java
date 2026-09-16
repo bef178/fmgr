@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
 
@@ -62,7 +63,7 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
             @Override
             public boolean areContentsTheSame(int oldPos, int newPos) {
                 return oldStartIndexes[oldPos] == startIndexes[newPos]
-                        && oldGroups.get(oldPos).getPaths().size() == groups.get(newPos).getPaths().size();
+                        && oldGroups.get(oldPos).getItems().size() == groups.get(newPos).getItems().size();
             }
 
             @Override
@@ -77,7 +78,7 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         int index = 1;
         for (int i = 0; i < groups.size(); i++) {
             indexes[i] = index;
-            index += groups.get(i).getPaths().size();
+            index += groups.get(i).getItems().size();
         }
         return indexes;
     }
@@ -89,9 +90,9 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
     public List<String> getSelectedPaths() {
         List<String> selected = new LinkedList<>();
         for (PopupFileGroup group : groups) {
-            for (String path : group.getPaths()) {
-                if (selectionBar.hasSelected(path)) {
-                    selected.add(path);
+            for (FileProperties item : group.getItems()) {
+                if (selectionBar.hasSelected(item.path)) {
+                    selected.add(item.path);
                 }
             }
         }
@@ -109,10 +110,10 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
     @Override
     public void onBindViewHolder(@NonNull FileGroupViewHolder viewHolder, int position) {
         PopupFileGroup group = groups.get(position);
-        List<String> paths = group.getPaths();
+        List<FileProperties> items = group.getItems();
 
         Context context = viewHolder.itemView.getContext();
-        viewHolder.titleTextView.setText(context.getString(R.string.x_files_y_each, paths.size(), getSizeString(group.size)));
+        viewHolder.titleTextView.setText(context.getString(R.string.x_files_y_each, items.size(), getSizeString(group.size)));
         boolean collapsed = isCollapsed(group);
         viewHolder.triangleImageView.setRotation(collapsed ? -90f : 0f);
         viewHolder.filesView.setVisibility(collapsed ? View.GONE : View.VISIBLE);
@@ -123,13 +124,13 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         });
 
         int nowCount = viewHolder.filesView.getChildCount();
-        int requiredCount = paths.size();
+        int requiredCount = items.size();
 
         int startIndex = startIndexes[position];
 
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         for (int i = 0; i < requiredCount; i++) {
-            String path = paths.get(i);
+            FileProperties item = items.get(i);
             View fileView;
 
             if (i < nowCount) {
@@ -143,16 +144,16 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
             itemBar.setIndex(startIndex + i);
             itemBar.forwardPathViewClicksTo(fileView);
             itemBar.setIcon(R.drawable.i_file_24);
-            itemBar.setPath(PathOps.singleton.relativize(startDirectory, path));
-            itemBar.setSelected(selectionBar.hasSelected(path));
+            itemBar.setPath(PathOps.singleton.relativize(startDirectory, item.path));
+            itemBar.setSelected(selectionBar.hasSelected(item.path));
 
             fileView.setOnClickListener(v -> {
                 if (!selectionBar.isEmpty()) {
-                    toggleSelected(path, position);
+                    toggleSelected(item.path, position);
                 }
             });
             fileView.setOnLongClickListener(v -> {
-                toggleSelected(path, position);
+                toggleSelected(item.path, position);
                 return true;
             });
         }
@@ -196,16 +197,16 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
 
         public final long size;
         public final String sha256sum;
-        private final List<String> paths;
+        private final List<FileProperties> items;
 
-        PopupFileGroup(long size, String sha256sum, List<String> paths) {
+        PopupFileGroup(long size, String sha256sum, List<FileProperties> items) {
             this.size = size;
             this.sha256sum = sha256sum;
-            this.paths = new LinkedList<>(paths);
+            this.items = new LinkedList<>(items);
         }
 
-        public List<String> getPaths() {
-            return paths;
+        public List<FileProperties> getItems() {
+            return items;
         }
 
         public String key() {
