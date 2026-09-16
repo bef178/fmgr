@@ -12,10 +12,11 @@ import java.util.List;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.util.FileProperties;
 
 public class DeletePopup extends ProcessingPopup {
 
-    private final List<String> srcPaths;
+    private final List<FileProperties> srcItems;
     private final boolean prune;
 
     // views
@@ -29,14 +30,14 @@ public class DeletePopup extends ProcessingPopup {
     private PopupOnDismissedListener onPopupDismissed;
 
     private DeleteWorker worker;
-    private final Collection<String> netRemoved = new LinkedList<>();
+    private final Collection<FileProperties> netRemoved = new LinkedList<>();
     private int totalRemoved;
     private int totalFailed;
     private int totalProgressed;
 
-    public DeletePopup(View containerView, Collection<String> srcPaths, boolean prune) {
+    public DeletePopup(View containerView, Collection<FileProperties> srcItems, boolean prune) {
         super(containerView, R.layout.delete_popup);
-        this.srcPaths = new LinkedList<>(srcPaths);
+        this.srcItems = new LinkedList<>(srcItems);
         this.prune = prune;
 
         progressArea = mainAreaView.findViewById(R.id.progress_area);
@@ -45,7 +46,7 @@ public class DeletePopup extends ProcessingPopup {
         progressBarSideTextView = mainAreaView.findViewById(R.id.progress_bar_side_text);
         progressSummaryTextView = mainAreaView.findViewById(R.id.progress_summary);
 
-        titleBar.setTitle(context.getString(R.string.delete_x_items, srcPaths.size()));
+        titleBar.setTitle(context.getString(R.string.delete_x_items, srcItems.size()));
 
         initProgress();
     }
@@ -59,7 +60,7 @@ public class DeletePopup extends ProcessingPopup {
     }
 
     private void initProgress() {
-        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcPaths.size()));
+        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcItems.size()));
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
@@ -94,7 +95,7 @@ public class DeletePopup extends ProcessingPopup {
     }
 
     private void start() {
-        final int total = srcPaths.size();
+        final int total = srcItems.size();
 
         worker = new DeleteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
@@ -125,7 +126,7 @@ public class DeletePopup extends ProcessingPopup {
             }
             updateButtons();
         }));
-        worker.start(srcPaths, prune);
+        worker.start(srcItems, prune);
 
         updateButtons();
     }

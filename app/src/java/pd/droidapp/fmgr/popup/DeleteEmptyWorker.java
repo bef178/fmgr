@@ -8,14 +8,17 @@ import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 import pd.util.FileStat;
+
+import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
 class DeleteEmptyWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
     private int scanned = 0;
-    private List<String> matched = new LinkedList<>();
+    private List<FileProperties> matched = new LinkedList<>();
     private final Object lock = new Object();
 
     public void whenUpdated(OnUpdatedListener onUpdated) {
@@ -30,7 +33,7 @@ class DeleteEmptyWorker extends ProcessingWorker {
                         synchronized (lock) {
                             scanned++;
                             if (hit) {
-                                matched.add(src);
+                                matched.add(toFileProperties(src));
                             }
                         }
                     }
@@ -56,7 +59,7 @@ class DeleteEmptyWorker extends ProcessingWorker {
     @Override
     protected void reportUpdated() {
         int nowScanned;
-        List<String> nowMatched;
+        List<FileProperties> nowMatched;
         synchronized (lock) {
             nowScanned = scanned;
             scanned = 0;
@@ -72,6 +75,6 @@ class DeleteEmptyWorker extends ProcessingWorker {
     }
 
     public interface OnUpdatedListener {
-        void accept(int scanned, List<String> matched);
+        void accept(int scanned, List<FileProperties> matched);
     }
 }

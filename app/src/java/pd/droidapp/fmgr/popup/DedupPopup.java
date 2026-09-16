@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
@@ -33,12 +34,12 @@ public class DedupPopup extends ProcessingPopup {
 
     // callbacks
     private Consumer<String> onJump;
-    private Consumer<Collection<String>> onCopy;
-    private Consumer<Collection<String>> onCut;
+    private Consumer<Collection<FileProperties>> onCopy;
+    private Consumer<Collection<FileProperties>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
     private DedupWorker worker;
-    private final Collection<String> netRemoved = new LinkedList<>();
+    private final Collection<FileProperties> netRemoved = new LinkedList<>();
 
     private final Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
     private final Map<String, FileProperties> byPath = new HashMap<>();
@@ -75,7 +76,7 @@ public class DedupPopup extends ProcessingPopup {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.size() == 1) {
                 if (onJump != null) {
-                    onJump.accept(groupsAdapter.getSelectedPaths().get(0));
+                    onJump.accept(groupsAdapter.getSelectedItems().get(0).path);
                 }
                 selfWindow.dismiss();
             }
@@ -83,25 +84,27 @@ public class DedupPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
             if (onCopy != null) {
-                onCopy.accept(groupsAdapter.getSelectedPaths());
+                onCopy.accept(groupsAdapter.getSelectedItems());
             }
             selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
-                onCut.accept(groupsAdapter.getSelectedPaths());
+                onCut.accept(groupsAdapter.getSelectedItems());
             }
             selfWindow.dismiss();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, groupsAdapter.getSelectedPaths(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, groupsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                selectionBar.remove(removed);
-                for (String path : removed) {
-                    FileProperties props = byPath.remove(PathOps.singleton.normalize(path));
+                selectionBar.remove(removed.stream()
+                        .map(item -> item.path)
+                        .collect(Collectors.toList()));
+                for (FileProperties item : removed) {
+                    FileProperties props = byPath.remove(item.path);
                     if (props == null) {
                         continue;
                     }
@@ -158,11 +161,11 @@ public class DedupPopup extends ProcessingPopup {
         this.onJump = onJump;
     }
 
-    public void whenCopyClicked(Consumer<Collection<String>> onCopy) {
+    public void whenCopyClicked(Consumer<Collection<FileProperties>> onCopy) {
         this.onCopy = onCopy;
     }
 
-    public void whenCutClicked(Consumer<Collection<String>> onCut) {
+    public void whenCutClicked(Consumer<Collection<FileProperties>> onCut) {
         this.onCut = onCut;
     }
 

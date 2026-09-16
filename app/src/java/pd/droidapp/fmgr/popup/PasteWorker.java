@@ -9,18 +9,20 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.getAlternativeFile;
+import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
 class PasteWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
 
-    private List<String> added = new LinkedList<>();
-    private List<String> removed = new LinkedList<>();
-    private List<Map.Entry<String, String>> moved = new LinkedList<>();
+    private List<FileProperties> added = new LinkedList<>();
+    private List<FileProperties> removed = new LinkedList<>();
+    private List<Map.Entry<FileProperties, FileProperties>> moved = new LinkedList<>();
     private int failed = 0;
     private int progressed = 0;
     private final Object lock = new Object();
@@ -55,13 +57,13 @@ class PasteWorker extends ProcessingWorker {
             if (succeeded) {
                 switch (action) {
                     case ADD:
-                        added.add(dst);
+                        added.add(toFileProperties(dst));
                         break;
                     case REMOVE:
-                        removed.add(src);
+                        removed.add(toFileProperties(src));
                         break;
                     case MOVE:
-                        moved.add(new AbstractMap.SimpleEntry<>(src, dst));
+                        moved.add(new AbstractMap.SimpleEntry<>(toFileProperties(src), toFileProperties(dst)));
                         break;
                     case PROGRESS:
                         progressed++;
@@ -79,11 +81,11 @@ class PasteWorker extends ProcessingWorker {
         this.onUpdated = onUpdated;
     }
 
-    public boolean startCopy(List<String> srcPaths, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
+    public boolean startCopy(List<FileProperties> srcItems, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
         return start(() -> {
-            for (String s : srcPaths) {
-                Path src = Paths.get(s);
-                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(s));
+            for (FileProperties item : srcItems) {
+                Path src = Paths.get(item.path);
+                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(item.path));
                 doCopy(src, dst, resolution, mergeDirectories);
                 if (isCancelled()) {
                     return;
@@ -219,11 +221,11 @@ class PasteWorker extends ProcessingWorker {
         return p1.toAbsolutePath().normalize().equals(p2.toAbsolutePath().normalize());
     }
 
-    public boolean startCut(List<String> srcPaths, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
+    public boolean startCut(List<FileProperties> srcItems, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
         return start(() -> {
-            for (String s : srcPaths) {
-                Path src = Paths.get(s);
-                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(s));
+            for (FileProperties item : srcItems) {
+                Path src = Paths.get(item.path);
+                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(item.path));
                 doCut(src, dst, resolution, mergeDirectories);
                 if (isCancelled()) {
                     return;
@@ -310,9 +312,9 @@ class PasteWorker extends ProcessingWorker {
 
     @Override
     protected void reportUpdated() {
-        List<String> nowAdded;
-        List<String> nowRemoved;
-        List<Map.Entry<String, String>> nowMoved;
+        List<FileProperties> nowAdded;
+        List<FileProperties> nowRemoved;
+        List<Map.Entry<FileProperties, FileProperties>> nowMoved;
         int nowFailed;
         int nowProgressed;
         synchronized (lock) {
@@ -336,7 +338,7 @@ class PasteWorker extends ProcessingWorker {
     }
 
     public interface OnUpdatedListener {
-        void accept(List<String> added, List<String> removed, List<Map.Entry<String, String>> moved, int failed, int progressed);
+        void accept(List<FileProperties> added, List<FileProperties> removed, List<Map.Entry<FileProperties, FileProperties>> moved, int failed, int progressed);
     }
 
     public enum ConflictResolution {

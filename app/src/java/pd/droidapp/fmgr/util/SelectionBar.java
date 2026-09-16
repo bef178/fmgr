@@ -88,24 +88,17 @@ public class SelectionBar {
         return selectedItems.iterator().next();
     }
 
-    public boolean hasSelected(File file) {
-        return selectedItems.contains(file);
-    }
-
     public boolean hasSelected(String path) {
         return selectedItems.contains(new File(path));
     }
 
-    public void toggleSelected(File file) {
+    public void toggleSelected(String path) {
+        File file = new File(path);
         if (selectedItems.contains(file)) {
             selectedItems.remove(file);
         } else {
             selectedItems.add(file);
         }
-    }
-
-    public void toggleSelected(String path) {
-        toggleSelected(new File(path));
     }
 
     public Collection<File> getSelectedFiles() {

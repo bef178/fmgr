@@ -24,9 +24,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
@@ -41,12 +43,12 @@ import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.Clipboard;
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
-import static pd.droidapp.fmgr.util.Util.toNormalizedPaths;
 
 public class BrowseFragment extends Fragment {
 
@@ -182,7 +184,7 @@ public class BrowseFragment extends Fragment {
         if (savedSelectedItems != null) {
             selectionBar.addFiles(savedSelectedItems);
             selectionBar.invalidate();
-            itemsAdapter.invalidate(itemsAdapter.getSelectedPaths());
+            itemsAdapter.invalidate(itemsAdapter.getSelectedItems());
         }
 
         actionBar.invalidate();
@@ -369,10 +371,10 @@ public class BrowseFragment extends Fragment {
 
         // scroll to and highlight the file
         itemsView.post(() -> {
-            int position = itemsAdapter.indexOf(file.getPath());
+            int position = itemsAdapter.indexOf(path);
             if (position >= 0) {
                 itemsView.scrollToPosition(position);
-                itemsView.postDelayed(() -> itemsAdapter.highlightItem(PathOps.singleton.normalize(path)), 100);
+                itemsView.postDelayed(() -> itemsAdapter.highlightItem(path), 100);
             }
         });
     }
@@ -462,59 +464,57 @@ public class BrowseFragment extends Fragment {
     }
 
     private void markSelectedItemsForCut() {
-        Collection<File> files = new LinkedList<>(selectionBar.getSelectedFiles());
-        List<String> paths = itemsAdapter.getSelectedPaths();
-        clipboard.setFilesToCut(files);
-        Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
+        List<FileProperties> items = itemsAdapter.getSelectedItems();
+        clipboard.setItemsToCut(items);
+        Toast.makeText(requireContext(), getString(R.string.cut_report_format, items.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.invalidate(paths);
+        itemsAdapter.invalidate(items);
     }
 
     private void markSelectedItemsForCopy() {
-        Collection<File> files = new LinkedList<>(selectionBar.getSelectedFiles());
-        List<String> paths = itemsAdapter.getSelectedPaths();
-        clipboard.setFilesToCopy(files);
-        Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
+        List<FileProperties> items = itemsAdapter.getSelectedItems();
+        clipboard.setItemsToCopy(items);
+        Toast.makeText(requireContext(), getString(R.string.copied_report_format, items.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.invalidate(paths);
+        itemsAdapter.invalidate(items);
     }
 
-    private void copyToClipboard(Collection<String> paths) {
-        clipboard.setFilesToCopy(paths.stream().map(File::new).collect(Collectors.toList()));
-        Toast.makeText(requireContext(), getString(R.string.copied_report_format, paths.size()), Toast.LENGTH_SHORT).show();
+    private void copyToClipboard(Collection<FileProperties> items) {
+        clipboard.setItemsToCopy(items);
+        Toast.makeText(requireContext(), getString(R.string.copied_report_format, items.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
     }
 
-    private void cutToClipboard(Collection<String> paths) {
-        clipboard.setFilesToCut(paths.stream().map(File::new).collect(Collectors.toList()));
-        Toast.makeText(requireContext(), getString(R.string.cut_report_format, paths.size()), Toast.LENGTH_SHORT).show();
+    private void cutToClipboard(Collection<FileProperties> items) {
+        clipboard.setItemsToCut(items);
+        Toast.makeText(requireContext(), getString(R.string.cut_report_format, items.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
     }
 
     private void showPastePopup() {
         boolean isCopy;
-        List<String> srcPaths;
+        List<FileProperties> srcItems;
         if (clipboard.toCut()) {
             isCopy = false;
-            srcPaths = clipboard.getFilesToCut().stream().map(File::getPath).collect(Collectors.toList());
+            srcItems = clipboard.getItemsToCut();
         } else if (clipboard.toCopy()) {
             isCopy = true;
-            srcPaths = clipboard.getFilesToCopy().stream().map(File::getPath).collect(Collectors.toList());
+            srcItems = clipboard.getItemsToCopy();
         } else {
             return;
         }
 
-        PastePopup pastePopup = new PastePopup(getView(), isCopy, srcPaths, pathBar.getCurrentDirectory().getPath());
+        PastePopup pastePopup = new PastePopup(getView(), isCopy, srcItems, pathBar.getCurrentDirectory().getPath());
         pastePopup.whenPopupDismissed(this::onPopupDismissed);
         pastePopup.show();
     }
 
     private void showDeletePopup() {
-        DeletePopup deletePopup = new DeletePopup(getView(), itemsAdapter.getSelectedPaths(), false);
+        DeletePopup deletePopup = new DeletePopup(getView(), itemsAdapter.getSelectedItems(), false);
         deletePopup.whenPopupDismissed(this::onPopupDismissed);
         deletePopup.show();
     }
@@ -587,60 +587,50 @@ public class BrowseFragment extends Fragment {
         popup.show();
     }
 
-    private void onPopupDismissed(Collection<String> added, Collection<String> removed) {
-        String d = pathBar.getCurrentDirectory().getPath();
-        String currentDirectory = d.endsWith("/") ? d : d + "/";
+    private void onPopupDismissed(Collection<FileProperties> added, Collection<FileProperties> removed) {
+        String currentDirectory = pathBar.getCurrentDirectory().getPath();
         if (!added.isEmpty()) {
             clipboard.clear();
             actionBar.invalidate();
             selectionBar.invalidate();
-            Set<String> explicit = new LinkedHashSet<>();
+            Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, added, explicit, implicit);
-            itemsAdapter.add(toFileProperties(explicit));
-            itemsAdapter.loadProperties(toNormalizedPaths(implicit));
+            itemsAdapter.add(explicit.values());
+            itemsAdapter.loadProperties(implicit);
         }
         if (!removed.isEmpty()) {
-            Set<File> removedFiles = removed.stream().map(File::new).collect(Collectors.toSet());
-            clipboard.removeAllIfSameAsOrDescendantOf(removedFiles);
+            clipboard.removeAllIfSameAsOrDescendantOf(removed);
             actionBar.invalidate();
-            selectionBar.remove(removed);
+            selectionBar.remove(removed.stream().map(item -> item.path).collect(Collectors.toList()));
             selectionBar.invalidate();
-            Set<String> explicit = new LinkedHashSet<>();
+            Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, removed, explicit, implicit);
-            itemsAdapter.remove(toNormalizedPaths(explicit));
-            itemsAdapter.loadProperties(toNormalizedPaths(implicit));
+            itemsAdapter.remove(explicit.values());
+            itemsAdapter.loadProperties(implicit);
         }
     }
 
-    private void getDirectChildren(String currentDirectory, Collection<String> paths,
-            Collection<String> outExplicit, Collection<String> outImplicit) {
-        Set<String> explicit = new LinkedHashSet<>();
-        Set<String> implicit = new LinkedHashSet<>();
-        for (String path : paths) {
-            String directChild = getDirectChild(currentDirectory, path);
+    private void getDirectChildren(String currentDirectory, Collection<FileProperties> items,
+            Map<String, FileProperties> outExplicit, Set<String> outImplicit) {
+        for (FileProperties item : items) {
+            String directChild = getDirectChild(currentDirectory, item.path);
             if (directChild == null) {
                 continue;
             }
-            if (directChild.equals(path)) {
-                outExplicit.add(path);
-                explicit.add(path);
+            if (directChild.equals(item.path)) {
+                outExplicit.put(item.path, item);
             } else {
-                implicit.add(directChild);
+                outImplicit.add(directChild);
             }
         }
-        implicit.removeAll(explicit);
-        outImplicit.addAll(implicit);
+        outImplicit.removeAll(outExplicit.keySet());
     }
 
-    // `currentDirectory` must end with "/"
     private String getDirectChild(String currentDirectory, String path) {
         while (true) {
             String parent = PathOps.singleton.dirname(path);
-            if (!parent.endsWith("/")) {
-                parent += "/";
-            }
             if (parent.equals(path)) {
                 return null;
             }

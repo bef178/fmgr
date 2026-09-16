@@ -12,10 +12,8 @@ import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
-
-import static pd.droidapp.fmgr.util.Util.toFileProperties;
-import static pd.droidapp.fmgr.util.Util.toNormalizedPaths;
 
 public class DeleteEmptyPopup extends ProcessingPopup {
 
@@ -33,7 +31,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
 
     private DeleteEmptyWorker worker;
     private int totalScanned;
-    private final Collection<String> netRemoved = new LinkedList<>();
+    private final Collection<FileProperties> netRemoved = new LinkedList<>();
 
     public DeleteEmptyPopup(View containerView, String startDirectory) {
         super(containerView, R.layout.delete_empty_popup);
@@ -54,29 +52,33 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.size() == 1) {
                 if (onJump != null) {
-                    onJump.accept(itemsAdapter.getSelectedPaths().get(0));
+                    onJump.accept(itemsAdapter.getSelectedItems().get(0).path);
                 }
                 selfWindow.dismiss();
             }
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedPaths(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                itemsAdapter.remove(toNormalizedPaths(removed));
-                selectionBar.remove(removed);
+                itemsAdapter.remove(removed);
+                selectionBar.remove(removed.stream()
+                        .map(item -> item.path)
+                        .collect(Collectors.toList()));
                 selectionBar.invalidate();
             });
             deletePopup.show();
         });
 
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedPaths(), true);
+            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedItems(), true);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                itemsAdapter.remove(toNormalizedPaths(removed));
-                selectionBar.remove(removed);
+                itemsAdapter.remove(removed);
+                selectionBar.remove(removed.stream()
+                        .map(item -> item.path)
+                        .collect(Collectors.toList()));
                 selectionBar.invalidate();
             });
             deletePopup.show();
@@ -151,9 +153,9 @@ public class DeleteEmptyPopup extends ProcessingPopup {
             statusBar.setText(context.getString(R.string.scanning));
             selectionBar.invalidate();
         }));
-        worker.whenUpdated((scanned, delta) -> containerView.post(() -> {
+        worker.whenUpdated((scanned, matched) -> containerView.post(() -> {
             totalScanned += scanned;
-            itemsAdapter.append(toFileProperties(delta));
+            itemsAdapter.append(matched);
             selectionBar.invalidate();
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));

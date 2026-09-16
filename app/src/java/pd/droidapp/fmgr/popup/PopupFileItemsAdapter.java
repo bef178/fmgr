@@ -42,10 +42,13 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
         notifyItemRangeInserted(start, newItems.size());
     }
 
-    public void remove(Collection<String> paths) {
-        Set<String> pathsSet = new HashSet<>(paths);
+    public void remove(Collection<FileProperties> removedItems) {
+        Set<String> paths = new HashSet<>();
+        for (FileProperties item : removedItems) {
+            paths.add(item.path);
+        }
         List<FileProperties> oldItems = new LinkedList<>(items);
-        items.removeIf(item -> pathsSet.contains(item.path));
+        items.removeIf(item -> paths.contains(item.path));
         DiffUtil.calculateDiff(new DiffUtil.Callback() {
             @Override
             public int getOldListSize() {
@@ -80,11 +83,11 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
         notifyItemRangeRemoved(0, oldSize);
     }
 
-    public List<String> getSelectedPaths() {
-        List<String> selected = new LinkedList<>();
+    public List<FileProperties> getSelectedItems() {
+        List<FileProperties> selected = new LinkedList<>();
         for (FileProperties item : items) {
             if (selectionBar.hasSelected(item.path)) {
-                selected.add(item.path);
+                selected.add(item);
             }
         }
         return selected;

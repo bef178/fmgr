@@ -7,8 +7,7 @@ import android.widget.ProgressBar;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -16,12 +15,13 @@ import java.util.Map;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.PathOps;
 
 public class PastePopup extends ProcessingPopup {
 
     private final boolean isCopy;
-    private final List<String> srcPaths;
+    private final List<FileProperties> srcItems;
     private final String dstDirectory;
 
     // views
@@ -38,19 +38,19 @@ public class PastePopup extends ProcessingPopup {
     private PopupOnDismissedListener onPopupDismissed;
 
     private PasteWorker worker;
-    private final Collection<String> netAdded = new LinkedHashSet<>();
-    private final Collection<String> netRemoved = new LinkedHashSet<>();
+    private final Map<String, FileProperties> netAdded = new LinkedHashMap<>();
+    private final Map<String, FileProperties> netRemoved = new LinkedHashMap<>();
     private int totalAdded;
     private int totalRemoved;
     private int totalMoved;
     private int totalFailed;
     private int totalProcessed;
 
-    public PastePopup(View containerView, boolean isCopy, List<String> srcPaths, String dstDirectory) {
+    public PastePopup(View containerView, boolean isCopy, List<FileProperties> srcItems, String dstDirectory) {
         super(containerView, R.layout.paste_popup);
         this.isCopy = isCopy;
         this.dstDirectory = dstDirectory;
-        this.srcPaths = new LinkedList<>(srcPaths);
+        this.srcItems = new LinkedList<>(srcItems);
 
         resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
@@ -63,7 +63,7 @@ public class PastePopup extends ProcessingPopup {
 
         titleBar.setTitle(context.getString(
                 isCopy ? R.string.copy_x_items : R.string.move_x_items,
-                srcPaths.size()));
+                srcItems.size()));
 
         initConflictResolution();
         initProgress();
@@ -80,13 +80,13 @@ public class PastePopup extends ProcessingPopup {
     private void initConflictResolution() {
         resolutionTitleTextView.setText(R.string.select_resolution);
 
-        boolean inPlacePaste = srcPaths.stream()
-                .allMatch(path -> dstDirectory.equals(PathOps.singleton.dirname(path)));
+        boolean inPlacePaste = srcItems.stream()
+                .allMatch(item -> dstDirectory.equals(PathOps.singleton.dirname(item.path)));
         mergeDirectoriesCheckBox.setChecked(!inPlacePaste);
     }
 
     private void initProgress() {
-        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcPaths.size()));
+        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcItems.size()));
         progressBarSideTextView.setText(R.string.popup_progress_pending);
     }
 
@@ -108,7 +108,7 @@ public class PastePopup extends ProcessingPopup {
     @Override
     protected void onDismissed() {
         if (onPopupDismissed != null) {
-            onPopupDismissed.accept(netAdded, netRemoved);
+            onPopupDismissed.accept(netAdded.values(), netRemoved.values());
         }
     }
 
@@ -122,7 +122,7 @@ public class PastePopup extends ProcessingPopup {
 
     private void start() {
         final ConflictResolution resolution = getSelectedResolution();
-        final int total = srcPaths.size();
+        final int total = srcItems.size();
 
         int shortId;
         if (resolution == ConflictResolution.OVERWRITE) {
@@ -145,24 +145,22 @@ public class PastePopup extends ProcessingPopup {
             progressBarSideTextView.setText(R.string.popup_progress_processing);
         }));
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
-            for (String path : added) {
-                netAdded.add(path);
-                netRemoved.remove(path);
+            for (FileProperties item : added) {
+                netAdded.put(item.path, item);
+                netRemoved.remove(item.path);
             }
-            for (Map.Entry<String, String> pair : moved) {
-                String src = pair.getKey();
-                String dst = pair.getValue();
-                netAdded.add(dst);
-                if (src.endsWith("/")) {
-                    netAdded.removeIf(path -> path.startsWith(src));
-                }
-                netAdded.remove(src);
-                netRemoved.add(src);
-                netRemoved.remove(dst);
+            for (Map.Entry<FileProperties, FileProperties> pair : moved) {
+                FileProperties src = pair.getKey();
+                FileProperties dst = pair.getValue();
+                netAdded.put(dst.path, dst);
+                netAdded.keySet().removeIf(path -> path.startsWith(src.path + "/"));
+                netAdded.remove(src.path);
+                netRemoved.put(src.path, src);
+                netRemoved.remove(dst.path);
             }
-            for (String path : removed) {
-                netAdded.remove(path);
-                netRemoved.add(path);
+            for (FileProperties item : removed) {
+                netAdded.remove(item.path);
+                netRemoved.put(item.path, item);
             }
             totalAdded += added.size() + moved.size();
             totalRemoved += removed.size() + moved.size();
@@ -187,9 +185,9 @@ public class PastePopup extends ProcessingPopup {
             updateButtons();
         }));
         if (isCopy) {
-            worker.startCopy(srcPaths, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
+            worker.startCopy(srcItems, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
         } else {
-            worker.startCut(srcPaths, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
+            worker.startCut(srcItems, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
         }
 
         updateButtons();

@@ -76,13 +76,14 @@ class PropertiesLoader {
     private void doLoad(FileProperties item) {
         if (item.isDirectory) {
             item.numChildren = null;
-            FileOps.singleton.listDirectory(item.path, 1, true, null, (action, src, dst, succeeded) -> {
-                if (action == FileOps.Action.LIST) {
-                    item.numChildren = succeeded ? 0 : null;
-                } else if (action == FileOps.Action.MEET) {
-                    item.numChildren++;
-                }
-            });
+            FileOps.singleton.listDirectory(item.path, 1, true, null,
+                    (action, src, dst, succeeded) -> {
+                        if (action == FileOps.Action.LIST) {
+                            item.numChildren = succeeded ? 0 : null;
+                        } else if (action == FileOps.Action.MEET) {
+                            item.numChildren++;
+                        }
+                    });
         } else {
             item.size = FileOps.singleton.stat(item.path).size;
         }

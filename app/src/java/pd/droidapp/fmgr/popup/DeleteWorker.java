@@ -6,12 +6,15 @@ import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
+
+import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
 class DeleteWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
-    private List<String> removed = new LinkedList<>();
+    private List<FileProperties> removed = new LinkedList<>();
     private int failed = 0;
     private int progressed = 0;
     private final Object lock = new Object();
@@ -39,7 +42,7 @@ class DeleteWorker extends ProcessingWorker {
             if (succeeded) {
                 switch (action) {
                     case REMOVE:
-                        removed.add(src);
+                        removed.add(toFileProperties(src));
                         break;
                     case PROGRESS:
                         progressed++;
@@ -57,14 +60,14 @@ class DeleteWorker extends ProcessingWorker {
         this.onUpdated = onUpdated;
     }
 
-    public boolean start(List<String> srcPaths, boolean prune) {
+    public boolean start(List<FileProperties> srcItems, boolean prune) {
         return start(() -> {
-            for (String s : srcPaths) {
-                doRemove(s, prune);
+            for (FileProperties item : srcItems) {
+                doRemove(item.path, prune);
                 if (isCancelled()) {
                     return;
                 }
-                accumulate(DeleteAction.PROGRESS, s, true);
+                accumulate(DeleteAction.PROGRESS, item.path, true);
             }
         });
     }
@@ -79,7 +82,7 @@ class DeleteWorker extends ProcessingWorker {
 
     @Override
     protected void reportUpdated() {
-        List<String> nowRemoved;
+        List<FileProperties> nowRemoved;
         int nowFailed;
         int nowProgressed;
         synchronized (lock) {
@@ -99,7 +102,7 @@ class DeleteWorker extends ProcessingWorker {
     }
 
     public interface OnUpdatedListener {
-        void accept(List<String> removed, int failed, int progressed);
+        void accept(List<FileProperties> removed, int failed, int progressed);
     }
 
     private enum DeleteAction {

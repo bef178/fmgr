@@ -9,18 +9,20 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 import pd.util.FileStat;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.encode;
+import static pd.droidapp.fmgr.util.Util.toFileProperties;
 import static pd.util.Int8ArrayExtension.indexOf;
 
 class SearchWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
     private final Set<String> allNameMatched = new HashSet<>();
-    private List<String> matched = new LinkedList<>();
+    private List<FileProperties> matched = new LinkedList<>();
     private int scanned = 0;
     private final Object lock = new Object();
 
@@ -59,7 +61,7 @@ class SearchWorker extends ProcessingWorker {
         synchronized (lock) {
             scanned++;
             if (hit) {
-                matched.add(path);
+                matched.add(toFileProperties(path));
             }
         }
     }
@@ -135,7 +137,7 @@ class SearchWorker extends ProcessingWorker {
     @Override
     protected void reportUpdated() {
         int nowScanned;
-        List<String> nowMatched;
+        List<FileProperties> nowMatched;
         synchronized (lock) {
             nowScanned = scanned;
             scanned = 0;
@@ -151,6 +153,6 @@ class SearchWorker extends ProcessingWorker {
     }
 
     public interface OnUpdatedListener {
-        void accept(int scanned, List<String> matched);
+        void accept(int scanned, List<FileProperties> matched);
     }
 }

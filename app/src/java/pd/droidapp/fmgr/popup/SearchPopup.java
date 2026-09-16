@@ -22,10 +22,8 @@ import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
-
-import static pd.droidapp.fmgr.util.Util.toFileProperties;
-import static pd.droidapp.fmgr.util.Util.toNormalizedPaths;
 
 public class SearchPopup extends ProcessingPopup {
 
@@ -43,15 +41,15 @@ public class SearchPopup extends ProcessingPopup {
 
     // callbacks
     private Consumer<String> onJump;
-    private Consumer<Collection<String>> onCopy;
-    private Consumer<Collection<String>> onCut;
+    private Consumer<Collection<FileProperties>> onCopy;
+    private Consumer<Collection<FileProperties>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
     private SearchWorker worker;
     private String lastQuery = "";
     private int totalScanned;
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Collection<String> netRemoved = new LinkedList<>();
+    private final Collection<FileProperties> netRemoved = new LinkedList<>();
 
     public SearchPopup(View containerView, String startDirectory) {
         super(containerView, R.layout.search_popup);
@@ -133,7 +131,7 @@ public class SearchPopup extends ProcessingPopup {
         selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
             if (selectionBar.size() == 1) {
                 if (onJump != null) {
-                    onJump.accept(itemsAdapter.getSelectedPaths().get(0));
+                    onJump.accept(itemsAdapter.getSelectedItems().get(0).path);
                 }
                 selfWindow.dismiss();
             }
@@ -141,22 +139,24 @@ public class SearchPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
             if (onCopy != null) {
-                onCopy.accept(itemsAdapter.getSelectedPaths());
+                onCopy.accept(itemsAdapter.getSelectedItems());
             }
         });
 
         selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
             if (onCut != null) {
-                onCut.accept(itemsAdapter.getSelectedPaths());
+                onCut.accept(itemsAdapter.getSelectedItems());
             }
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedPaths(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                itemsAdapter.remove(toNormalizedPaths(removed));
-                selectionBar.remove(removed);
+                itemsAdapter.remove(removed);
+                selectionBar.remove(removed.stream()
+                        .map(item -> item.path)
+                        .collect(Collectors.toList()));
                 selectionBar.invalidate();
             });
             deletePopup.show();
@@ -209,11 +209,11 @@ public class SearchPopup extends ProcessingPopup {
         this.onJump = onJump;
     }
 
-    public void whenCopyClicked(Consumer<Collection<String>> onCopy) {
+    public void whenCopyClicked(Consumer<Collection<FileProperties>> onCopy) {
         this.onCopy = onCopy;
     }
 
-    public void whenCutClicked(Consumer<Collection<String>> onCut) {
+    public void whenCutClicked(Consumer<Collection<FileProperties>> onCut) {
         this.onCut = onCut;
     }
 
@@ -266,7 +266,7 @@ public class SearchPopup extends ProcessingPopup {
                 return;
             }
             totalScanned += scanned;
-            itemsAdapter.append(toFileProperties(matched));
+            itemsAdapter.append(matched);
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));

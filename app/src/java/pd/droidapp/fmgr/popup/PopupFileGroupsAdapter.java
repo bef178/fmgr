@@ -87,12 +87,12 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         return groups;
     }
 
-    public List<String> getSelectedPaths() {
-        List<String> selected = new LinkedList<>();
+    public List<FileProperties> getSelectedItems() {
+        List<FileProperties> selected = new LinkedList<>();
         for (PopupFileGroup group : groups) {
             for (FileProperties item : group.getItems()) {
                 if (selectionBar.hasSelected(item.path)) {
-                    selected.add(item.path);
+                    selected.add(item);
                 }
             }
         }

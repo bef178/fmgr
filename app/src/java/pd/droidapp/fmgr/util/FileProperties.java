@@ -19,11 +19,4 @@ public class FileProperties {
         this.path = path;
         this.isDirectory = isDirectory;
     }
-
-    public FileProperties(String path, long size, String sha256sum) {
-        this.path = path;
-        this.isDirectory = false;
-        this.size = size;
-        this.sha256sum = sha256sum;
-    }
 }

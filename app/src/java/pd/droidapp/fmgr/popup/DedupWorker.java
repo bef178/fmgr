@@ -13,7 +13,8 @@ import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.DigestCodec;
 import pd.util.FileOps;
 import pd.util.FileStat;
-import pd.util.PathOps;
+
+import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
 class DedupWorker extends ProcessingWorker {
 
@@ -76,7 +77,10 @@ class DedupWorker extends ProcessingWorker {
         }
         synchronized (lock) {
             if (!cancelRequested.get()) {
-                completed.add(new FileProperties(PathOps.singleton.normalize(path), size, sha256sum));
+                FileProperties item = toFileProperties(path);
+                item.size = size;
+                item.sha256sum = sha256sum;
+                completed.add(item);
             }
         }
     }

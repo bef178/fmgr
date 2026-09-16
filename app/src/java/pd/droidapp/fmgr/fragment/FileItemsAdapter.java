@@ -133,20 +133,26 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         dispatchDiff(oldItems);
     }
 
-    public void remove(Collection<String> paths) {
-        Set<String> pathsSet = new HashSet<>(paths);
+    public void remove(Collection<FileProperties> removedItems) {
+        Set<String> paths = new HashSet<>();
+        for (FileProperties item : removedItems) {
+            paths.add(item.path);
+        }
         List<FileProperties> oldItems = new LinkedList<>(items);
-        items.removeIf(item -> pathsSet.contains(item.path));
+        items.removeIf(item -> paths.contains(item.path));
         dispatchDiff(oldItems);
     }
 
-    public void invalidate(Collection<String> paths) {
-        if (paths.isEmpty()) {
+    public void invalidate(Collection<FileProperties> invalidatedItems) {
+        if (invalidatedItems.isEmpty()) {
             return;
         }
-        Set<String> pathsSet = new HashSet<>(paths);
+        Set<String> paths = new HashSet<>();
+        for (FileProperties item : invalidatedItems) {
+            paths.add(item.path);
+        }
         for (int i = 0; i < items.size(); i++) {
-            if (pathsSet.contains(items.get(i).path)) {
+            if (paths.contains(items.get(i).path)) {
                 notifyItemChanged(i);
             }
         }
@@ -191,11 +197,11 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         });
     }
 
-    public List<String> getSelectedPaths() {
-        List<String> selected = new LinkedList<>();
+    public List<FileProperties> getSelectedItems() {
+        List<FileProperties> selected = new LinkedList<>();
         for (FileProperties item : items) {
             if (selectionBar.hasSelected(item.path)) {
-                selected.add(item.path);
+                selected.add(item);
             }
         }
         return selected;

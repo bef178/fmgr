@@ -158,20 +158,16 @@ public class Util {
         return absPath;
     }
 
+    public static FileProperties toFileProperties(String path) {
+        return new FileProperties(PathOps.singleton.normalize(path), path.endsWith("/"));
+    }
+
     public static List<FileProperties> toFileProperties(Collection<String> paths) {
         List<FileProperties> items = new LinkedList<>();
         for (String path : paths) {
-            items.add(new FileProperties(PathOps.singleton.normalize(path), path.endsWith("/")));
+            items.add(toFileProperties(path));
         }
         return items;
-    }
-
-    public static List<String> toNormalizedPaths(Collection<String> paths) {
-        List<String> normalized = new LinkedList<>();
-        for (String path : paths) {
-            normalized.add(PathOps.singleton.normalize(path));
-        }
-        return normalized;
     }
 
     public static int bitCeil(int n) {
