@@ -5,7 +5,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.Util;
+
+import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;
 
 class PopupFileItemBar {
 
@@ -38,6 +39,6 @@ class PopupFileItemBar {
     }
 
     public void forwardPathViewClicksTo(View itemView) {
-        Util.forwardViewActionsTo(pathTextView, itemView);
+        forwardViewActionsTo(pathTextView, itemView);
     }
 }

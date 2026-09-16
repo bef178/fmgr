@@ -13,7 +13,6 @@ import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
-import static pd.droidapp.fmgr.util.Util.getAlternativeFile;
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
 class PasteWorker extends ProcessingWorker {
@@ -84,13 +83,14 @@ class PasteWorker extends ProcessingWorker {
     public boolean startCopy(List<FileProperties> srcItems, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
         return start(() -> {
             for (FileProperties item : srcItems) {
+                String dstPath = PathOps.singleton.join(dstDirectory, PathOps.singleton.basename(item.path));
                 Path src = Paths.get(item.path);
-                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(item.path));
+                Path dst = Paths.get(dstPath);
                 doCopy(src, dst, resolution, mergeDirectories);
                 if (isCancelled()) {
                     return;
                 }
-                accumulate(PasteAction.PROGRESS, src.toString(), dst.toString(), true);
+                accumulate(PasteAction.PROGRESS, item.path, dstPath, true);
             }
         });
     }
@@ -158,15 +158,14 @@ class PasteWorker extends ProcessingWorker {
             return;
         }
 
-        Path dstParent = dst.getParent();
         String dstBasename = dst.getFileName().toString();
 
-        Path tmp = getAlternativeFile(dstParent, ".tmp_src_" + dstBasename);
+        Path tmp = getAlternativePath(dst.resolveSibling(".tmp_src_" + dstBasename));
         if (!cp(src, tmp)) {
             return;
         }
 
-        Path bak = getAlternativeFile(dstParent, ".tmp_dst_" + dstBasename);
+        Path bak = getAlternativePath(dst.resolveSibling(".tmp_dst_" + dstBasename));
         if (!mv(dst, bak)) {
             rm(tmp);
             return;
@@ -181,15 +180,14 @@ class PasteWorker extends ProcessingWorker {
     }
 
     private void copyRenameIncoming(Path src, Path dst) {
-        Path parent = dst.getParent();
         String dstName = dst.getFileName().toString();
 
-        Path tmp = getAlternativeFile(parent, ".tmp_" + dstName);
+        Path tmp = getAlternativePath(dst.resolveSibling(".tmp_" + dstName));
         if (!cp(src, tmp)) {
             return;
         }
 
-        if (!mv(tmp, getAlternativeFile(parent, dstName))) {
+        if (!mv(tmp, getAlternativePath(dst))) {
             rm(tmp);
         }
     }
@@ -218,19 +216,39 @@ class PasteWorker extends ProcessingWorker {
     }
 
     private boolean isSamePath(Path p1, Path p2) {
-        return p1.toAbsolutePath().normalize().equals(p2.toAbsolutePath().normalize());
+        return p1.normalize().equals(p2.normalize());
+    }
+
+    private Path getAlternativePath(Path path) {
+        if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+            return path;
+        }
+
+        String pathString = path.toString();
+        String extension = PathOps.singleton.extname(pathString);
+        String name = PathOps.singleton.basename(pathString, extension);
+
+        int counter = 2;
+        Path candidate;
+        do {
+            candidate = path.resolveSibling(name + " (" + counter + ")" + extension);
+            counter++;
+        } while (Files.exists(candidate, LinkOption.NOFOLLOW_LINKS));
+
+        return candidate;
     }
 
     public boolean startCut(List<FileProperties> srcItems, String dstDirectory, ConflictResolution resolution, boolean mergeDirectories) {
         return start(() -> {
             for (FileProperties item : srcItems) {
+                String dstPath = PathOps.singleton.join(dstDirectory, PathOps.singleton.basename(item.path));
                 Path src = Paths.get(item.path);
-                Path dst = Paths.get(dstDirectory, PathOps.singleton.basename(item.path));
+                Path dst = Paths.get(dstPath);
                 doCut(src, dst, resolution, mergeDirectories);
                 if (isCancelled()) {
                     return;
                 }
-                accumulate(PasteAction.PROGRESS, src.toString(), dst.toString(), true);
+                accumulate(PasteAction.PROGRESS, item.path, dstPath, true);
             }
         });
     }
@@ -262,7 +280,7 @@ class PasteWorker extends ProcessingWorker {
                 cutOverwriteExisting(src, dst);
                 break;
             case RENAME_INCOMING:
-                mv(src, getAlternativeFile(dst.getParent(), dst.getFileName().toString()));
+                mv(src, getAlternativePath(dst));
                 break;
             default:
                 break;
@@ -270,10 +288,9 @@ class PasteWorker extends ProcessingWorker {
     }
 
     private void cutOverwriteExisting(Path src, Path dst) {
-        Path dstParent = dst.getParent();
         String dstBasename = dst.getFileName().toString();
 
-        Path bak = getAlternativeFile(dstParent, ".tmp_dst_" + dstBasename);
+        Path bak = getAlternativePath(dst.resolveSibling(".tmp_dst_" + dstBasename));
         if (!mv(dst, bak)) {
             return;
         }

@@ -295,12 +295,12 @@ public class BrowseFragment extends Fragment {
         if (isDirectory) {
             navigateToDirectory(path);
         } else {
-            openFile(new File(path));
+            openFile(path);
         }
     }
 
-    private void openFile(File file) {
-        if (file == null || !file.exists()) {
+    private void openFile(String path) {
+        if (!FileOps.singleton.stat(path).exists(true)) {
             Toast.makeText(requireContext(), R.string.error_file_not_exist, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -308,7 +308,7 @@ public class BrowseFragment extends Fragment {
         Uri uri = FileProvider.getUriForFile(
                 requireContext(),
                 requireContext().getPackageName() + ".file_provider",
-                file);
+                new File(path));
 
         String mimeType = requireContext().getContentResolver().getType(uri);
         if (mimeType == null) {
@@ -327,21 +327,20 @@ public class BrowseFragment extends Fragment {
         }
     }
 
-    private void jumpToFile(String path) {
-        File file = new File(path);
-        if (!file.exists()) {
+    private void jumpTo(String path) {
+        if (!FileOps.singleton.stat(path).exists(true)) {
             Toast.makeText(requireContext(), R.string.error_file_not_exist, Toast.LENGTH_SHORT).show();
             return;
         }
 
-        File parent = file.getParentFile();
-        if (parent == null || !parent.exists()) {
+        String parent = PathOps.singleton.dirname(path);
+        if (!FileOps.singleton.stat(parent).exists(true)) {
             Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
             return;
         }
 
         // navigate to parent directory
-        navigator.navigateTo(parent.getPath());
+        navigator.navigateTo(parent);
         refresh();
 
         // scroll to and highlight the item
@@ -379,27 +378,29 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        File newFile = new File(navigator.getCurrentDirectory(), name);
-        if (newFile.exists()) {
+        String currentDirectory = navigator.getCurrentDirectory();
+        if (currentDirectory == null) {
+            Toast.makeText(requireContext(), R.string.error_create_failed, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        String newPath = PathOps.singleton.join(currentDirectory, name);
+        if (FileOps.singleton.stat(newPath).exists(true)) {
             Toast.makeText(requireContext(), R.string.error_already_exists, Toast.LENGTH_SHORT).show();
             return false;
         }
 
         boolean success;
-        try {
-            if (isDirectory) {
-                success = newFile.mkdirs();
-                if (success) {
-                    Toast.makeText(requireContext(), R.string.directory_created, Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                success = newFile.createNewFile();
-                if (success) {
-                    Toast.makeText(requireContext(), R.string.file_created, Toast.LENGTH_SHORT).show();
-                }
+        if (isDirectory) {
+            success = FileOps.singleton.createEmptyDirectory(newPath);
+            if (success) {
+                Toast.makeText(requireContext(), R.string.directory_created, Toast.LENGTH_SHORT).show();
             }
-        } catch (Exception e) {
-            success = false;
+        } else {
+            success = FileOps.singleton.save(newPath, new byte[0], false);
+            if (success) {
+                Toast.makeText(requireContext(), R.string.file_created, Toast.LENGTH_SHORT).show();
+            }
         }
 
         if (!success) {
@@ -407,7 +408,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        loadItems(navigator.getCurrentDirectory());
+        loadItems(currentDirectory);
         return true;
     }
 
@@ -541,7 +542,7 @@ public class BrowseFragment extends Fragment {
 
     private void showSearchPopup() {
         SearchPopup popup = new SearchPopup(getView(), navigator.getCurrentDirectory());
-        popup.whenJumpClicked(this::jumpToFile);
+        popup.whenJumpClicked(this::jumpTo);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
         popup.whenPopupDismissed(this::onPopupDismissed);
@@ -550,14 +551,14 @@ public class BrowseFragment extends Fragment {
 
     private void showDeleteEmptyPopup() {
         DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), navigator.getCurrentDirectory());
-        popup.whenJumpClicked(this::jumpToFile);
+        popup.whenJumpClicked(this::jumpTo);
         popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
 
     private void showDedupPopup() {
         DedupPopup popup = new DedupPopup(getView(), navigator.getCurrentDirectory());
-        popup.whenJumpClicked(this::jumpToFile);
+        popup.whenJumpClicked(this::jumpTo);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
         popup.whenPopupDismissed(this::onPopupDismissed);

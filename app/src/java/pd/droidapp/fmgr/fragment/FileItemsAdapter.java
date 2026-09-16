@@ -30,10 +30,10 @@ import java.util.function.BiConsumer;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
-import pd.droidapp.fmgr.util.Util;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;
 import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHolder> {
@@ -264,7 +264,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
             return true;
         });
 
-        Util.forwardViewActionsTo(viewHolder.pathTextView, viewHolder.itemView);
+        forwardViewActionsTo(viewHolder.pathTextView, viewHolder.itemView);
     }
 
     private String getItemDetailsString(FileProperties item, Context context) {

@@ -19,11 +19,11 @@ import java.util.List;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.util.FavStore;
-import pd.droidapp.fmgr.util.Util;
 import pd.util.FileOps;
 
 import static pd.droidapp.fmgr.util.FavStore.FavItem;
 import static pd.droidapp.fmgr.util.Util.animateCollapsed;
+import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
 public class FavoritesCollapsible {
 
@@ -144,7 +144,7 @@ public class FavoritesCollapsible {
             FavItem favItem = favItems.get(position);
 
             viewHolder.nameText.setText(favItem.getDisplayName());
-            viewHolder.pathText.setText(Util.getDisplayPath(favItem.path));
+            viewHolder.pathText.setText(getDisplayPath(favItem.path));
 
             viewHolder.itemView.setOnClickListener(v -> {
                 if (onFavItemClickedListener != null) {

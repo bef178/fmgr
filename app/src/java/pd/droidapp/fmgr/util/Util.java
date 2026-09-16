@@ -9,13 +9,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -89,73 +87,20 @@ public class Util {
         animator.start();
     }
 
-    public static Path getAlternativeFile(Path directory, String basename) {
-        return getAlternativeFile(directory != null ? directory.toFile() : null, basename).toPath();
-    }
-
-    public static File getAlternativeFile(String directory, String basename) {
-        return getAlternativeFile(new File(directory), basename);
-    }
-
-    public static File getAlternativeFile(File directory, String basename) {
-        if (directory == null) {
-            directory = new File("");
-        }
-        File f = new File(directory, basename);
-        if (!f.exists()) {
-            return f;
-        }
-
-        String name;
-        String extension;
-        {
-            int i = basename.indexOf('.');
-            if (i > 0) {
-                name = basename.substring(0, i);
-                extension = basename.substring(i);
-            } else {
-                name = basename;
-                extension = "";
-            }
-        }
-
-        int counter = 2;
-        File candidate;
-        do {
-            String newName = name + " (" + counter + ")" + extension;
-            candidate = new File(directory, newName);
-            counter++;
-        } while (candidate.exists());
-
-        return candidate;
-    }
-
-    public static String getDisplayPath(String path) {
-        if (path == null) {
-            return null;
-        }
-        return getDisplayPath(new File(path));
-    }
-
     /**
      * display path for UI
      * `/storage/emulated/0` => `/`
      * `/storage/emulated/0/xxx` => `/xxx`
      */
-    public static String getDisplayPath(File path) {
-        if (path == null) {
-            return "";
-        }
-        File root = Environment.getExternalStorageDirectory();
-        String rootPath = root.getAbsolutePath();
-        String absPath = path.getAbsolutePath();
-        if (absPath.equals(rootPath)) {
+    public static String getDisplayPath(String path) {
+        String rootPath = Environment.getExternalStorageDirectory().getPath();
+        if (path.equals(rootPath)) {
             return "/";
         }
-        if (absPath.startsWith(rootPath + File.separator)) {
-            return absPath.substring(rootPath.length());
+        if (path.startsWith(rootPath + "/")) {
+            return path.substring(rootPath.length());
         }
-        return absPath;
+        return path;
     }
 
     public static FileProperties toFileProperties(String path) {
