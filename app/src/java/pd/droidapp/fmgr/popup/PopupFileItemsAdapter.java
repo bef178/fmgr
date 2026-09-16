@@ -86,7 +86,7 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
     public List<FileProperties> getSelectedItems() {
         List<FileProperties> selected = new LinkedList<>();
         for (FileProperties item : items) {
-            if (selectionBar.hasSelected(item.path)) {
+            if (selectionBar.hasSelectedProps(item)) {
                 selected.add(item);
             }
         }
@@ -111,7 +111,7 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
             viewHolder.itemBar.setIcon(R.drawable.i_file_24);
         }
 
-        viewHolder.itemBar.setSelected(selectionBar.hasSelected(item.path));
+        viewHolder.itemBar.setSelected(selectionBar.hasSelectedProps(item));
 
         viewHolder.itemBar.setPath(PathOps.singleton.relativize(startDirectory, item.path));
 
@@ -119,20 +119,20 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
 
         viewHolder.itemView.setOnClickListener(v -> {
             if (!selectionBar.isEmpty()) {
-                toggleSelected(item.path, position);
+                toggleSelected(item, position);
             }
         });
 
         viewHolder.itemView.setOnLongClickListener(v -> {
-            toggleSelected(item.path, position);
+            toggleSelected(item, position);
             return true;
         });
 
         viewHolder.itemBar.forwardPathViewClicksTo(viewHolder.itemView);
     }
 
-    private void toggleSelected(String path, int position) {
-        selectionBar.toggleSelected(path);
+    private void toggleSelected(FileProperties item, int position) {
+        selectionBar.toggleSelectedProps(item);
         notifyItemChanged(position);
         selectionBar.invalidate();
     }

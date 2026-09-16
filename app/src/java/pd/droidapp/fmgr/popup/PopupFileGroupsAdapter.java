@@ -91,7 +91,7 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         List<FileProperties> selected = new LinkedList<>();
         for (PopupFileGroup group : groups) {
             for (FileProperties item : group.getItems()) {
-                if (selectionBar.hasSelected(item.path)) {
+                if (selectionBar.hasSelectedProps(item)) {
                     selected.add(item);
                 }
             }
@@ -145,15 +145,15 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
             itemBar.forwardPathViewClicksTo(fileView);
             itemBar.setIcon(R.drawable.i_file_24);
             itemBar.setPath(PathOps.singleton.relativize(startDirectory, item.path));
-            itemBar.setSelected(selectionBar.hasSelected(item.path));
+            itemBar.setSelected(selectionBar.hasSelectedProps(item));
 
             fileView.setOnClickListener(v -> {
                 if (!selectionBar.isEmpty()) {
-                    toggleSelected(item.path, position);
+                    toggleSelected(item, position);
                 }
             });
             fileView.setOnLongClickListener(v -> {
-                toggleSelected(item.path, position);
+                toggleSelected(item, position);
                 return true;
             });
         }
@@ -166,8 +166,8 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         return collapsedStates.getOrDefault(group.key(), false);
     }
 
-    private void toggleSelected(String path, int position) {
-        selectionBar.toggleSelected(path);
+    private void toggleSelected(FileProperties item, int position) {
+        selectionBar.toggleSelectedProps(item);
         notifyItemChanged(position);
         selectionBar.invalidate();
     }

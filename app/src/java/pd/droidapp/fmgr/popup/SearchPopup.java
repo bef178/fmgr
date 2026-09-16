@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
@@ -154,9 +153,7 @@ public class SearchPopup extends ProcessingPopup {
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);
-                selectionBar.remove(removed.stream()
-                        .map(item -> item.path)
-                        .collect(Collectors.toList()));
+                selectionBar.removeProps(removed);
                 selectionBar.invalidate();
             });
             deletePopup.show();
@@ -164,9 +161,7 @@ public class SearchPopup extends ProcessingPopup {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.add(itemsAdapter.getItems().stream()
-                    .map(item -> item.path)
-                    .collect(Collectors.toList()));
+            selectionBar.addProps(itemsAdapter.getItems());
             selectionBar.invalidate();
             itemsAdapter.notifyDataSetChanged();
         });

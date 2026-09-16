@@ -6,10 +6,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.LayoutRes;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,7 +24,7 @@ public class SelectionBar {
 
     private final List<ActionButton> actionButtons = new ArrayList<>();
 
-    private final Set<File> selectedItems = new LinkedHashSet<>();
+    private final Set<String> selectedPaths = new LinkedHashSet<>();
 
     public SelectionBar(View selfView) {
         this.selfView = selfView;
@@ -38,11 +36,11 @@ public class SelectionBar {
         View button = LayoutInflater.from(selfView.getContext()).inflate(layoutResId, buttonsView, false);
         button.setOnClickListener(listener);
         buttonsView.addView(button);
-        actionButtons.add(new ActionButton(button, () -> visible.test(selectedItems.size()), null));
+        actionButtons.add(new ActionButton(button, () -> visible.test(selectedPaths.size()), null));
     }
 
     public void invalidate() {
-        int count = selectedItems.size();
+        int count = selectedPaths.size();
         if (count == 0) {
             selfView.setVisibility(View.GONE);
         } else {
@@ -54,54 +52,51 @@ public class SelectionBar {
         }
     }
 
-    public void addFiles(List<File> files) {
-        selectedItems.addAll(files);
+    public void addProps(Collection<FileProperties> items) {
+        for (FileProperties item : items) {
+            selectedPaths.add(item.path);
+        }
     }
 
     public void add(Collection<String> paths) {
-        for (String path : paths) {
-            selectedItems.add(new File(path));
-        }
+        selectedPaths.addAll(paths);
     }
 
-    public void remove(Collection<String> paths) {
-        Set<File> files = new HashSet<>();
-        for (String path : paths) {
-            files.add(new File(path));
+    public void removeProps(Collection<FileProperties> items) {
+        for (FileProperties item : items) {
+            selectedPaths.remove(item.path);
         }
-        selectedItems.removeAll(files);
     }
 
     public void clear() {
-        selectedItems.clear();
+        selectedPaths.clear();
     }
 
     public boolean isEmpty() {
-        return selectedItems.isEmpty();
+        return selectedPaths.isEmpty();
     }
 
     public int size() {
-        return selectedItems.size();
+        return selectedPaths.size();
     }
 
-    public File getFirst() {
-        return selectedItems.iterator().next();
+    public Collection<String> getAll() {
+        return selectedPaths;
     }
 
-    public boolean hasSelected(String path) {
-        return selectedItems.contains(new File(path));
+    public String getFirst() {
+        return selectedPaths.iterator().next();
     }
 
-    public void toggleSelected(String path) {
-        File file = new File(path);
-        if (selectedItems.contains(file)) {
-            selectedItems.remove(file);
+    public boolean hasSelectedProps(FileProperties item) {
+        return selectedPaths.contains(item.path);
+    }
+
+    public void toggleSelectedProps(FileProperties item) {
+        if (selectedPaths.contains(item.path)) {
+            selectedPaths.remove(item.path);
         } else {
-            selectedItems.add(file);
+            selectedPaths.add(item.path);
         }
-    }
-
-    public Collection<File> getSelectedFiles() {
-        return selectedItems;
     }
 }

@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
@@ -114,7 +113,7 @@ public class BrowseFragment extends Fragment {
 
         selectionBar.addButton(R.layout.selection_button_rename, c -> c == 1, v -> {
             if (selectionBar.size() == 1) {
-                showRenamePopup(selectionBar.getFirst());
+                showRenamePopup(new File(selectionBar.getFirst()));
             }
         });
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> markSelectedItemsForCopy());
@@ -123,9 +122,7 @@ public class BrowseFragment extends Fragment {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addFiles(itemsAdapter.getItems().stream()
-                    .map(x -> new File(x.path))
-                    .collect(Collectors.toList()));
+            selectionBar.addProps(itemsAdapter.getItems());
             selectionBar.invalidate();
             itemsAdapter.notifyDataSetChanged();
         });
@@ -180,9 +177,9 @@ public class BrowseFragment extends Fragment {
             forwardStack.addAll(savedForwardStack);
         }
 
-        List<File> savedSelectedItems = (List<File>) savedInstanceState.getSerializable(STATE_SELECTED_ITEMS);
+        List<String> savedSelectedItems = (List<String>) savedInstanceState.getSerializable(STATE_SELECTED_ITEMS);
         if (savedSelectedItems != null) {
-            selectionBar.addFiles(savedSelectedItems);
+            selectionBar.add(savedSelectedItems);
             selectionBar.invalidate();
             itemsAdapter.invalidate(itemsAdapter.getSelectedItems());
         }
@@ -200,7 +197,7 @@ public class BrowseFragment extends Fragment {
         outState.putSerializable(STATE_CURRENT_DIRECTORY, pathBar.getCurrentDirectory());
         outState.putSerializable(STATE_BACK_STACK, new LinkedList<>(backStack));
         outState.putSerializable(STATE_FORWARD_STACK, new LinkedList<>(forwardStack));
-        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.getSelectedFiles()));
+        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.getAll()));
     }
 
     @Override
@@ -602,7 +599,7 @@ public class BrowseFragment extends Fragment {
         if (!removed.isEmpty()) {
             clipboard.removeAllIfSameAsOrDescendantOf(removed);
             actionBar.invalidate();
-            selectionBar.remove(removed.stream().map(item -> item.path).collect(Collectors.toList()));
+            selectionBar.removeProps(removed);
             selectionBar.invalidate();
             Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();

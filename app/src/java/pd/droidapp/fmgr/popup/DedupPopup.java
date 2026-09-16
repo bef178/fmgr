@@ -12,7 +12,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
@@ -100,9 +99,7 @@ public class DedupPopup extends ProcessingPopup {
             DeletePopup deletePopup = new DeletePopup(containerView, groupsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                selectionBar.remove(removed.stream()
-                        .map(item -> item.path)
-                        .collect(Collectors.toList()));
+                selectionBar.removeProps(removed);
                 for (FileProperties item : removed) {
                     FileProperties props = byPath.remove(item.path);
                     if (props == null) {
@@ -119,8 +116,8 @@ public class DedupPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_smart_select, c -> c > 0, v -> {
-            List<String> newlySelected = suggestToSelect();
-            selectionBar.add(newlySelected);
+            List<FileProperties> newlySelected = suggestToSelect();
+            selectionBar.addProps(newlySelected);
             selectionBar.invalidate();
             groupsAdapter.notifyDataSetChanged();
         });
@@ -249,28 +246,28 @@ public class DedupPopup extends ProcessingPopup {
      * Returns files to newly select, leaving already-selected ones untouched.
      * Keeps at most one file per group unselected.
      */
-    private List<String> suggestToSelect() {
-        List<String> newlySelected = new LinkedList<>();
+    private List<FileProperties> suggestToSelect() {
+        List<FileProperties> newlySelected = new LinkedList<>();
         for (PopupFileGroup group : groupsAdapter.getGroups()) {
             List<FileProperties> items = group.getItems();
-            List<String> unselected = new LinkedList<>();
+            List<FileProperties> unselected = new LinkedList<>();
             for (FileProperties item : items) {
-                if (!selectionBar.hasSelected(item.path)) {
-                    unselected.add(item.path);
+                if (!selectionBar.hasSelectedProps(item)) {
+                    unselected.add(item);
                 }
             }
             if (unselected.size() <= 1) {
                 // 0: group fully selected; 1: keep it, nothing else to select
                 continue;
             }
-            String pathToKeep = unselected.get(0);
+            FileProperties itemToKeep = unselected.get(0);
             for (int i = 1; i < unselected.size(); i++) {
-                String path = unselected.get(i);
-                if (smartCompare(path, pathToKeep) < 0) {
-                    newlySelected.add(pathToKeep);
-                    pathToKeep = path;
+                FileProperties item = unselected.get(i);
+                if (smartCompare(item.path, itemToKeep.path) < 0) {
+                    newlySelected.add(itemToKeep);
+                    itemToKeep = item;
                 } else {
-                    newlySelected.add(path);
+                    newlySelected.add(item);
                 }
             }
         }

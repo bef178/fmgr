@@ -200,7 +200,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
     public List<FileProperties> getSelectedItems() {
         List<FileProperties> selected = new LinkedList<>();
         for (FileProperties item : items) {
-            if (selectionBar.hasSelected(item.path)) {
+            if (selectionBar.hasSelectedProps(item)) {
                 selected.add(item);
             }
         }
@@ -228,7 +228,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
                 item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24);
         viewHolder.detailsTextView.setText(getItemDetailsString(item, viewHolder.itemView.getContext()));
 
-        if (selectionBar.hasSelected(item.path)) {
+        if (selectionBar.hasSelectedProps(item)) {
             viewHolder.selectedIconImageView.setVisibility(View.VISIBLE);
         } else {
             viewHolder.selectedIconImageView.setVisibility(View.GONE);
@@ -238,7 +238,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
 
         viewHolder.itemView.setOnClickListener(v -> {
             if (!selectionBar.isEmpty()) {
-                toggleSelected(item.path);
+                toggleSelected(item);
                 return;
             }
             if (item.isDirectory || FileOps.singleton.stat(item.path).isFile(true)) {
@@ -251,7 +251,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         });
 
         viewHolder.itemView.setOnLongClickListener(v -> {
-            toggleSelected(item.path);
+            toggleSelected(item);
             return true;
         });
 
@@ -311,11 +311,11 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         view.setBackgroundColor(color);
     }
 
-    private void toggleSelected(String path) {
-        selectionBar.toggleSelected(path);
+    private void toggleSelected(FileProperties item) {
+        selectionBar.toggleSelectedProps(item);
         selectionBar.invalidate();
         for (int i = 0; i < items.size(); i++) {
-            if (items.get(i).path.equals(path)) {
+            if (items.get(i).path.equals(item.path)) {
                 notifyItemChanged(i);
                 break;
             }
