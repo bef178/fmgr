@@ -30,7 +30,7 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
         return items;
     }
 
-    public void add(Collection<String> paths) {
+    public void append(Collection<String> paths) {
         if (paths.isEmpty()) {
             return;
         }
@@ -135,7 +135,7 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
         return items.size();
     }
 
-    public static class ItemViewHolder extends RecyclerView.ViewHolder {
+    static class ItemViewHolder extends RecyclerView.ViewHolder {
 
         final PopupFileItemBar itemBar;
 

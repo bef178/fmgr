@@ -260,7 +260,7 @@ public class SearchPopup extends ProcessingPopup {
                 return;
             }
             totalScanned += scanned;
-            itemsAdapter.add(matched);
+            itemsAdapter.append(matched);
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));
         }));

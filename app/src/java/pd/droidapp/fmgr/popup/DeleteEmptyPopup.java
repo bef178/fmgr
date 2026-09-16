@@ -147,7 +147,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         }));
         worker.whenUpdated((scanned, delta) -> containerView.post(() -> {
             totalScanned += scanned;
-            itemsAdapter.add(delta);
+            itemsAdapter.append(delta);
             selectionBar.invalidate();
             statusBar.setText(context.getString(R.string.x_scanned_y_found,
                     totalScanned, itemsAdapter.getItemCount()));

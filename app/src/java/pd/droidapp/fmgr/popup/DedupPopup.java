@@ -101,7 +101,7 @@ public class DedupPopup extends ProcessingPopup {
                 netRemoved.addAll(removed);
                 selectionBar.remove(removed);
                 for (String path : removed) {
-                    FileProperties props = byPath.remove(path);
+                    FileProperties props = byPath.remove(PathOps.singleton.normalize(path));
                     if (props == null) {
                         continue;
                     }
@@ -222,7 +222,7 @@ public class DedupPopup extends ProcessingPopup {
                 totalGroupItems += group.size();
             }
         }
-        groupsAdapter.load(buildFileGroups());
+        groupsAdapter.set(buildFileGroups());
         selectionBar.invalidate();
         statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
                 totalScanned, totalGroups, totalGroupItems));

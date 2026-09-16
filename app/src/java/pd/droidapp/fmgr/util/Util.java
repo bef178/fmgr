@@ -17,10 +17,14 @@ import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import pd.util.PathOps;
 
 public class Util {
 
@@ -152,6 +156,22 @@ public class Util {
             return absPath.substring(rootPath.length());
         }
         return absPath;
+    }
+
+    public static List<FileProperties> toFileProperties(Collection<String> paths) {
+        List<FileProperties> items = new LinkedList<>();
+        for (String path : paths) {
+            items.add(new FileProperties(PathOps.singleton.normalize(path), path.endsWith("/")));
+        }
+        return items;
+    }
+
+    public static List<String> toNormalizedPaths(Collection<String> paths) {
+        List<String> normalized = new LinkedList<>();
+        for (String path : paths) {
+            normalized.add(PathOps.singleton.normalize(path));
+        }
+        return normalized;
     }
 
     public static int bitCeil(int n) {

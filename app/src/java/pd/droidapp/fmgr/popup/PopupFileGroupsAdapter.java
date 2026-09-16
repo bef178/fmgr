@@ -37,7 +37,7 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         this.selectionBar = selectionBar;
     }
 
-    public void load(List<PopupFileGroup> newGroups) {
+    public void set(List<PopupFileGroup> newGroups) {
         List<PopupFileGroup> oldGroups = new ArrayList<>(groups);
         int[] oldStartIndexes = startIndexes;
         groups.clear();

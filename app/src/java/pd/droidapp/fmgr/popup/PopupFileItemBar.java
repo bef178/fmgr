@@ -9,35 +9,35 @@ import pd.droidapp.fmgr.util.Util;
 
 class PopupFileItemBar {
 
-    private final ImageView iconView;
-    private final ImageView selectedIcon;
-    private final TextView pathView;
-    private final TextView indexView;
+    private final ImageView iconImageView;
+    private final ImageView selectedIconImageView;
+    private final TextView pathTextView;
+    private final TextView indexTextView;
 
     public PopupFileItemBar(View selfView) {
-        iconView = selfView.findViewById(R.id.popup_file_icon);
-        selectedIcon = selfView.findViewById(R.id.popup_file_selected);
-        pathView = selfView.findViewById(R.id.popup_file_name);
-        indexView = selfView.findViewById(R.id.popup_file_index);
+        iconImageView = selfView.findViewById(R.id.popup_file_icon);
+        selectedIconImageView = selfView.findViewById(R.id.popup_file_selected);
+        pathTextView = selfView.findViewById(R.id.popup_file_name);
+        indexTextView = selfView.findViewById(R.id.popup_file_index);
     }
 
     public void setIndex(int index) {
-        indexView.setText(String.valueOf(index));
+        indexTextView.setText(String.valueOf(index));
     }
 
     public void setIcon(int resId) {
-        iconView.setImageResource(resId);
+        iconImageView.setImageResource(resId);
     }
 
     public void setSelected(boolean selected) {
-        selectedIcon.setVisibility(selected ? View.VISIBLE : View.GONE);
+        selectedIconImageView.setVisibility(selected ? View.VISIBLE : View.GONE);
     }
 
     public void setPath(CharSequence path) {
-        pathView.setText(path);
+        pathTextView.setText(path);
     }
 
     public void forwardPathViewClicksTo(View itemView) {
-        Util.forwardViewActionsTo(pathView, itemView);
+        Util.forwardViewActionsTo(pathTextView, itemView);
     }
 }

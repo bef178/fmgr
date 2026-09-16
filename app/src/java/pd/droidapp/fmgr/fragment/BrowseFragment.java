@@ -5,38 +5,28 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
@@ -51,13 +41,12 @@ import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.Clipboard;
-import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
-import pd.droidapp.fmgr.util.Util;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
-import static pd.droidapp.fmgr.util.Util.getSizeString;
+import static pd.droidapp.fmgr.util.Util.toFileProperties;
+import static pd.droidapp.fmgr.util.Util.toNormalizedPaths;
 
 public class BrowseFragment extends Fragment {
 
@@ -66,7 +55,7 @@ public class BrowseFragment extends Fragment {
     private ActionBar actionBar;
     private SelectionBar selectionBar;
     private RecyclerView itemsView;
-    private ItemsAdapter itemsAdapter;
+    private FileItemsAdapter itemsAdapter;
 
     private final Stack<File> backStack = new Stack<>();
     private final Stack<File> forwardStack = new Stack<>();
@@ -114,7 +103,8 @@ public class BrowseFragment extends Fragment {
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
-        itemsAdapter = new ItemsAdapter();
+        itemsAdapter = new FileItemsAdapter(selectionBar);
+        itemsAdapter.whenItemClicked(this::openItem);
 
         itemsView = view.findViewById(R.id.items_list);
         itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -131,7 +121,7 @@ public class BrowseFragment extends Fragment {
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
             selectionBar.clear();
-            selectionBar.addFiles(itemsAdapter.items.stream()
+            selectionBar.addFiles(itemsAdapter.getItems().stream()
                     .map(x -> new File(x.path))
                     .collect(Collectors.toList()));
             selectionBar.invalidate();
@@ -156,7 +146,20 @@ public class BrowseFragment extends Fragment {
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.load(directory);
+        loadItems(directory);
+    }
+
+    private void loadItems(File directory) {
+        List<String> paths = new LinkedList<>();
+        if (directory != null) {
+            FileOps.singleton.listDirectory(directory.getPath(), 1, true, null,
+                    (action, src, dst, succeeded) -> {
+                        if (action == FileOps.Action.MEET) {
+                            paths.add(src);
+                        }
+                    });
+        }
+        itemsAdapter.set(toFileProperties(paths));
     }
 
     private void restoreState(@NonNull Bundle savedInstanceState) {
@@ -179,7 +182,7 @@ public class BrowseFragment extends Fragment {
         if (savedSelectedItems != null) {
             selectionBar.addFiles(savedSelectedItems);
             selectionBar.invalidate();
-            itemsAdapter.invalidate(selectionBar.getSelectedFiles().stream().map(File::getPath).collect(Collectors.toList()));
+            itemsAdapter.invalidate(itemsAdapter.getSelectedPaths());
         }
 
         actionBar.invalidate();
@@ -205,7 +208,7 @@ public class BrowseFragment extends Fragment {
             doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
         } else if (mightGrantedAllFilesAccess) {
             mightGrantedAllFilesAccess = false;
-            itemsAdapter.load(pathBar.getCurrentDirectory());
+            loadItems(pathBar.getCurrentDirectory());
         }
         askForAllFilesAccessIfNecessary();
     }
@@ -296,6 +299,14 @@ public class BrowseFragment extends Fragment {
         doChangeCurrentDirectory(target);
     }
 
+    private void openItem(String path, boolean isDirectory) {
+        if (isDirectory) {
+            navigateToDirectory(new File(path));
+        } else {
+            openFile(new File(path));
+        }
+    }
+
     private void openFile(File file) {
         if (file == null || !file.exists()) {
             Toast.makeText(requireContext(), R.string.error_file_not_exist, Toast.LENGTH_SHORT).show();
@@ -361,7 +372,7 @@ public class BrowseFragment extends Fragment {
             int position = itemsAdapter.indexOf(file.getPath());
             if (position >= 0) {
                 itemsView.scrollToPosition(position);
-                itemsView.postDelayed(() -> itemsAdapter.highlightItem(file), 100);
+                itemsView.postDelayed(() -> itemsAdapter.highlightItem(PathOps.singleton.normalize(path)), 100);
             }
         });
     }
@@ -419,7 +430,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        itemsAdapter.load(pathBar.getCurrentDirectory());
+        loadItems(pathBar.getCurrentDirectory());
         return true;
     }
 
@@ -452,22 +463,24 @@ public class BrowseFragment extends Fragment {
 
     private void markSelectedItemsForCut() {
         Collection<File> files = new LinkedList<>(selectionBar.getSelectedFiles());
+        List<String> paths = itemsAdapter.getSelectedPaths();
         clipboard.setFilesToCut(files);
         Toast.makeText(requireContext(), getString(R.string.cut_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.invalidate(files.stream().map(File::getPath).collect(Collectors.toList()));
+        itemsAdapter.invalidate(paths);
     }
 
     private void markSelectedItemsForCopy() {
         Collection<File> files = new LinkedList<>(selectionBar.getSelectedFiles());
+        List<String> paths = itemsAdapter.getSelectedPaths();
         clipboard.setFilesToCopy(files);
         Toast.makeText(requireContext(), getString(R.string.copied_report_format, files.size()), Toast.LENGTH_SHORT).show();
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        itemsAdapter.invalidate(files.stream().map(File::getPath).collect(Collectors.toList()));
+        itemsAdapter.invalidate(paths);
     }
 
     private void copyToClipboard(Collection<String> paths) {
@@ -545,7 +558,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        itemsAdapter.load(pathBar.getCurrentDirectory());
+        loadItems(pathBar.getCurrentDirectory());
         return true;
     }
 
@@ -584,8 +597,8 @@ public class BrowseFragment extends Fragment {
             Set<String> explicit = new LinkedHashSet<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, added, explicit, implicit);
-            itemsAdapter.add(explicit);
-            itemsAdapter.loadProperties(implicit);
+            itemsAdapter.add(toFileProperties(explicit));
+            itemsAdapter.loadProperties(toNormalizedPaths(implicit));
         }
         if (!removed.isEmpty()) {
             Set<File> removedFiles = removed.stream().map(File::new).collect(Collectors.toSet());
@@ -596,8 +609,8 @@ public class BrowseFragment extends Fragment {
             Set<String> explicit = new LinkedHashSet<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, removed, explicit, implicit);
-            itemsAdapter.remove(explicit);
-            itemsAdapter.loadProperties(implicit);
+            itemsAdapter.remove(toNormalizedPaths(explicit));
+            itemsAdapter.loadProperties(toNormalizedPaths(implicit));
         }
     }
 
@@ -625,9 +638,6 @@ public class BrowseFragment extends Fragment {
     private String getDirectChild(String currentDirectory, String path) {
         while (true) {
             String parent = PathOps.singleton.dirname(path);
-            if (parent.isEmpty()) {
-                return null;
-            }
             if (!parent.endsWith("/")) {
                 parent += "/";
             }
@@ -638,330 +648,6 @@ public class BrowseFragment extends Fragment {
                 return path;
             }
             path = parent;
-        }
-    }
-
-    private class ItemsAdapter extends RecyclerView.Adapter<ItemsAdapter.ItemViewHolder> {
-
-        private final Comparator<FileProperties> itemComparator = (p1, p2) ->
-                PathOps.singleton.compare(
-                        p1.isDirectory ? p1.path + "/" : p1.path,
-                        p2.isDirectory ? p2.path + "/" : p2.path);
-
-        private final List<FileProperties> items = new LinkedList<>();
-        private final Progressor<File> progressor = new Progressor<>();
-        private final PropertiesLoader itemsLoader;
-
-        ItemsAdapter() {
-            itemsLoader = new PropertiesLoader();
-            itemsLoader.whenUpdated(updated -> itemsView.post(() -> {
-                Set<FileProperties> updatedSet = new HashSet<>(updated);
-                for (int i = 0; i < items.size(); i++) {
-                    if (updatedSet.contains(items.get(i))) {
-                        notifyItemChanged(i);
-                    }
-                }
-            }));
-        }
-
-        private int indexOf(String path) {
-            for (int i = 0; i < items.size(); i++) {
-                if (items.get(i).path.equals(path)) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        public void highlightItem(final File file) {
-            progressor.start(file, 1500, new AccelerateDecelerateInterpolator(), (distance, velocity) -> {
-                int position = indexOf(file.getPath());
-                if (position >= 0) {
-                    RecyclerView.ViewHolder viewHolder = itemsView.findViewHolderForAdapterPosition(position);
-                    if (viewHolder != null) {
-                        FileProperties item = items.get(position);
-                        if (item.path.equals(file.getPath())) {
-                            applyHighlightEffect(((ItemViewHolder) viewHolder).fileHighlightView, velocity);
-                        }
-                    }
-                }
-            });
-        }
-
-        private void applyHighlightEffect(View view, Float velocity) {
-            TypedValue typedValue = new TypedValue();
-            requireContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorSecondary, typedValue, true);
-            final int peakColor = typedValue.data;
-
-            requireContext().getTheme().resolveAttribute(android.R.attr.colorBackground, typedValue, true);
-            final int baseColor = typedValue.data & 0x00FFFFFF;
-
-            if (velocity == null) {
-                velocity = 0f;
-            }
-
-            int peakA = Color.alpha(peakColor);
-            int peakR = Color.red(peakColor);
-            int peakG = Color.green(peakColor);
-            int peakB = Color.blue(peakColor);
-
-            int baseA = Color.alpha(baseColor);
-            int baseR = Color.red(baseColor);
-            int baseG = Color.green(baseColor);
-            int baseB = Color.blue(baseColor);
-
-            float x = (float) (velocity / (Math.PI / 2));
-            x = Math.max(0f, Math.min(x, 1f));
-            float alpha = x * x * (3f - 2f * x); // smoothstep: f(t) = 3t^2-3t^3
-            int a = (int) (peakA * alpha + baseA * (1 - alpha));
-            int r = (int) (peakR * alpha + baseR * (1 - alpha));
-            int g = (int) (peakG * alpha + baseG * (1 - alpha));
-            int b = (int) (peakB * alpha + baseB * (1 - alpha));
-            int color = Color.argb(a, r, g, b);
-
-            view.setBackgroundColor(color);
-        }
-
-        public void load(File directory) {
-            itemsLoader.clear();
-            items.clear();
-            if (directory != null) {
-                FileOps.singleton.listDirectory(directory.getPath(), 1, true, null, (action, src, dst, succeeded) -> {
-                    if (action == FileOps.Action.MEET) {
-                        items.add(new FileProperties(PathOps.singleton.normalize(src), src.endsWith("/")));
-                    }
-                });
-                items.sort(itemComparator);
-            }
-            notifyDataSetChanged();
-            itemsLoader.add(new LinkedList<>(items));
-        }
-
-        public void cancel() {
-            itemsLoader.cancel();
-        }
-
-        public void add(Collection<String> paths) {
-            List<FileProperties> oldItems = new LinkedList<>(items);
-            Map<String, Integer> indexByPath = new HashMap<>();
-            for (int i = 0; i < items.size(); i++) {
-                indexByPath.put(items.get(i).path, i);
-            }
-            List<FileProperties> newItems = new LinkedList<>();
-            for (String path : paths) {
-                String normalized = PathOps.singleton.normalize(path);
-                Integer index = indexByPath.get(normalized);
-                FileProperties item;
-                if (index == null) {
-                    item = new FileProperties(normalized, path.endsWith("/"));
-                    indexByPath.put(normalized, items.size());
-                    items.add(item);
-                } else {
-                    item = items.get(index);
-                    item.computed = false;
-                }
-                newItems.add(item);
-            }
-            if (newItems.isEmpty()) {
-                return;
-            }
-            itemsLoader.add(newItems);
-            items.sort(itemComparator);
-            DiffUtil.calculateDiff(new DiffUtil.Callback() {
-                @Override
-                public int getOldListSize() {
-                    return oldItems.size();
-                }
-
-                @Override
-                public int getNewListSize() {
-                    return items.size();
-                }
-
-                @Override
-                public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                    return oldItems.get(oldItemPosition).path.equals(items.get(newItemPosition).path);
-                }
-
-                @Override
-                public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
-                    return true;
-                }
-            }).dispatchUpdatesTo(this);
-        }
-
-        public void remove(Collection<String> paths) {
-            Set<String> normalizedPaths = new HashSet<>();
-            for (String path : paths) {
-                normalizedPaths.add(PathOps.singleton.normalize(path));
-            }
-            List<FileProperties> oldItems = new LinkedList<>(items);
-            items.removeIf(item -> normalizedPaths.contains(item.path));
-            DiffUtil.calculateDiff(new DiffUtil.Callback() {
-                @Override
-                public int getOldListSize() {
-                    return oldItems.size();
-                }
-
-                @Override
-                public int getNewListSize() {
-                    return items.size();
-                }
-
-                @Override
-                public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                    return oldItems.get(oldItemPosition).path.equals(items.get(newItemPosition).path);
-                }
-
-                @Override
-                public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
-                    return true;
-                }
-            }).dispatchUpdatesTo(this);
-        }
-
-        public void invalidate(Collection<String> paths) {
-            if (paths.isEmpty()) {
-                return;
-            }
-            Set<String> pathsSet = new HashSet<>(paths);
-            for (int i = 0; i < items.size(); i++) {
-                if (pathsSet.contains(items.get(i).path)) {
-                    notifyItemChanged(i);
-                }
-            }
-        }
-
-        public void loadProperties(Collection<String> paths) {
-            if (paths.isEmpty()) {
-                return;
-            }
-            Set<String> pathsSet = new HashSet<>();
-            for (String path : paths) {
-                pathsSet.add(PathOps.singleton.normalize(path));
-            }
-            List<FileProperties> toReload = new LinkedList<>();
-            for (FileProperties item : items) {
-                if (pathsSet.contains(item.path)) {
-                    item.computed = false;
-                    toReload.add(item);
-                }
-            }
-            if (!toReload.isEmpty()) {
-                itemsLoader.add(toReload);
-            }
-        }
-
-        public List<String> getSelectedPaths() {
-            List<String> selected = new LinkedList<>();
-            for (FileProperties item : items) {
-                String path = item.isDirectory ? item.path + "/" : item.path;
-                if (selectionBar.hasSelected(path)) {
-                    selected.add(path);
-                }
-            }
-            return selected;
-        }
-
-        @NonNull
-        @Override
-        public ItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            Context context = parent.getContext();
-            View view = LayoutInflater.from(context).inflate(R.layout.file_item, parent, false);
-            return new ItemViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ItemViewHolder viewHolder, int position) {
-            FileProperties item = items.get(position);
-            File file = new File(item.path);
-
-            viewHolder.fileNameTextView.setText(file.getName());
-            viewHolder.fileIconImageView.setImageResource(
-                    item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24);
-            viewHolder.fileDetailsTextView.setText(getItemDetailsString(item));
-
-            if (selectionBar.hasSelected(file)) {
-                viewHolder.fileSelectedImageView.setVisibility(View.VISIBLE);
-            } else {
-                viewHolder.fileSelectedImageView.setVisibility(View.GONE);
-            }
-
-            applyHighlightEffect(viewHolder.fileHighlightView, progressor.getVelocity(file));
-
-            viewHolder.itemView.setOnClickListener(v -> {
-                if (!selectionBar.isEmpty()) {
-                    toggleSelected(file);
-                    return;
-                }
-                if (item.isDirectory) {
-                    navigateToDirectory(file);
-                } else if (file.isFile()) {
-                    openFile(file);
-                } else {
-                    Toast.makeText(requireContext(), R.string.error_failed_to_handle, Toast.LENGTH_SHORT).show();
-                }
-            });
-
-            viewHolder.itemView.setOnLongClickListener(v -> {
-                toggleSelected(file);
-                return true;
-            });
-
-            Util.forwardViewActionsTo(viewHolder.fileNameTextView, viewHolder.itemView);
-        }
-
-        private String getItemDetailsString(FileProperties item) {
-            if (!item.computed) {
-                return "...";
-            }
-            if (item.isDirectory) {
-                if (item.numChildren == null) {
-                    return getString(R.string.error_directory_not_accessible);
-                }
-                if (item.numChildren == 0) {
-                    return getString(R.string.empty);
-                }
-                return getString(R.string.x_items, item.numChildren);
-            } else if (item.size != null) {
-                return getSizeString(item.size);
-            } else {
-                return getString(R.string.error);
-            }
-        }
-
-        private void toggleSelected(File file) {
-            selectionBar.toggleSelected(file);
-            selectionBar.invalidate();
-            for (int i = 0; i < items.size(); i++) {
-                if (items.get(i).path.equals(file.getPath())) {
-                    notifyItemChanged(i);
-                    break;
-                }
-            }
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        class ItemViewHolder extends RecyclerView.ViewHolder {
-
-            private final View fileHighlightView;
-            private final ImageView fileIconImageView;
-            private final ImageView fileSelectedImageView;
-            private final TextView fileNameTextView;
-            private final TextView fileDetailsTextView;
-
-            public ItemViewHolder(@NonNull View itemView) {
-                super(itemView);
-                fileHighlightView = itemView.findViewById(R.id.file_highlight);
-                fileIconImageView = itemView.findViewById(R.id.file_icon);
-                fileSelectedImageView = itemView.findViewById(R.id.file_selected_icon);
-                fileNameTextView = itemView.findViewById(R.id.file_name);
-                fileDetailsTextView = itemView.findViewById(R.id.file_details);
-            }
         }
     }
 }

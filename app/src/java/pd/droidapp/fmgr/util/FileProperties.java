@@ -2,6 +2,9 @@ package pd.droidapp.fmgr.util;
 
 public class FileProperties {
 
+    /**
+     * normalized absolute path without trailing '/'
+     */
     public final String path;
     public final boolean isDirectory;
 
