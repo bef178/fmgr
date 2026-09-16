@@ -65,7 +65,7 @@ public class PathBar {
         selfView.setVisibility(directory != null ? View.VISIBLE : View.GONE);
         breadcrumbsContainerView.removeAllViews();
 
-        favIcon.setSelected(directory != null && favStore.contains(directory));
+        favIcon.setSelected(directory != null && favStore.contains(directory.getPath()));
 
         Context context = breadcrumbsContainerView.getContext();
         LayoutInflater inflater = LayoutInflater.from(context);
@@ -98,14 +98,14 @@ public class PathBar {
             return;
         }
         Context context = favIcon.getContext();
-        if (favStore.contains(directory)) {
-            favStore.remove(directory);
+        if (favStore.contains(directory.getPath())) {
+            favStore.remove(directory.getPath());
             Toast.makeText(context, R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();
         } else {
-            favStore.put(directory);
+            favStore.put(directory.getPath());
             Toast.makeText(context, R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
         }
-        favIcon.setSelected(favStore.contains(directory));
+        favIcon.setSelected(favStore.contains(directory.getPath()));
     }
 
     private TextView createBreadcrumbView(LayoutInflater inflater, File f, String displayName) {

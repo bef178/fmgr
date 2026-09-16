@@ -3,7 +3,6 @@ package pd.droidapp.fmgr.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import java.io.File;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,8 +25,8 @@ public class FavStore {
         return PREFS_ITEM_PREFIX + path;
     }
 
-    public boolean contains(File file) {
-        return sharedPreferences.contains(buildPrefsKey(file.getAbsolutePath()));
+    public boolean contains(String path) {
+        return sharedPreferences.contains(buildPrefsKey(path));
     }
 
     public List<FavItem> getAll() {
@@ -40,8 +39,8 @@ public class FavStore {
                 .collect(Collectors.toList());
     }
 
-    public void put(File file) {
-        put(new FavItem(file.getAbsolutePath()));
+    public void put(String path) {
+        put(new FavItem(path));
     }
 
     public void put(FavItem favItem) {
@@ -50,15 +49,11 @@ public class FavStore {
                 .apply();
     }
 
-    public void remove(File file) {
-        remove(file.getAbsolutePath());
-    }
-
     public void remove(FavItem favItem) {
         remove(favItem.path);
     }
 
-    private void remove(String path) {
+    public void remove(String path) {
         sharedPreferences.edit().remove(buildPrefsKey(path)).apply();
     }
 

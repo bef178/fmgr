@@ -22,9 +22,9 @@ public class HomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.home_fragment, container, false);
 
         favoritesCollapsible = new FavoritesCollapsible(view.findViewById(R.id.favorites_collapsible));
-        favoritesCollapsible.whenFavDirectoryClicked(file -> {
+        favoritesCollapsible.whenFavDirectoryClicked(path -> {
             MainActivity mainActivity = (MainActivity) requireActivity();
-            mainActivity.navigateToDirectory(file);
+            mainActivity.navigateToDirectory(path);
         });
 
         LocationsCollapsible locationsCollapsible = new LocationsCollapsible(view.findViewById(R.id.locations_collapsible));

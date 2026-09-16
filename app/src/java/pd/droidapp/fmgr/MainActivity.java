@@ -137,9 +137,9 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setCurrentItem(1);
     }
 
-    public void navigateToDirectory(File directory) {
+    public void navigateToDirectory(String path) {
         if (browseFragment != null && browseFragment.getView() != null) {
-            browseFragment.navigateToDirectory(directory);
+            browseFragment.navigateToDirectory(new File(path));
         }
         viewPager.setCurrentItem(1, true);
     }
