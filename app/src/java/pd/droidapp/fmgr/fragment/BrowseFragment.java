@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -113,7 +114,7 @@ public class BrowseFragment extends Fragment {
 
         selectionBar.addButton(R.layout.selection_button_rename, c -> c == 1, v -> {
             if (selectionBar.size() == 1) {
-                showRenamePopup(new File(selectionBar.getFirst()));
+                showRenamePopup(selectionBar.getFirst());
             }
         });
         selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> markSelectedItemsForCopy());
@@ -516,15 +517,15 @@ public class BrowseFragment extends Fragment {
         deletePopup.show();
     }
 
-    private void showRenamePopup(File file) {
-        String currentName = file.getName();
+    private void showRenamePopup(String path) {
+        String currentName = PathOps.singleton.basename(path);
         EditPopup editPopup = new EditPopup(getView(),
                 getString(R.string.rename),
                 currentName,
                 currentName,
                 newName -> {
                     newName = newName.trim();
-                    if (newName.isEmpty() || newName.equals(currentName) || renameItem(file, newName)) {
+                    if (newName.isEmpty() || newName.equals(currentName) || renameItem(path, newName)) {
                         selectionBar.clear();
                         selectionBar.invalidate();
                         return true;
@@ -534,28 +535,30 @@ public class BrowseFragment extends Fragment {
         editPopup.show();
     }
 
-    private boolean renameItem(File file, String newName) {
+    private boolean renameItem(String path, String newName) {
         Integer errResId = checkBasename(newName);
         if (errResId != null) {
             Toast.makeText(requireContext(), errResId, Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        File newFile = new File(file.getParentFile(), newName);
-        if (newFile.exists()) {
+        String newPath = PathOps.singleton.resolve(PathOps.singleton.dirname(path), newName);
+        if (FileOps.singleton.stat(newPath).exists(true)) {
             Toast.makeText(requireContext(), R.string.error_already_exists, Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        boolean success = file.renameTo(newFile);
-        if (success) {
+        if (FileOps.singleton.move(path, newPath, null)) {
             Toast.makeText(requireContext(), R.string.renamed, Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(requireContext(), R.string.error_rename_failed, Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        loadItems(pathBar.getCurrentDirectory());
+        FileProperties oldItem = itemsAdapter.remove(path);
+        if (oldItem != null) {
+            itemsAdapter.add(Collections.singletonList(new FileProperties(newPath, oldItem.isDirectory)));
+        }
         return true;
     }
 

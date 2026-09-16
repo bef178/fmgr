@@ -108,39 +108,48 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         }).dispatchUpdatesTo(this);
     }
 
-    public void add(Collection<FileProperties> newItems) {
-        List<FileProperties> oldItems = new LinkedList<>(items);
-        Map<String, Integer> indexByPath = new HashMap<>();
-        for (int i = 0; i < items.size(); i++) {
-            indexByPath.put(items.get(i).path, i);
-        }
-        List<FileProperties> added = new LinkedList<>();
-        for (FileProperties item : newItems) {
-            Integer index = indexByPath.get(item.path);
-            if (index == null) {
-                indexByPath.put(item.path, items.size());
-                items.add(item);
-            } else {
-                items.set(index, item);
-            }
-            added.add(item);
-        }
-        if (added.isEmpty()) {
+    public void add(Collection<FileProperties> toAdd) {
+        if (toAdd.isEmpty()) {
             return;
         }
-        propertiesLoader.add(added);
+        List<FileProperties> oldItems = new LinkedList<>(items);
+        Map<String, FileProperties> byPath = new HashMap<>();
+        for (FileProperties item : toAdd) {
+            byPath.put(item.path, item);
+        }
+        for (int i = 0; i < items.size(); i++) {
+            FileProperties replacement = byPath.remove(items.get(i).path);
+            if (replacement != null) {
+                items.set(i, replacement);
+            }
+        }
+        items.addAll(byPath.values());
+        propertiesLoader.add(new LinkedList<>(toAdd));
         items.sort(itemComparator);
         dispatchDiff(oldItems);
     }
 
-    public void remove(Collection<FileProperties> removedItems) {
+    public FileProperties remove(String path) {
+        int index = indexOf(path);
+        if (index < 0) {
+            return null;
+        }
+        FileProperties removed = items.remove(index);
+        notifyItemRemoved(index);
+        return removed;
+    }
+
+    public void remove(Collection<FileProperties> toRemove) {
         Set<String> paths = new HashSet<>();
-        for (FileProperties item : removedItems) {
+        for (FileProperties item : toRemove) {
             paths.add(item.path);
         }
-        List<FileProperties> oldItems = new LinkedList<>(items);
-        items.removeIf(item -> paths.contains(item.path));
-        dispatchDiff(oldItems);
+        for (int i = items.size() - 1; i >= 0; i--) {
+            if (paths.contains(items.get(i).path)) {
+                items.remove(i);
+                notifyItemRemoved(i);
+            }
+        }
     }
 
     public void invalidate(Collection<FileProperties> invalidatedItems) {

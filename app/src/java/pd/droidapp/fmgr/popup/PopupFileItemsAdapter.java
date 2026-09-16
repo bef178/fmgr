@@ -4,7 +4,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.Collection;
@@ -47,34 +46,12 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
         for (FileProperties item : removedItems) {
             paths.add(item.path);
         }
-        List<FileProperties> oldItems = new LinkedList<>(items);
-        items.removeIf(item -> paths.contains(item.path));
-        DiffUtil.calculateDiff(new DiffUtil.Callback() {
-            @Override
-            public int getOldListSize() {
-                return oldItems.size();
+        for (int i = items.size() - 1; i >= 0; i--) {
+            if (paths.contains(items.get(i).path)) {
+                items.remove(i);
+                notifyItemRemoved(i);
             }
-
-            @Override
-            public int getNewListSize() {
-                return items.size();
-            }
-
-            @Override
-            public boolean areItemsTheSame(int oldPos, int newPos) {
-                return oldItems.get(oldPos).path.equals(items.get(newPos).path);
-            }
-
-            @Override
-            public boolean areContentsTheSame(int oldPos, int newPos) {
-                return oldPos == newPos;
-            }
-
-            @Override
-            public Object getChangePayload(int oldPos, int newPos) {
-                return Boolean.TRUE;
-            }
-        }).dispatchUpdatesTo(this);
+        }
     }
 
     public void clear() {
