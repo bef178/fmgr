@@ -7,26 +7,21 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.core.util.Consumer;
 
 import com.google.android.material.elevation.ElevationOverlayProvider;
 
-import java.io.File;
-import java.util.Objects;
-
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.FavStore;
+import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
 public class PathBar {
 
-    private final FavStore favStore;
-    private File directory;
-    private Consumer<File> onBreadcrumbClickedListener;
+    private Consumer<String> onBreadcrumbClickedListener;
+    private Runnable onFavIconClickedListener;
 
     private final View selfView;
     private final LinearLayout breadcrumbsContainerView;
@@ -34,12 +29,15 @@ public class PathBar {
 
     public PathBar(View selfView) {
         this.selfView = selfView;
-        favStore = new FavStore(selfView.getContext());
 
         breadcrumbsContainerView = selfView.findViewById(R.id.breadcrumb_container);
 
         favIcon = selfView.findViewById(R.id.fav_icon);
-        favIcon.setOnClickListener(v -> toggleFavorite());
+        favIcon.setOnClickListener(v -> {
+            if (onFavIconClickedListener != null) {
+                onFavIconClickedListener.run();
+            }
+        });
 
         alignBackgroundColorToBottomNavigation();
     }
@@ -54,66 +52,44 @@ public class PathBar {
         selfView.setBackgroundColor(bgColor);
     }
 
-    public void invalidate(File directory) {
-        if (!Objects.equals(directory, this.directory)) {
-            this.directory = directory;
-        }
-        invalidate();
-    }
-
-    public void invalidate() {
+    public void set(String directory, boolean isFavorite) {
         selfView.setVisibility(directory != null ? View.VISIBLE : View.GONE);
         breadcrumbsContainerView.removeAllViews();
 
-        favIcon.setSelected(directory != null && favStore.contains(directory.getPath()));
+        favIcon.setSelected(isFavorite);
 
         Context context = breadcrumbsContainerView.getContext();
         LayoutInflater inflater = LayoutInflater.from(context);
-        File f = directory;
-        while (f != null) {
-            if (getDisplayPath(f).equals("/") || f.getName().isEmpty()) {
+        String path = directory;
+        while (path != null) {
+            if (getDisplayPath(path).equals("/")) {
                 // the root deserves a breadcrumb
-                breadcrumbsContainerView.addView(createBreadcrumbView(inflater, f, "/"), 0);
+                breadcrumbsContainerView.addView(createBreadcrumbView(inflater, path, "/"), 0);
                 break;
             } else {
                 if (breadcrumbsContainerView.getChildCount() > 0) {
                     breadcrumbsContainerView.addView(createSeparatorTextView(context), 0);
                 }
-                breadcrumbsContainerView.addView(createBreadcrumbView(inflater, f, f.getName()), 0);
+                breadcrumbsContainerView.addView(createBreadcrumbView(inflater, path, PathOps.singleton.basename(path)), 0);
             }
-            f = f.getParentFile();
+            path = PathOps.singleton.dirname(path);
         }
     }
 
-    public File getCurrentDirectory() {
-        return directory;
-    }
-
-    public void whenBreadcrumbClicked(Consumer<File> onBreadcrumbClickedListener) {
+    public void whenBreadcrumbClicked(Consumer<String> onBreadcrumbClickedListener) {
         this.onBreadcrumbClickedListener = onBreadcrumbClickedListener;
     }
 
-    private void toggleFavorite() {
-        if (directory == null) {
-            return;
-        }
-        Context context = favIcon.getContext();
-        if (favStore.contains(directory.getPath())) {
-            favStore.remove(directory.getPath());
-            Toast.makeText(context, R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();
-        } else {
-            favStore.put(directory.getPath());
-            Toast.makeText(context, R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
-        }
-        favIcon.setSelected(favStore.contains(directory.getPath()));
+    public void whenFavIconClicked(Runnable onFavIconClickedListener) {
+        this.onFavIconClickedListener = onFavIconClickedListener;
     }
 
-    private TextView createBreadcrumbView(LayoutInflater inflater, File f, String displayName) {
+    private TextView createBreadcrumbView(LayoutInflater inflater, String path, String displayName) {
         TextView textView = (TextView) inflater.inflate(R.layout.breadcrumb, breadcrumbsContainerView, false);
         textView.setText(displayName);
         textView.setOnClickListener(v -> {
             if (onBreadcrumbClickedListener != null) {
-                onBreadcrumbClickedListener.accept(f);
+                onBreadcrumbClickedListener.accept(path);
             }
         });
         return textView;

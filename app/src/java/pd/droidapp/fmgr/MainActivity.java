@@ -11,8 +11,6 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
-import java.io.File;
-
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import pd.droidapp.fmgr.fragment.BrowseFragment;
 import pd.droidapp.fmgr.fragment.HomeFragment;
@@ -139,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void navigateToDirectory(String path) {
         if (browseFragment != null && browseFragment.getView() != null) {
-            browseFragment.navigateToDirectory(new File(path));
+            browseFragment.navigateToDirectory(path);
         }
         viewPager.setCurrentItem(1, true);
     }

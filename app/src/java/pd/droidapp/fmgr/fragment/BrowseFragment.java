@@ -31,7 +31,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
@@ -43,6 +42,7 @@ import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.Clipboard;
+import pd.droidapp.fmgr.util.FavStore;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.FileOps;
@@ -53,21 +53,19 @@ import static pd.droidapp.fmgr.util.Util.toFileProperties;
 public class BrowseFragment extends Fragment {
 
     private final Clipboard clipboard = new Clipboard();
+    private FavStore favStore;
     private PathBar pathBar;
     private ActionBar actionBar;
     private SelectionBar selectionBar;
     private RecyclerView itemsView;
     private FileItemsAdapter itemsAdapter;
 
-    private final Stack<File> backStack = new Stack<>();
-    private final Stack<File> forwardStack = new Stack<>();
+    private PathNavigator navigator = new PathNavigator();
 
     private boolean askedAllFilesAccess;
     private boolean mightGrantedAllFilesAccess;
 
-    private static final String STATE_CURRENT_DIRECTORY = "current_directory";
-    private static final String STATE_BACK_STACK = "back_stack";
-    private static final String STATE_FORWARD_STACK = "forward_stack";
+    private static final String STATE_NAVIGATOR = "navigator";
     private static final String STATE_SELECTED_ITEMS = "selected_items";
 
     @Override
@@ -82,19 +80,19 @@ public class BrowseFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
+        favStore = new FavStore(requireContext());
         pathBar = new PathBar(view.findViewById(R.id.path_bar));
         pathBar.whenBreadcrumbClicked(this::navigateToDirectory);
+        pathBar.whenFavIconClicked(this::toggleFavorite);
 
         ImageButton homeButton = view.findViewById(R.id.action_home);
         homeButton.setOnClickListener(v -> navigateToHome());
 
         actionBar = new ActionBar(view.findViewById(R.id.action_bar));
-        actionBar.addButton(R.drawable.action_back, () -> !backStack.isEmpty(), this::navigateBack);
-        actionBar.addButton(R.drawable.action_forward, () -> !forwardStack.isEmpty(), this::navigateForward);
-        actionBar.addButton(R.drawable.action_up, () -> getParentDirectory(pathBar.getCurrentDirectory()) != null,
-                () -> navigateToDirectory(getParentDirectory(pathBar.getCurrentDirectory())));
-        actionBar.addButton(R.drawable.baseline_refresh_24, () -> true,
-                () -> doChangeCurrentDirectory(pathBar.getCurrentDirectory()));
+        actionBar.addButton(R.drawable.action_back, () -> navigator.canGoBack(), this::navigateBack);
+        actionBar.addButton(R.drawable.action_forward, () -> navigator.canGoForward(), this::navigateForward);
+        actionBar.addButton(R.drawable.action_up, () -> navigator.canGoUp(), this::navigateUp);
+        actionBar.addButton(R.drawable.baseline_refresh_24, () -> true, this::refresh);
         actionBar.addPopupButton(R.drawable.i_directory_add_24, this::showCreateDirectoryPopup);
         actionBar.addPopupButton(R.drawable.i_file_add_24, this::showCreateFilePopup);
         actionBar.addPopupButton(R.drawable.i_paste_go_24, clipboard::toCut, this::showPastePopup);
@@ -141,18 +139,19 @@ public class BrowseFragment extends Fragment {
         return view;
     }
 
-    private void doChangeCurrentDirectory(File directory) {
-        pathBar.invalidate(directory);
+    private void refresh() {
+        String currentDirectory = navigator.getCurrentDirectory();
+        pathBar.set(currentDirectory, currentDirectory != null && favStore.contains(currentDirectory));
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
-        loadItems(directory);
+        loadItems(currentDirectory);
     }
 
-    private void loadItems(File directory) {
+    private void loadItems(String directory) {
         List<String> paths = new LinkedList<>();
         if (directory != null) {
-            FileOps.singleton.listDirectory(directory.getPath(), 1, true, null,
+            FileOps.singleton.listDirectory(directory, 1, true, null,
                     (action, src, dst, succeeded) -> {
                         if (action == FileOps.Action.MEET) {
                             paths.add(src);
@@ -163,19 +162,12 @@ public class BrowseFragment extends Fragment {
     }
 
     private void restoreState(@NonNull Bundle savedInstanceState) {
-        File currentDirectory = (File) savedInstanceState.getSerializable(STATE_CURRENT_DIRECTORY);
-        if (validateDirectory(currentDirectory)) {
-            doChangeCurrentDirectory(currentDirectory);
+        PathNavigator savedNavigator = (PathNavigator) savedInstanceState.getSerializable(STATE_NAVIGATOR);
+        if (savedNavigator != null) {
+            navigator = savedNavigator;
         }
-
-        List<File> savedBackStack = (List<File>) savedInstanceState.getSerializable(STATE_BACK_STACK);
-        if (savedBackStack != null) {
-            backStack.addAll(savedBackStack);
-        }
-
-        List<File> savedForwardStack = (List<File>) savedInstanceState.getSerializable(STATE_FORWARD_STACK);
-        if (savedForwardStack != null) {
-            forwardStack.addAll(savedForwardStack);
+        if (navigator.isCurrentDirectoryAccessible()) {
+            refresh();
         }
 
         List<String> savedSelectedItems = (List<String>) savedInstanceState.getSerializable(STATE_SELECTED_ITEMS);
@@ -188,27 +180,21 @@ public class BrowseFragment extends Fragment {
         actionBar.invalidate();
     }
 
-    private boolean validateDirectory(File directory) {
-        return directory != null && directory.exists();
-    }
-
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putSerializable(STATE_CURRENT_DIRECTORY, pathBar.getCurrentDirectory());
-        outState.putSerializable(STATE_BACK_STACK, new LinkedList<>(backStack));
-        outState.putSerializable(STATE_FORWARD_STACK, new LinkedList<>(forwardStack));
+        outState.putSerializable(STATE_NAVIGATOR, navigator);
         outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.getAll()));
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (pathBar.getCurrentDirectory() == null) {
-            doChangeCurrentDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+        if (navigator.getCurrentDirectory() == null) {
+            navigateToDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath());
         } else if (mightGrantedAllFilesAccess) {
             mightGrantedAllFilesAccess = false;
-            loadItems(pathBar.getCurrentDirectory());
+            loadItems(navigator.getCurrentDirectory());
         }
         askForAllFilesAccessIfNecessary();
     }
@@ -251,18 +237,12 @@ public class BrowseFragment extends Fragment {
         itemsAdapter.cancel();
     }
 
-    public void navigateToDirectory(File target) {
-        if (!validateDirectory(target)) {
+    public void navigateToDirectory(String target) {
+        if (!navigator.navigateTo(target)) {
             Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
             return;
         }
-
-        File currentDirectory = pathBar.getCurrentDirectory();
-        if (currentDirectory != null && !currentDirectory.equals(target)) {
-            backStack.push(currentDirectory);
-        }
-        forwardStack.clear();
-        doChangeCurrentDirectory(target);
+        refresh();
     }
 
     private void navigateToHome() {
@@ -271,37 +251,49 @@ public class BrowseFragment extends Fragment {
     }
 
     public boolean navigateBack() {
-        while (!backStack.isEmpty() && !validateDirectory(backStack.peek())) {
-            backStack.pop();
-        }
-        if (backStack.isEmpty()) {
+        if (!navigator.goBack()) {
             actionBar.invalidate();
             return false;
         }
-
-        File target = backStack.pop();
-        forwardStack.push(pathBar.getCurrentDirectory());
-        doChangeCurrentDirectory(target);
+        refresh();
         return true;
     }
 
     private void navigateForward() {
-        while (!forwardStack.isEmpty() && !validateDirectory(forwardStack.peek())) {
-            forwardStack.pop();
-        }
-        if (forwardStack.isEmpty()) {
+        if (!navigator.goForward()) {
             actionBar.invalidate();
             return;
         }
+        refresh();
+    }
 
-        backStack.push(pathBar.getCurrentDirectory());
-        File target = forwardStack.pop();
-        doChangeCurrentDirectory(target);
+    private void navigateUp() {
+        if (!navigator.goUp()) {
+            actionBar.invalidate();
+            return;
+        }
+        refresh();
+    }
+
+    private void toggleFavorite() {
+        String currentDirectory = navigator.getCurrentDirectory();
+        if (currentDirectory == null) {
+            return;
+        }
+
+        if (favStore.contains(currentDirectory)) {
+            favStore.remove(currentDirectory);
+            Toast.makeText(requireContext(), R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();
+        } else {
+            favStore.put(currentDirectory);
+            Toast.makeText(requireContext(), R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
+        }
+        pathBar.set(currentDirectory, favStore.contains(currentDirectory));
     }
 
     private void openItem(String path, boolean isDirectory) {
         if (isDirectory) {
-            navigateToDirectory(new File(path));
+            navigateToDirectory(path);
         } else {
             openFile(new File(path));
         }
@@ -335,17 +327,6 @@ public class BrowseFragment extends Fragment {
         }
     }
 
-    public File getParentDirectory(File directory) {
-        if (directory != null) {
-            File parent = directory.getParentFile();
-            if (parent != null && parent.exists()
-                    && !Environment.getExternalStorageDirectory().equals(directory)) {
-                return parent;
-            }
-        }
-        return null;
-    }
-
     private void jumpToFile(String path) {
         File file = new File(path);
         if (!file.exists()) {
@@ -360,14 +341,10 @@ public class BrowseFragment extends Fragment {
         }
 
         // navigate to parent directory
-        File currentDirectory = pathBar.getCurrentDirectory();
-        if (currentDirectory != null && !currentDirectory.equals(parent)) {
-            backStack.push(currentDirectory);
-        }
-        forwardStack.clear();
-        doChangeCurrentDirectory(parent);
+        navigator.navigateTo(parent.getPath());
+        refresh();
 
-        // scroll to and highlight the file
+        // scroll to and highlight the item
         itemsView.post(() -> {
             int position = itemsAdapter.indexOf(path);
             if (position >= 0) {
@@ -402,7 +379,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        File newFile = new File(pathBar.getCurrentDirectory(), name);
+        File newFile = new File(navigator.getCurrentDirectory(), name);
         if (newFile.exists()) {
             Toast.makeText(requireContext(), R.string.error_already_exists, Toast.LENGTH_SHORT).show();
             return false;
@@ -430,7 +407,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        loadItems(pathBar.getCurrentDirectory());
+        loadItems(navigator.getCurrentDirectory());
         return true;
     }
 
@@ -506,7 +483,7 @@ public class BrowseFragment extends Fragment {
             return;
         }
 
-        PastePopup pastePopup = new PastePopup(getView(), isCopy, srcItems, pathBar.getCurrentDirectory().getPath());
+        PastePopup pastePopup = new PastePopup(getView(), isCopy, srcItems, navigator.getCurrentDirectory());
         pastePopup.whenPopupDismissed(this::onPopupDismissed);
         pastePopup.show();
     }
@@ -563,7 +540,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showSearchPopup() {
-        SearchPopup popup = new SearchPopup(getView(), pathBar.getCurrentDirectory().getPath());
+        SearchPopup popup = new SearchPopup(getView(), navigator.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
@@ -572,14 +549,14 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeleteEmptyPopup() {
-        DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), pathBar.getCurrentDirectory().getPath());
+        DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), navigator.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
 
     private void showDedupPopup() {
-        DedupPopup popup = new DedupPopup(getView(), pathBar.getCurrentDirectory().getPath());
+        DedupPopup popup = new DedupPopup(getView(), navigator.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpToFile);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);
@@ -588,7 +565,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void onPopupDismissed(Collection<FileProperties> added, Collection<FileProperties> removed) {
-        String currentDirectory = pathBar.getCurrentDirectory().getPath();
+        String currentDirectory = navigator.getCurrentDirectory();
         if (!added.isEmpty()) {
             clipboard.clear();
             actionBar.invalidate();
