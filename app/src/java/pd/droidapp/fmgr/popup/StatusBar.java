@@ -11,24 +11,20 @@ import pd.droidapp.fmgr.R;
 
 public class StatusBar {
 
-    private final View selfView;
     private final ImageView iconView;
     private final TextView textView;
 
     public StatusBar(View selfView) {
-        this.selfView = selfView;
         iconView = selfView.findViewById(R.id.status_icon);
         textView = selfView.findViewById(R.id.status_text);
     }
 
     public void markReady(@DrawableRes int drawableId) {
-        selfView.setVisibility(View.VISIBLE);
         iconView.clearAnimation();
         iconView.setImageResource(drawableId);
     }
 
     public void markRunning() {
-        selfView.setVisibility(View.VISIBLE);
         iconView.setImageResource(R.drawable.baseline_refresh_24);
         RotateAnimation rotateAnim = new RotateAnimation(0, 360,
                 Animation.RELATIVE_TO_SELF, 0.5f,
@@ -50,12 +46,5 @@ public class StatusBar {
 
     public void setText(CharSequence value) {
         textView.setText(value);
-    }
-
-    public void hide() {
-        selfView.setVisibility(View.GONE);
-        iconView.clearAnimation();
-        iconView.setImageResource(android.R.color.transparent);
-        textView.setText("");
     }
 }

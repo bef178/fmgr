@@ -31,10 +31,10 @@ public class SearchPopup extends ProcessingPopup {
     private final String startDirectory;
 
     // views
-    private final EditText searchEdit;
-    private final ImageButton searchEditClearButton;
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
+    private final EditText searchEdit;
+    private final ImageButton searchEditClearButton;
     private final RecyclerView itemsView;
     private final PopupFileItemsAdapter itemsAdapter;
 
@@ -54,17 +54,18 @@ public class SearchPopup extends ProcessingPopup {
         super(containerView, R.layout.search_popup);
         this.startDirectory = startDirectory;
 
-        searchEdit = mainAreaView.findViewById(R.id.search_edit);
-        searchEditClearButton = mainAreaView.findViewById(R.id.search_edit_clear);
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
+        searchEdit = mainAreaView.findViewById(R.id.search_edit);
+        searchEditClearButton = mainAreaView.findViewById(R.id.search_edit_clear);
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar);
 
-        titleBar.setTitle(R.string.search_files);
+        titleBar.setTitle(R.string.search);
 
-        initSearchEdit();
+        initStatusBar();
         initSelectionBar();
+        initSearchEdit();
         initItemsView();
     }
 
@@ -84,6 +85,11 @@ public class SearchPopup extends ProcessingPopup {
             updateButtons();
         });
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
+    }
+
+    private void initStatusBar() {
+        statusBar.markReady(R.drawable.baseline_search_24);
+        statusBar.setText(context.getString(R.string.status_find_and_grep));
     }
 
     private void initSearchEdit() {
@@ -234,15 +240,21 @@ public class SearchPopup extends ProcessingPopup {
             return;
         }
 
+        lastQuery = query;
+
         if (worker != null) {
             worker.cancel();
             worker = null;
         }
-        clear();
-        lastQuery = query;
+        totalScanned = 0;
+        selectionBar.clear();
+        selectionBar.invalidate();
+        itemsAdapter.clear();
+
         if (!query.isEmpty()) {
-            totalScanned = 0;
             worker = createAndStartSearcher(startDirectory, query);
+        } else {
+            initStatusBar();
         }
         updateButtons();
     }
@@ -254,7 +266,7 @@ public class SearchPopup extends ProcessingPopup {
                 return;
             }
             statusBar.markRunning();
-            statusBar.setText(context.getString(R.string.search_status_searching));
+            statusBar.setText(context.getString(R.string.status_searching));
         }));
         current.whenUpdated((scanned, matched) -> containerView.post(() -> {
             if (worker != current) {
@@ -280,12 +292,5 @@ public class SearchPopup extends ProcessingPopup {
             return current;
         }
         return null;
-    }
-
-    private void clear() {
-        statusBar.hide();
-        selectionBar.clear();
-        selectionBar.invalidate();
-        itemsAdapter.clear();
     }
 }

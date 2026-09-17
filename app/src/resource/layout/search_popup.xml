@@ -18,6 +18,16 @@
 
         <include layout="@layout/popup_title_bar" />
 
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <include layout="@layout/status_bar" />
+
+            <include layout="@layout/selection_bar" />
+
+        </FrameLayout>
+
         <!-- search edit -->
         <FrameLayout
             android:layout_width="match_parent"
@@ -48,16 +58,6 @@
                 android:scaleType="fitCenter"
                 android:src="@drawable/action_wipe"
                 tools:ignore="ContentDescription" />
-
-        </FrameLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <include layout="@layout/status_bar" />
-
-            <include layout="@layout/selection_bar" />
 
         </FrameLayout>
 

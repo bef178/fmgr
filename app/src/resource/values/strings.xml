@@ -54,9 +54,10 @@
     <string name="copied_report_format">%d copied</string>
 
     <!-- search popup -->
-    <string name="search_files">Search files</string>
+    <string name="search">Search</string>
     <string name="search_hint">Type to search</string>
-    <string name="search_status_searching">Searching…</string>
+    <string name="status_searching">Searching…</string>
+    <string name="status_find_and_grep">Find &amp; grep</string>
 
     <!-- delete empty popup -->
     <string name="delete_empty_files">Delete empty files</string>
