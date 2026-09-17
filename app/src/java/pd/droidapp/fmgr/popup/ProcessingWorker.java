@@ -87,11 +87,12 @@ abstract class ProcessingWorker {
         updateTimer.schedule(new TimerTask() {
             @Override
             public void run() {
+                boolean working = isWorking();
                 try {
                     reportUpdated();
                 } catch (Throwable ignored) {
                 }
-                if (!isWorking()) {
+                if (!working) {
                     updateTimer.cancel();
                     StopReason reason;
                     switch (state.get()) {
