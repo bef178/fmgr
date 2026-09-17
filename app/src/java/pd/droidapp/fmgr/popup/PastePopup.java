@@ -25,6 +25,7 @@ public class PastePopup extends ProcessingPopup {
     private final String dstDirectory;
 
     // views
+    private final StatusBar statusBar;
     private final TextView resolutionTitleTextView;
     private final RadioGroup resolutionOptionsGroup;
     private final CheckBox mergeDirectoriesCheckBox;
@@ -32,7 +33,6 @@ public class PastePopup extends ProcessingPopup {
     private final ProgressBar progressBarView;
     private final TextView progressBarTextView;
     private final TextView progressBarSideTextView;
-    private final TextView progressSummaryTextView;
 
     // callbacks
     private PopupOnDismissedListener onPopupDismissed;
@@ -52,6 +52,7 @@ public class PastePopup extends ProcessingPopup {
         this.dstDirectory = dstDirectory;
         this.srcItems = new LinkedList<>(srcItems);
 
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
         resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
         mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
@@ -59,12 +60,10 @@ public class PastePopup extends ProcessingPopup {
         progressBarView = mainAreaView.findViewById(R.id.progress_bar);
         progressBarTextView = mainAreaView.findViewById(R.id.progress_bar_text);
         progressBarSideTextView = mainAreaView.findViewById(R.id.progress_bar_side_text);
-        progressSummaryTextView = mainAreaView.findViewById(R.id.progress_summary);
 
-        titleBar.setTitle(context.getString(
-                isCopy ? R.string.copy_x_items : R.string.move_x_items,
-                srcItems.size()));
+        titleBar.setTitle(isCopy ? R.string.copy : R.string.cut);
 
+        initStatusBar();
         initConflictResolution();
         initProgress();
     }
@@ -75,6 +74,11 @@ public class PastePopup extends ProcessingPopup {
         buttonBar.addButton(R.string.start, () -> worker == null, () -> true, v -> start());
         buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
+    }
+
+    private void initStatusBar() {
+        statusBar.markReady(isCopy ? R.drawable.baseline_content_copy_24 : R.drawable.baseline_content_cut_24);
+        statusBar.setText(context.getString(R.string.x_selected, srcItems.size()));
     }
 
     private void initConflictResolution() {
@@ -139,6 +143,9 @@ public class PastePopup extends ProcessingPopup {
 
         worker = new PasteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
+            statusBar.markRunning();
+            statusBar.setText(context.getString(R.string.status_working));
+
             progressArea.setVisibility(View.VISIBLE);
             progressBarView.setProgress(0);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
@@ -171,16 +178,19 @@ public class PastePopup extends ProcessingPopup {
             progressBarView.setProgress(totalProcessed * 100 / total);
             progressBarTextView.setText(context.getString(R.string.popup_progress_text,
                     Math.min(totalProcessed + 1, total), total));
-            progressSummaryTextView.setText(context.getString(R.string.paste_progress_summary,
+            statusBar.setText(context.getString(R.string.paste_progress_summary,
                     totalAdded, totalRemoved, totalMoved, totalFailed));
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
             if (reason == StopReason.COMPLETED) {
                 progressBarSideTextView.setText(R.string.popup_progress_completed);
+                statusBar.markDone();
             } else if (reason == StopReason.CANCELLED) {
                 progressBarSideTextView.setText(R.string.popup_progress_aborted);
+                statusBar.markStopped();
             } else {
                 progressBarSideTextView.setText(R.string.popup_progress_failed);
+                statusBar.markStopped();
             }
             updateButtons();
         }));
