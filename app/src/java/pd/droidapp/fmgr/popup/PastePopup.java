@@ -162,8 +162,8 @@ public class PastePopup extends ProcessingPopup {
                 netAdded.remove(item.path);
                 netRemoved.put(item.path, item);
             }
-            totalAdded += added.size() + moved.size();
-            totalRemoved += removed.size() + moved.size();
+            totalAdded += added.size();
+            totalRemoved += removed.size();
             totalMoved += moved.size();
             totalFailed += failed;
             totalProcessed += progressed;
