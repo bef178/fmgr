@@ -89,7 +89,8 @@
     <string name="paste_progress_summary">%d added, %d deleted, %d renamed, %d failed</string>
 
     <!-- delete popup -->
-    <string name="delete_x_items">Delete %d item(s)</string>
+    <string name="delete">Delete</string>
+    <string name="status_working">Working</string>
     <string name="delete_progress_summary">%d deleted, %d failed</string>
 
 </resources>

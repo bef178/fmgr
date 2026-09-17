@@ -5,6 +5,7 @@ import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
+import androidx.annotation.DrawableRes;
 
 import pd.droidapp.fmgr.R;
 
@@ -18,6 +19,12 @@ public class StatusBar {
         this.selfView = selfView;
         iconView = selfView.findViewById(R.id.status_icon);
         textView = selfView.findViewById(R.id.status_text);
+    }
+
+    public void markReady(@DrawableRes int drawableId) {
+        selfView.setVisibility(View.VISIBLE);
+        iconView.clearAnimation();
+        iconView.setImageResource(drawableId);
     }
 
     public void markRunning() {
