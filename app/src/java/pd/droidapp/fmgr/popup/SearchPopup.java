@@ -155,7 +155,7 @@ public class SearchPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);

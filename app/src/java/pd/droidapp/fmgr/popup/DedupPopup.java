@@ -96,7 +96,7 @@ public class DedupPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, groupsAdapter.getSelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, groupsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 selectionBar.removeProps(removed);
@@ -252,7 +252,7 @@ public class DedupPopup extends ProcessingPopup {
             List<FileProperties> items = group.getItems();
             List<FileProperties> unselected = new LinkedList<>();
             for (FileProperties item : items) {
-                if (!selectionBar.hasSelectedProps(item)) {
+                if (!selectionBar.hasSelected(item)) {
                     unselected.add(item);
                 }
             }

@@ -92,6 +92,6 @@
     <!-- delete popup -->
     <string name="delete">Delete</string>
     <string name="status_working">Working</string>
-    <string name="delete_progress_summary">%d deleted, %d failed</string>
+    <string name="delete_progress_summary">(%d/%d) %d deleted, %d failed</string>
 
 </resources>

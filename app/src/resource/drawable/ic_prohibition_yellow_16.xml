@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+
+    <!-- rounded square (copied from i_check_16) -->
+    <path
+        android:fillColor="#FF8F00"
+        android:pathData="M 0,0 h 12 a 4,4 0 0,1 4,4 v 8 a -4,4 0 0,1 -4,4 h -8 a -4,-4 0 0,1 -4,-4 v -8 a 4,-4 0 0,1 4,-4 z" />
+    <path
+        android:pathData="M 3.5,8 a 4.5,4.5 0 1,1 9,0 a 4.5,4.5 0 1,1 -9,0"
+        android:strokeWidth="1.5"
+        android:strokeColor="@color/white" />
+    <path
+        android:pathData="M 5.2,5.2 L 10.8,10.8"
+        android:strokeWidth="1.5"
+        android:strokeColor="@color/white"
+        android:strokeLineCap="round" />
+</vector>

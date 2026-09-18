@@ -58,7 +58,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedItems(), false);
+            DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);
@@ -69,7 +69,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         });
 
         selectionBar.addButton(R.layout.selection_button_delete_and_prune, c -> c > 0, v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, itemsAdapter.getSelectedItems(), true);
+            DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), true);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);

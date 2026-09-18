@@ -88,11 +88,11 @@ public class SelectionBar {
         return selectedPaths.iterator().next();
     }
 
-    public boolean hasSelectedProps(FileProperties item) {
+    public boolean hasSelected(FileProperties item) {
         return selectedPaths.contains(item.path);
     }
 
-    public void toggleSelectedProps(FileProperties item) {
+    public void toggleSelected(FileProperties item) {
         if (selectedPaths.contains(item.path)) {
             selectedPaths.remove(item.path);
         } else {

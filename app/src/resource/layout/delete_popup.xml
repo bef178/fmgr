@@ -7,9 +7,12 @@
     <LinearLayout
         android:id="@+id/popup_area"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="420dp"
         android:layout_gravity="center"
-        android:layout_margin="40dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="48dp"
+        android:layout_marginEnd="40dp"
+        android:layout_marginBottom="48dp"
         android:background="@color/white"
         android:orientation="vertical">
 
@@ -17,57 +20,14 @@
 
         <include layout="@layout/status_bar" />
 
-        <!-- progressing -->
-        <LinearLayout
-            android:id="@+id/progress_area"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/popup_items_list"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="18dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="16dp"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <FrameLayout
-                    android:layout_width="64dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:orientation="vertical">
-
-                    <ProgressBar
-                        android:id="@+id/progress_bar"
-                        style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom"
-                        android:indeterminate="false"
-                        android:max="100" />
-
-                    <TextView
-                        android:id="@+id/progress_bar_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:ellipsize="middle"
-                        android:gravity="bottom|end"
-                        android:singleLine="true" />
-
-                </FrameLayout>
-
-                <TextView
-                    android:id="@+id/progress_bar_side_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:singleLine="true" />
-
-            </LinearLayout>
-
-        </LinearLayout>
+            android:layout_height="0dp"
+            android:layout_marginBottom="12dp"
+            android:layout_weight="1"
+            android:scrollbarStyle="insideOverlay"
+            android:scrollbars="vertical" />
 
         <include layout="@layout/popup_button_bar" />
 

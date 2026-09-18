@@ -6,9 +6,9 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -17,19 +17,32 @@ import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.popup.PopupFileItemBar.BadgeState;
+
 class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.ItemViewHolder> {
 
     private final String startDirectory;
     private final SelectionBar selectionBar;
-    private final List<FileProperties> items = new LinkedList<>();
+    private final List<FileProperties> items = new ArrayList<>();
+
+    // more data
+    private final List<BadgeState> badgeStates = new ArrayList<>();
 
     public PopupFileItemsAdapter(String startDirectory, SelectionBar selectionBar) {
         this.startDirectory = startDirectory;
         this.selectionBar = selectionBar;
     }
 
-    public List<FileProperties> getItems() {
-        return items;
+    public void setItemBadge(int position, BadgeState badgeState) {
+        if (position < badgeStates.size()) {
+            if (badgeStates.get(position) == badgeState) {
+                return;
+            }
+            badgeStates.set(position, badgeState);
+        } else {
+            badgeStates.add(badgeState);
+        }
+        notifyItemChanged(position);
     }
 
     public void append(Collection<FileProperties> newItems) {
@@ -49,6 +62,9 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
         for (int i = items.size() - 1; i >= 0; i--) {
             if (paths.contains(items.get(i).path)) {
                 items.remove(i);
+                if (i < badgeStates.size()) {
+                    badgeStates.remove(i);
+                }
                 notifyItemRemoved(i);
             }
         }
@@ -57,14 +73,21 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
     public void clear() {
         int oldSize = items.size();
         items.clear();
+        badgeStates.clear();
         notifyItemRangeRemoved(0, oldSize);
     }
 
+    public List<FileProperties> getItems() {
+        return items;
+    }
+
     public List<FileProperties> getSelectedItems() {
-        List<FileProperties> selected = new LinkedList<>();
-        for (FileProperties item : items) {
-            if (selectionBar.hasSelectedProps(item)) {
-                selected.add(item);
+        List<FileProperties> selected = new ArrayList<>();
+        if (selectionBar != null) {
+            for (FileProperties item : items) {
+                if (selectionBar.hasSelected(item)) {
+                    selected.add(item);
+                }
             }
         }
         return selected;
@@ -88,30 +111,36 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
             viewHolder.itemBar.setIcon(R.drawable.i_file_24);
         }
 
-        viewHolder.itemBar.setSelected(selectionBar.hasSelectedProps(item));
+        boolean selected = selectionBar != null && selectionBar.hasSelected(item);
+        BadgeState badgeState = position < badgeStates.size() ? badgeStates.get(position) : BadgeState.NONE;
+        viewHolder.itemBar.setBadge(selected ? BadgeState.SELECTED : badgeState);
 
         viewHolder.itemBar.setPath(PathOps.singleton.relativize(startDirectory, item.path));
 
         viewHolder.itemBar.setIndex(position + 1);
 
-        viewHolder.itemView.setOnClickListener(v -> {
-            if (!selectionBar.isEmpty()) {
+        if (selectionBar != null) {
+            viewHolder.itemView.setOnClickListener(v -> {
+                if (!selectionBar.isEmpty()) {
+                    toggleSelected(item, position);
+                }
+            });
+
+            viewHolder.itemView.setOnLongClickListener(v -> {
                 toggleSelected(item, position);
-            }
-        });
+                return true;
+            });
 
-        viewHolder.itemView.setOnLongClickListener(v -> {
-            toggleSelected(item, position);
-            return true;
-        });
-
-        viewHolder.itemBar.forwardPathViewClicksTo(viewHolder.itemView);
+            viewHolder.itemBar.forwardPathViewClicksTo(viewHolder.itemView);
+        }
     }
 
     private void toggleSelected(FileProperties item, int position) {
-        selectionBar.toggleSelectedProps(item);
-        notifyItemChanged(position);
-        selectionBar.invalidate();
+        if (selectionBar != null) {
+            selectionBar.toggleSelected(item);
+            notifyItemChanged(position);
+            selectionBar.invalidate();
+        }
     }
 
     @Override

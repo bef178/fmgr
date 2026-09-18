@@ -490,7 +490,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeletePopup() {
-        DeletePopup deletePopup = new DeletePopup(getView(), itemsAdapter.getSelectedItems(), false);
+        DeletePopup deletePopup = new DeletePopup(getView(), navigator.getCurrentDirectory(), itemsAdapter.getSelectedItems(), false);
         deletePopup.whenPopupDismissed(this::onPopupDismissed);
         deletePopup.show();
     }

@@ -22,11 +22,22 @@
             android:src="@drawable/i_file_24" />
 
         <ImageView
-            android:id="@+id/popup_file_selected"
+            android:id="@+id/popup_file_badge_icon"
             android:layout_width="12dp"
             android:layout_height="12dp"
             android:layout_gravity="top|end"
             android:src="@drawable/i_check_16"
+            android:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/popup_file_badge_progress"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_gravity="top|end"
+            android:background="@drawable/ic_none_yellow_16"
+            android:indeterminateTint="@color/white"
+            android:padding="1.5dp"
             android:visibility="gone" />
 
     </FrameLayout>

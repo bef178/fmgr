@@ -4,7 +4,6 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.AbstractMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +12,7 @@ import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
+import static java.util.AbstractMap.SimpleEntry;
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
 class PasteWorker extends ProcessingWorker {
@@ -62,7 +62,7 @@ class PasteWorker extends ProcessingWorker {
                         removed.add(toFileProperties(src));
                         break;
                     case MOVE:
-                        moved.add(new AbstractMap.SimpleEntry<>(toFileProperties(src), toFileProperties(dst)));
+                        moved.add(new SimpleEntry<>(toFileProperties(src), toFileProperties(dst)));
                         break;
                     case PROGRESS:
                         progressed++;
