@@ -1,12 +1,16 @@
 package pd.droidapp.fmgr.popup;
 
+import android.animation.LayoutTransition;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,7 +22,11 @@ import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.popup.PopupFileItemBar.BadgeState;
+
 public class PastePopup extends ProcessingPopup {
+
+    private static final int RESOLUTION_COLLAPSE_MILLISECONDS = 150;
 
     private final boolean isCopy;
     private final List<FileProperties> srcItems;
@@ -29,10 +37,8 @@ public class PastePopup extends ProcessingPopup {
     private final TextView resolutionTitleTextView;
     private final RadioGroup resolutionOptionsGroup;
     private final CheckBox mergeDirectoriesCheckBox;
-    private final LinearLayout progressArea;
-    private final ProgressBar progressBarView;
-    private final TextView progressBarTextView;
-    private final TextView progressBarSideTextView;
+    private final RecyclerView itemsView;
+    private final PopupFileItemsAdapter itemsAdapter;
 
     // callbacks
     private PopupOnDismissedListener onPopupDismissed;
@@ -56,16 +62,14 @@ public class PastePopup extends ProcessingPopup {
         resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
         mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
-        progressArea = mainAreaView.findViewById(R.id.progress_area);
-        progressBarView = mainAreaView.findViewById(R.id.progress_bar);
-        progressBarTextView = mainAreaView.findViewById(R.id.progress_bar_text);
-        progressBarSideTextView = mainAreaView.findViewById(R.id.progress_bar_side_text);
+        itemsView = mainAreaView.findViewById(R.id.popup_items_list);
+        itemsAdapter = new PopupFileItemsAdapter(PathOps.singleton.dirname(this.srcItems.get(0).path), null);
 
         titleBar.setTitle(isCopy ? R.string.copy : R.string.cut);
 
         initStatusBar();
         initConflictResolution();
-        initProgress();
+        initItemsView();
     }
 
     @Override
@@ -89,9 +93,13 @@ public class PastePopup extends ProcessingPopup {
         mergeDirectoriesCheckBox.setChecked(!inPlacePaste);
     }
 
-    private void initProgress() {
-        progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, srcItems.size()));
-        progressBarSideTextView.setText(R.string.popup_progress_pending);
+    private void initItemsView() {
+        itemsView.setLayoutManager(new LinearLayoutManager(context));
+        itemsView.setAdapter(itemsAdapter);
+        RecyclerView.ItemAnimator itemAnimator = itemsView.getItemAnimator();
+        if (itemAnimator instanceof SimpleItemAnimator) {
+            ((SimpleItemAnimator) itemAnimator).setSupportsChangeAnimations(false);
+        }
     }
 
     @Override
@@ -122,11 +130,11 @@ public class PastePopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
+        itemsAdapter.append(this.srcItems);
     }
 
     private void start() {
         final ConflictResolution resolution = getSelectedResolution();
-        final int total = srcItems.size();
 
         int shortId;
         if (resolution == ConflictResolution.OVERWRITE) {
@@ -136,20 +144,23 @@ public class PastePopup extends ProcessingPopup {
         } else {
             shortId = R.string.resolution_short_rename;
         }
-        resolutionTitleTextView.setText(
-                context.getString(R.string.on_conflict_x, context.getString(shortId)));
+        CharSequence title = context.getString(R.string.on_conflict_x, context.getString(shortId));
+        LayoutTransition collapseTransition = createResolutionCollapseTransition(title);
+        ((ViewGroup) resolutionOptionsGroup.getParent()).setLayoutTransition(collapseTransition);
         resolutionOptionsGroup.setVisibility(View.GONE);
         mergeDirectoriesCheckBox.setVisibility(View.GONE);
 
         worker = new PasteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
             statusBar.markRunning();
-            statusBar.setText(context.getString(R.string.status_working));
-
-            progressArea.setVisibility(View.VISIBLE);
-            progressBarView.setProgress(0);
-            progressBarTextView.setText(context.getString(R.string.popup_progress_text, 1, total));
-            progressBarSideTextView.setText(R.string.popup_progress_processing);
+            statusBar.setText(context.getString(R.string.paste_progress_summary,
+                    Math.min(totalProcessed + 1, srcItems.size()),
+                    srcItems.size(),
+                    totalAdded,
+                    totalRemoved,
+                    totalMoved,
+                    totalFailed));
+            itemsAdapter.setItemBadge(0, BadgeState.RUNNING);
         }));
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
             for (FileProperties item : added) {
@@ -173,23 +184,47 @@ public class PastePopup extends ProcessingPopup {
             totalRemoved += removed.size();
             totalMoved += moved.size();
             totalFailed += failed;
-            totalProcessed += progressed;
 
-            progressBarView.setProgress(totalProcessed * 100 / total);
-            progressBarTextView.setText(context.getString(R.string.popup_progress_text,
-                    Math.min(totalProcessed + 1, total), total));
+            if (!progressed.isEmpty()) {
+                Map<String, Integer> itemPathToIndex = new HashMap<>();
+                for (int i = 0; i < itemsAdapter.getItemCount(); i++) {
+                    itemPathToIndex.put(itemsAdapter.getItems().get(i).path, i);
+                }
+                for (Map.Entry<String, Boolean> entry : progressed) {
+                    String path = entry.getKey();
+                    Boolean succeeded = entry.getValue();
+                    Integer itemIndex = itemPathToIndex.get(path);
+                    if (itemIndex != null) {
+                        BadgeState badgeState;
+                        if (succeeded == null) {
+                            badgeState = BadgeState.STOPPED;
+                        } else if (succeeded) {
+                            badgeState = BadgeState.DONE;
+                        } else {
+                            badgeState = BadgeState.FAILED;
+                        }
+                        itemsAdapter.setItemBadge(itemIndex, badgeState);
+                        if (succeeded != null) {
+                            totalProcessed++;
+                            if (itemIndex + 1 < itemsAdapter.getItemCount()) {
+                                itemsAdapter.setItemBadge(itemIndex + 1, BadgeState.RUNNING);
+                            }
+                        }
+                    }
+                }
+            }
             statusBar.setText(context.getString(R.string.paste_progress_summary,
-                    totalAdded, totalRemoved, totalMoved, totalFailed));
+                    Math.min(totalProcessed + 1, srcItems.size()),
+                    srcItems.size(),
+                    totalAdded,
+                    totalRemoved,
+                    totalMoved,
+                    totalFailed));
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
             if (reason == StopReason.COMPLETED) {
-                progressBarSideTextView.setText(R.string.popup_progress_completed);
                 statusBar.markDone();
-            } else if (reason == StopReason.CANCELLED) {
-                progressBarSideTextView.setText(R.string.popup_progress_aborted);
-                statusBar.markStopped();
             } else {
-                progressBarSideTextView.setText(R.string.popup_progress_failed);
                 statusBar.markStopped();
             }
             updateButtons();
@@ -201,6 +236,24 @@ public class PastePopup extends ProcessingPopup {
         }
 
         updateButtons();
+    }
+
+    private LayoutTransition createResolutionCollapseTransition(CharSequence title) {
+        LayoutTransition collapseTransition = new LayoutTransition();
+        collapseTransition.setDuration(RESOLUTION_COLLAPSE_MILLISECONDS);
+        collapseTransition.addTransitionListener(new LayoutTransition.TransitionListener() {
+            @Override
+            public void startTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
+            }
+
+            @Override
+            public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
+                if (transitionType == LayoutTransition.DISAPPEARING) {
+                    resolutionTitleTextView.setText(title);
+                }
+            }
+        });
+        return collapseTransition;
     }
 
     private ConflictResolution getSelectedResolution() {

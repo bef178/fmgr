@@ -23,7 +23,7 @@ class PasteWorker extends ProcessingWorker {
     private List<FileProperties> removed = new LinkedList<>();
     private List<Map.Entry<FileProperties, FileProperties>> moved = new LinkedList<>();
     private int failed = 0;
-    private int progressed = 0;
+    private List<Map.Entry<String, Boolean>> progressed = new LinkedList<>();
     private final Object lock = new Object();
 
     private final FileOps.OnActionListener onAction = (action, src, dst, succeeded) -> {
@@ -49,29 +49,40 @@ class PasteWorker extends ProcessingWorker {
     };
 
     private void accumulate(PasteAction action, String src, String dst, Boolean succeeded) {
-        if (succeeded == null) {
-            return;
-        }
         synchronized (lock) {
-            if (succeeded) {
-                switch (action) {
-                    case ADD:
-                        added.add(toFileProperties(dst));
-                        break;
-                    case REMOVE:
-                        removed.add(toFileProperties(src));
-                        break;
-                    case MOVE:
-                        moved.add(new SimpleEntry<>(toFileProperties(src), toFileProperties(dst)));
-                        break;
-                    case PROGRESS:
-                        progressed++;
-                        break;
-                    default:
-                        break;
-                }
-            } else {
-                failed++;
+            switch (action) {
+                case ADD:
+                    if (succeeded != null) {
+                        if (succeeded) {
+                            added.add(toFileProperties(dst));
+                        } else {
+                            failed++;
+                        }
+                    }
+                    break;
+                case REMOVE:
+                    if (succeeded != null) {
+                        if (succeeded) {
+                            removed.add(toFileProperties(src));
+                        } else {
+                            failed++;
+                        }
+                    }
+                    break;
+                case MOVE:
+                    if (succeeded != null) {
+                        if (succeeded) {
+                            moved.add(new SimpleEntry<>(toFileProperties(src), toFileProperties(dst)));
+                        } else {
+                            failed++;
+                        }
+                    }
+                    break;
+                case PROGRESS:
+                    progressed.add(new SimpleEntry<>(src, succeeded));
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -86,58 +97,59 @@ class PasteWorker extends ProcessingWorker {
                 String dstPath = PathOps.singleton.join(dstDirectory, PathOps.singleton.basename(item.path));
                 Path src = Paths.get(item.path);
                 Path dst = Paths.get(dstPath);
-                doCopy(src, dst, resolution, mergeDirectories);
-                if (isCancelled()) {
-                    return;
+                boolean succeeded = doCopy(src, dst, resolution, mergeDirectories);
+                if (!succeeded && isCancelled()) {
+                    accumulate(PasteAction.PROGRESS, item.path, dstPath, null);
+                    break;
                 }
-                accumulate(PasteAction.PROGRESS, item.path, dstPath, true);
+                accumulate(PasteAction.PROGRESS, item.path, dstPath, succeeded);
             }
         });
     }
 
-    private void doCopy(Path src, Path dst, ConflictResolution resolution, boolean mergeDirectories) {
+    private boolean doCopy(Path src, Path dst, ConflictResolution resolution, boolean mergeDirectories) {
         if (isCancelled()) {
-            return;
+            return false;
         }
 
         if (!Files.exists(dst, LinkOption.NOFOLLOW_LINKS)) {
-            cp(src, dst);
-            return;
+            return cp(src, dst);
         }
 
         boolean srcIsDirectory = Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS);
         boolean dstIsDirectory = Files.isDirectory(dst, LinkOption.NOFOLLOW_LINKS);
 
         if (srcIsDirectory && dstIsDirectory && mergeDirectories) {
-            copyMergeDirectory(src, dst, resolution);
-            return;
+            return copyMergeDirectory(src, dst, resolution);
         }
 
         switch (resolution) {
             case OVERWRITE:
-                copyOverwriteExisting(src, dst);
-                break;
+                return copyOverwriteExisting(src, dst);
             case RENAME_INCOMING:
-                copyRenameIncoming(src, dst);
-                break;
+                return copyRenameIncoming(src, dst);
             default:
-                break;
+                // SKIP_INCOMING is doomed to success
+                return true;
         }
     }
 
     // `dst` must be a directory
-    private void copyMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
+    private boolean copyMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
         List<String> children = listDirectory(src);
         if (children == null) {
-            return;
+            return true;
         }
         for (String child : children) {
             if (isCancelled()) {
-                return;
+                break;
             }
             Path childDst = dst.resolve(PathOps.singleton.basename(child));
-            doCopy(Paths.get(child), childDst, resolution, true);
+            if (!doCopy(Paths.get(child), childDst, resolution, true)) {
+                return false;
+            }
         }
+        return true;
     }
 
     private List<String> listDirectory(Path src) {
@@ -153,43 +165,46 @@ class PasteWorker extends ProcessingWorker {
         return children;
     }
 
-    private void copyOverwriteExisting(Path src, Path dst) {
+    private boolean copyOverwriteExisting(Path src, Path dst) {
         if (isSamePath(src, dst)) {
-            return;
+            return true;
         }
 
         String dstBasename = dst.getFileName().toString();
 
         Path tmp = getAlternativePath(dst.resolveSibling(".tmp_src_" + dstBasename));
         if (!cp(src, tmp)) {
-            return;
+            return false;
         }
 
         Path bak = getAlternativePath(dst.resolveSibling(".tmp_dst_" + dstBasename));
         if (!mv(dst, bak)) {
             rm(tmp);
-            return;
+            return false;
         }
 
         if (!mv(tmp, dst)) {
             mv(bak, dst); // rollback
-            return;
+            return false;
         }
 
         rm(bak);
+        return true;
     }
 
-    private void copyRenameIncoming(Path src, Path dst) {
+    private boolean copyRenameIncoming(Path src, Path dst) {
         String dstName = dst.getFileName().toString();
 
         Path tmp = getAlternativePath(dst.resolveSibling(".tmp_" + dstName));
         if (!cp(src, tmp)) {
-            return;
+            return false;
         }
 
         if (!mv(tmp, getAlternativePath(dst))) {
             rm(tmp);
+            return false;
         }
+        return true;
     }
 
     // `dst` must not exist
@@ -244,87 +259,88 @@ class PasteWorker extends ProcessingWorker {
                 String dstPath = PathOps.singleton.join(dstDirectory, PathOps.singleton.basename(item.path));
                 Path src = Paths.get(item.path);
                 Path dst = Paths.get(dstPath);
-                doCut(src, dst, resolution, mergeDirectories);
-                if (isCancelled()) {
-                    return;
+                boolean succeeded = doCut(src, dst, resolution, mergeDirectories);
+                if (!succeeded && isCancelled()) {
+                    accumulate(PasteAction.PROGRESS, item.path, dstPath, null);
+                    break;
                 }
-                accumulate(PasteAction.PROGRESS, item.path, dstPath, true);
+                accumulate(PasteAction.PROGRESS, item.path, dstPath, succeeded);
             }
         });
     }
 
-    private void doCut(Path src, Path dst, ConflictResolution resolution, boolean mergeDirectories) {
+    private boolean doCut(Path src, Path dst, ConflictResolution resolution, boolean mergeDirectories) {
         if (isCancelled()) {
-            return;
+            return false;
         }
 
         if (isSamePath(src, dst)) {
-            return;
+            return false;
         }
 
         if (!Files.exists(dst, LinkOption.NOFOLLOW_LINKS)) {
-            mv(src, dst);
-            return;
+            return mv(src, dst);
         }
 
         boolean srcIsDirectory = Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS);
         boolean dstIsDirectory = Files.isDirectory(dst, LinkOption.NOFOLLOW_LINKS);
 
         if (srcIsDirectory && dstIsDirectory && mergeDirectories) {
-            cutMergeDirectory(src, dst, resolution);
-            return;
+            return cutMergeDirectory(src, dst, resolution);
         }
 
         switch (resolution) {
             case OVERWRITE:
-                cutOverwriteExisting(src, dst);
-                break;
+                return cutOverwriteExisting(src, dst);
             case RENAME_INCOMING:
-                mv(src, getAlternativePath(dst));
-                break;
+                return mv(src, getAlternativePath(dst));
             default:
-                break;
+                return true;
         }
     }
 
-    private void cutOverwriteExisting(Path src, Path dst) {
+    private boolean cutOverwriteExisting(Path src, Path dst) {
         String dstBasename = dst.getFileName().toString();
 
         Path bak = getAlternativePath(dst.resolveSibling(".tmp_dst_" + dstBasename));
         if (!mv(dst, bak)) {
-            return;
+            return false;
         }
 
         if (!mv(src, dst)) {
             mv(bak, dst); // rollback
-            return;
+            return false;
         }
 
         rm(bak);
+        return true;
     }
 
-    private void cutMergeDirectory(Path src, Path dst, ConflictResolution resolution) {
-        List<String> children = listDirectory(src);
+    private boolean cutMergeDirectory(Path srcDirectory, Path dstDirectory, ConflictResolution resolution) {
+        List<String> children = listDirectory(srcDirectory);
         if (children == null) {
-            return;
+            return true;
         }
         for (String child : children) {
             if (isCancelled()) {
-                return;
+                return false;
             }
-            Path childDst = dst.resolve(PathOps.singleton.basename(child));
-            doCut(Paths.get(child), childDst, resolution, true);
+            Path childDst = dstDirectory.resolve(PathOps.singleton.basename(child));
+            if (!doCut(Paths.get(child), childDst, resolution, true)) {
+                return false;
+            }
         }
-        // remove src iff empty: skipped/failed children must stay
+        // remove srcDirectory iff empty: skipped/failed children must stay
         List<String> remaining = new LinkedList<>();
-        if (FileOps.singleton.listDirectory(src.toString(), 1, false, cancelRequested,
+        if (FileOps.singleton.listDirectory(srcDirectory.toString(), 1, false, cancelRequested,
                 (action, s, to, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         remaining.add(s);
                     }
                 }) && remaining.isEmpty()) {
-            FileOps.singleton.removeDirectory(src.toString(), false, false, cancelRequested, onAction);
+            FileOps.singleton.removeDirectory(srcDirectory.toString(), false, false, cancelRequested, onAction);
         }
+        return true;
     }
 
     @Override
@@ -333,7 +349,7 @@ class PasteWorker extends ProcessingWorker {
         List<FileProperties> nowRemoved;
         List<Map.Entry<FileProperties, FileProperties>> nowMoved;
         int nowFailed;
-        int nowProgressed;
+        List<Map.Entry<String, Boolean>> nowProgressed;
         synchronized (lock) {
             nowAdded = added;
             added = new LinkedList<>();
@@ -344,7 +360,7 @@ class PasteWorker extends ProcessingWorker {
             nowFailed = failed;
             failed = 0;
             nowProgressed = progressed;
-            progressed = 0;
+            progressed = new LinkedList<>();
         }
         if (onUpdated != null) {
             try {
@@ -355,7 +371,7 @@ class PasteWorker extends ProcessingWorker {
     }
 
     public interface OnUpdatedListener {
-        void accept(List<FileProperties> added, List<FileProperties> removed, List<Map.Entry<FileProperties, FileProperties>> moved, int failed, int progressed);
+        void accept(List<FileProperties> added, List<FileProperties> removed, List<Map.Entry<FileProperties, FileProperties>> moved, int failed, List<Map.Entry<String, Boolean>> progressed);
     }
 
     public enum ConflictResolution {

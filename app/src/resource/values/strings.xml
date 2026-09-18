@@ -81,17 +81,10 @@
     <string name="resolution_option_skip_incoming">Keep existing, skip incoming</string>
     <string name="resolution_option_rename_incoming">Keep existing, rename incoming</string>
     <string name="merge_directories_check">Merge into existing directories</string>
-    <string name="popup_progress_text">%d / %d</string>
-    <string name="popup_progress_pending">Pending</string>
-    <string name="popup_progress_processing">Processing</string>
-    <string name="popup_progress_completed">Completed</string>
-    <string name="popup_progress_aborted">Aborted</string>
-    <string name="popup_progress_failed">Failed</string>
-    <string name="paste_progress_summary">%d added, %d deleted, %d renamed, %d failed</string>
+    <string name="paste_progress_summary">(%d/%d) %d added, %d deleted, %d renamed, %d failed</string>
 
     <!-- delete popup -->
     <string name="delete">Delete</string>
-    <string name="status_working">Working</string>
     <string name="delete_progress_summary">(%d/%d) %d deleted, %d failed</string>
 
 </resources>
