@@ -13,7 +13,7 @@ public class FileProperties {
     public Long size;
     public String sha256sum;
 
-    public Integer numChildren;
+    public Long numChildren;
 
     public FileProperties(String path, boolean isDirectory) {
         this.path = path;

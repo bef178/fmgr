@@ -11,7 +11,6 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
@@ -25,12 +24,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
-import pd.util.FileOps;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;
@@ -51,7 +49,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
     private final PropertiesLoader propertiesLoader;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
-    private BiConsumer<String, Boolean> onItemClicked;
+    private Consumer<String> onItemClicked;
 
     FileItemsAdapter(SelectionBar selectionBar) {
         this.selectionBar = selectionBar;
@@ -66,7 +64,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         }));
     }
 
-    public void whenItemClicked(BiConsumer<String, Boolean> onItemClicked) {
+    public void whenItemClicked(Consumer<String> onItemClicked) {
         this.onItemClicked = onItemClicked;
     }
 
@@ -251,12 +249,8 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
                 toggleSelected(item);
                 return;
             }
-            if (item.isDirectory || FileOps.singleton.stat(item.path).isFile(true)) {
-                if (onItemClicked != null) {
-                    onItemClicked.accept(item.path, item.isDirectory);
-                }
-            } else {
-                Toast.makeText(v.getContext(), R.string.error_failed_to_handle, Toast.LENGTH_SHORT).show();
+            if (onItemClicked != null) {
+                onItemClicked.accept(item.path);
             }
         });
 

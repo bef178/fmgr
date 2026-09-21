@@ -46,6 +46,7 @@ import pd.droidapp.fmgr.util.FavStore;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.FileOps;
+import pd.util.FileStat;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
@@ -151,7 +152,7 @@ public class BrowseFragment extends Fragment {
     private void loadItems(String directory) {
         List<String> paths = new LinkedList<>();
         if (directory != null) {
-            FileOps.singleton.listDirectory(directory, 1, true, null,
+            FileOps.singleton.listDirectory(directory, 1, false, null,
                     (action, src, dst, succeeded) -> {
                         if (action == FileOps.Action.MEET) {
                             paths.add(src);
@@ -291,11 +292,14 @@ public class BrowseFragment extends Fragment {
         pathBar.set(currentDirectory, favStore.contains(currentDirectory));
     }
 
-    private void openItem(String path, boolean isDirectory) {
-        if (isDirectory) {
+    private void openItem(String path) {
+        FileStat fileStat = FileOps.singleton.stat(path);
+        if (fileStat.isDirectory(true)) {
             navigateToDirectory(path);
-        } else {
+        } else if (fileStat.isFile(true)) {
             openFile(path);
+        } else {
+            Toast.makeText(requireContext(), R.string.error_failed_to_handle, Toast.LENGTH_SHORT).show();
         }
     }
 
