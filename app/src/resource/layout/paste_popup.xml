@@ -18,41 +18,61 @@
         <include layout="@layout/status_bar" />
 
         <LinearLayout
-            android:id="@+id/paste_target"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:background="@color/grey_100"
-            android:orientation="vertical"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:paddingStart="18dp"
-                android:paddingEnd="12dp"
-                android:text="@string/target_directory"
-                android:textColor="#666"
-                android:textSize="11sp" />
-
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="18dp"
-                android:layout_marginEnd="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical"
                 android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:scrollbars="horizontal">
+                android:paddingBottom="4dp">
 
                 <TextView
-                    android:id="@+id/target_directory"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:maxLines="1"
-                    android:textSize="14sp" />
+                    android:layout_marginStart="18dp"
+                    android:layout_marginEnd="12dp"
+                    android:text="@string/target_directory"
+                    android:textColor="#666"
+                    android:textSize="11sp" />
 
-            </HorizontalScrollView>
+                <HorizontalScrollView
+                    android:id="@+id/target_directory_scroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="18dp"
+                    android:layout_marginEnd="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:scrollbars="horizontal">
+
+                    <TextView
+                        android:id="@+id/target_directory"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:maxLines="1"
+                        android:textSize="14sp" />
+
+                </HorizontalScrollView>
+
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/change_directory"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/select_directory"
+                android:padding="4dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/i_directory_24" />
 
         </LinearLayout>
 
@@ -141,7 +161,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="4dp"
             android:layout_weight="1"
             android:scrollbarStyle="insideOverlay"
             android:scrollbars="vertical" />

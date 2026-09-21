@@ -84,6 +84,10 @@
     <string name="merge_directories_check">Merge into existing directories</string>
     <string name="paste_progress_summary">(%d/%d) %d added, %d deleted, %d renamed, %d failed</string>
 
+    <!-- directory picker popup -->
+    <string name="select_directory">Select directory</string>
+    <string name="select">Select</string>
+
     <!-- delete popup -->
     <string name="delete">Delete</string>
     <string name="delete_progress_summary">(%d/%d) %d deleted, %d failed</string>
