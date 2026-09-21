@@ -21,7 +21,7 @@ import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
-public class DedupPopup extends ProcessingPopup {
+public class FindDupPopup extends ProcessingPopup {
 
     private final String startDirectory;
 
@@ -37,15 +37,15 @@ public class DedupPopup extends ProcessingPopup {
     private Consumer<Collection<FileProperties>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
-    private DedupWorker worker;
+    private FindDupWorker worker;
     private final Collection<FileProperties> netRemoved = new LinkedList<>();
 
     private final Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
     private final Map<String, FileProperties> byPath = new HashMap<>();
     private int totalScanned;
 
-    public DedupPopup(View containerView, String startDirectory) {
-        super(containerView, R.layout.dedup_popup);
+    public FindDupPopup(View containerView, String startDirectory) {
+        super(containerView, R.layout.find_dup_popup);
         this.startDirectory = startDirectory;
 
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
@@ -53,7 +53,7 @@ public class DedupPopup extends ProcessingPopup {
         groupsView = mainAreaView.findViewById(R.id.popup_items_list);
         groupsAdapter = new PopupFileGroupsAdapter(startDirectory, selectionBar);
 
-        titleBar.setTitle(R.string.delete_duplicate_files);
+        titleBar.setTitle(R.string.find_duplicate);
 
         initSelectionBar();
         initItemsView();
@@ -176,7 +176,7 @@ public class DedupPopup extends ProcessingPopup {
     }
 
     private void doScan() {
-        worker = new DedupWorker();
+        worker = new FindDupWorker();
         totalScanned = 0;
         byChecksum.clear();
         byPath.clear();

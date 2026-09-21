@@ -59,12 +59,12 @@
     <string name="status_searching">Searching…</string>
     <string name="status_find_and_grep">Find &amp; grep</string>
 
-    <!-- delete empty popup -->
-    <string name="delete_empty_files">Delete empty files</string>
+    <!-- find empty popup -->
+    <string name="find_empty">Find empty</string>
     <string name="x_scanned_y_found">%d scanned, %d found</string>
 
-    <!-- dedup popup -->
-    <string name="delete_duplicate_files">Delete duplicate files</string>
+    <!-- find dup popup -->
+    <string name="find_duplicate">Find duplicate</string>
     <string name="scanning">Scanning…</string>
     <string name="x_scanned_y_found_groups">%d scanned, %d(%d) found</string>
     <string name="x_files_y_each">%d files - %s each</string>

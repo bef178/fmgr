@@ -103,7 +103,7 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
     @Override
     public FileGroupViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View groupView = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.dedup_group, parent, false);
+                .inflate(R.layout.find_dup_group, parent, false);
         return new FileGroupViewHolder(groupView);
     }
 

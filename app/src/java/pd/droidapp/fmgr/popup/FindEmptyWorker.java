@@ -14,7 +14,7 @@ import pd.util.FileStat;
 
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
-class DeleteEmptyWorker extends ProcessingWorker {
+class FindEmptyWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
     private int scanned = 0;

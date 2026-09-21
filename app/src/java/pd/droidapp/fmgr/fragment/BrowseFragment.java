@@ -34,10 +34,10 @@ import java.util.Set;
 
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.popup.DedupPopup;
-import pd.droidapp.fmgr.popup.DeleteEmptyPopup;
 import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.EditPopup;
+import pd.droidapp.fmgr.popup.FindDupPopup;
+import pd.droidapp.fmgr.popup.FindEmptyPopup;
 import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.ActionBar;
@@ -98,8 +98,8 @@ public class BrowseFragment extends Fragment {
         actionBar.addPopupButton(R.drawable.i_paste_go_24, clipboard::toCut, this::showPastePopup);
         actionBar.addPopupButton(R.drawable.baseline_search_24, this::showSearchPopup);
         actionBar.addPopupButton(R.drawable.i_paste_24, clipboard::toCopy, this::showPastePopup);
-        actionBar.addPopupButton(R.drawable.i_delete_empty_24, this::showDeleteEmptyPopup);
-        actionBar.addPopupButton(R.drawable.i_delete_copy_24, this::showDedupPopup);
+        actionBar.addPopupButton(R.drawable.i_delete_empty_24, this::showFindEmptyPopup);
+        actionBar.addPopupButton(R.drawable.i_delete_copy_24, this::showFindDupPopup);
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
@@ -551,15 +551,15 @@ public class BrowseFragment extends Fragment {
         popup.show();
     }
 
-    private void showDeleteEmptyPopup() {
-        DeleteEmptyPopup popup = new DeleteEmptyPopup(getView(), navigator.getCurrentDirectory());
+    private void showFindEmptyPopup() {
+        FindEmptyPopup popup = new FindEmptyPopup(getView(), navigator.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpTo);
         popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
 
-    private void showDedupPopup() {
-        DedupPopup popup = new DedupPopup(getView(), navigator.getCurrentDirectory());
+    private void showFindDupPopup() {
+        FindDupPopup popup = new FindDupPopup(getView(), navigator.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpTo);
         popup.whenCopyClicked(this::copyToClipboard);
         popup.whenCutClicked(this::cutToClipboard);

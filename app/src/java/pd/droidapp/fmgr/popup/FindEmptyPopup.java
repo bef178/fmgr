@@ -14,7 +14,7 @@ import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 
-public class DeleteEmptyPopup extends ProcessingPopup {
+public class FindEmptyPopup extends ProcessingPopup {
 
     private final String startDirectory;
 
@@ -28,12 +28,12 @@ public class DeleteEmptyPopup extends ProcessingPopup {
     private Consumer<String> onJump;
     private PopupOnDismissedListener onPopupDismissed;
 
-    private DeleteEmptyWorker worker;
+    private FindEmptyWorker worker;
     private int totalScanned;
     private final Collection<FileProperties> netRemoved = new LinkedList<>();
 
-    public DeleteEmptyPopup(View containerView, String startDirectory) {
-        super(containerView, R.layout.delete_empty_popup);
+    public FindEmptyPopup(View containerView, String startDirectory) {
+        super(containerView, R.layout.find_empty_popup);
         this.startDirectory = startDirectory;
 
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
@@ -41,7 +41,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar);
 
-        titleBar.setTitle(R.string.delete_empty_files);
+        titleBar.setTitle(R.string.find_empty);
 
         initSelectionBar();
         initItemsView();
@@ -140,7 +140,7 @@ public class DeleteEmptyPopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
-        worker = new DeleteEmptyWorker();
+        worker = new FindEmptyWorker();
         worker.whenStarted(() -> containerView.post(() -> {
             statusBar.markRunning();
             statusBar.setText(context.getString(R.string.scanning));

@@ -16,7 +16,7 @@ import pd.util.FileStat;
 
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
-class DedupWorker extends ProcessingWorker {
+class FindDupWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
 
@@ -27,7 +27,7 @@ class DedupWorker extends ProcessingWorker {
     private final Map<Long, String> firstBySize = new HashMap<>();
     private final Set<String> sha256Requested = new HashSet<>();
 
-    DedupWorker() {
+    FindDupWorker() {
         super(200);
     }
 
