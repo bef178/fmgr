@@ -136,7 +136,7 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
             if (i < nowCount) {
                 fileView = viewHolder.filesView.getChildAt(i);
             } else {
-                fileView = layoutInflater.inflate(R.layout.popup_file_item, viewHolder.filesView, false);
+                fileView = layoutInflater.inflate(R.layout.file_item, viewHolder.filesView, false);
                 viewHolder.filesView.addView(fileView);
             }
 

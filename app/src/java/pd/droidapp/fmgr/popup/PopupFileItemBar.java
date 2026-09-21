@@ -18,11 +18,12 @@ class PopupFileItemBar {
     private final TextView indexTextView;
 
     public PopupFileItemBar(View selfView) {
-        iconImageView = selfView.findViewById(R.id.popup_file_icon);
-        badgeIconView = selfView.findViewById(R.id.popup_file_badge_icon);
-        badgeProgressView = selfView.findViewById(R.id.popup_file_badge_progress);
-        pathTextView = selfView.findViewById(R.id.popup_file_name);
-        indexTextView = selfView.findViewById(R.id.popup_file_index);
+        iconImageView = selfView.findViewById(R.id.item_icon);
+        badgeIconView = selfView.findViewById(R.id.item_badge_icon);
+        badgeProgressView = selfView.findViewById(R.id.item_badge_progress);
+        pathTextView = selfView.findViewById(R.id.item_name);
+        indexTextView = selfView.findViewById(R.id.item_index);
+        indexTextView.setVisibility(View.VISIBLE);
     }
 
     public void setIndex(int index) {

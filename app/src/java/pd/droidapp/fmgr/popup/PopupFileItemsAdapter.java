@@ -97,7 +97,7 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
     @Override
     public ItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.popup_file_item, parent, false);
+                .inflate(R.layout.file_item, parent, false);
         return new ItemViewHolder(view);
     }
 

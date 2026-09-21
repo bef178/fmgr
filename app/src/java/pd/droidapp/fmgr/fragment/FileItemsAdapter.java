@@ -236,6 +236,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         viewHolder.iconImageView.setImageResource(
                 item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24);
         viewHolder.detailsTextView.setText(getItemDetailsString(item, viewHolder.itemView.getContext()));
+        viewHolder.detailsTextView.setVisibility(View.VISIBLE);
 
         if (selectionBar.hasSelected(item)) {
             viewHolder.selectedIconImageView.setVisibility(View.VISIBLE);
@@ -346,11 +347,11 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
 
         public ItemViewHolder(@NonNull View itemView) {
             super(itemView);
-            highlightView = itemView.findViewById(R.id.file_highlight);
-            iconImageView = itemView.findViewById(R.id.file_icon);
-            selectedIconImageView = itemView.findViewById(R.id.file_selected_icon);
-            pathTextView = itemView.findViewById(R.id.file_name);
-            detailsTextView = itemView.findViewById(R.id.file_details);
+            highlightView = itemView.findViewById(R.id.item_highlight);
+            iconImageView = itemView.findViewById(R.id.item_icon);
+            selectedIconImageView = itemView.findViewById(R.id.item_badge_icon);
+            pathTextView = itemView.findViewById(R.id.item_name);
+            detailsTextView = itemView.findViewById(R.id.item_details);
         }
     }
 }
