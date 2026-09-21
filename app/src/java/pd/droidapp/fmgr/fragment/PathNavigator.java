@@ -44,7 +44,7 @@ public class PathNavigator implements Serializable {
     }
 
     public boolean canGoBack() {
-        return backStack.stream().anyMatch(this::isAccessible);
+        return backStack.stream().anyMatch(this::isUsable);
     }
 
     public boolean goBack() {
@@ -52,7 +52,7 @@ public class PathNavigator implements Serializable {
             return false;
         }
 
-        while (!isAccessible(backStack.peek())) {
+        while (!isUsable(backStack.peek())) {
             backStack.pop();
         }
         forwardStack.push(currentDirectory);
@@ -61,7 +61,7 @@ public class PathNavigator implements Serializable {
     }
 
     public boolean canGoForward() {
-        return forwardStack.stream().anyMatch(this::isAccessible);
+        return forwardStack.stream().anyMatch(this::isUsable);
     }
 
     public boolean goForward() {
@@ -69,12 +69,16 @@ public class PathNavigator implements Serializable {
             return false;
         }
 
-        while (!isAccessible(forwardStack.peek())) {
+        while (!isUsable(forwardStack.peek())) {
             forwardStack.pop();
         }
         backStack.push(currentDirectory);
         currentDirectory = forwardStack.pop();
         return true;
+    }
+
+    private boolean isUsable(String path) {
+        return isAccessible(path) && !path.equals(currentDirectory);
     }
 
     public boolean canGoUp() {
