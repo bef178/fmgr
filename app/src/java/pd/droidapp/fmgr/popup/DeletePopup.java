@@ -1,6 +1,8 @@
 package pd.droidapp.fmgr.popup;
 
+import android.view.MotionEvent;
 import android.view.View;
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
@@ -17,6 +19,7 @@ import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 
 import static pd.droidapp.fmgr.popup.PopupFileItemBar.BadgeState;
+import static pd.droidapp.fmgr.util.Util.scrollToIndex;
 
 public class DeletePopup extends ProcessingPopup {
 
@@ -36,6 +39,8 @@ public class DeletePopup extends ProcessingPopup {
     private int totalRemoved;
     private int totalFailed;
     private int totalProgressed;
+    private boolean followProgress = true;
+    private boolean touching;
 
     public DeletePopup(View containerView, String startDirectory, Collection<FileProperties> srcItems, boolean prune) {
         super(containerView, R.layout.delete_popup);
@@ -72,6 +77,33 @@ public class DeletePopup extends ProcessingPopup {
         if (itemAnimator instanceof SimpleItemAnimator) {
             ((SimpleItemAnimator) itemAnimator).setSupportsChangeAnimations(false);
         }
+        itemsView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView recyclerView, @NonNull MotionEvent event) {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        touching = true;
+                        followProgress = false;
+                        itemsView.stopScroll();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        touching = false;
+                        break;
+                    default:
+                        break;
+                }
+                return false;
+            }
+
+            @Override
+            public void onTouchEvent(@NonNull RecyclerView recyclerView, @NonNull MotionEvent event) {
+            }
+
+            @Override
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+            }
+        });
     }
 
     @Override
@@ -126,6 +158,7 @@ public class DeletePopup extends ProcessingPopup {
                 for (int i = 0; i < itemsAdapter.getItemCount(); i++) {
                     itemPathToIndex.put(itemsAdapter.getItems().get(i).path, i);
                 }
+                int currentProgress = -1;
                 for (Map.Entry<String, Boolean> entry : progressed) {
                     String path = entry.getKey();
                     Boolean succeeded = entry.getValue();
@@ -144,10 +177,12 @@ public class DeletePopup extends ProcessingPopup {
                             totalProgressed++;
                             if (itemIndex + 1 < itemsAdapter.getItemCount()) {
                                 itemsAdapter.setItemBadge(itemIndex + 1, BadgeState.RUNNING);
+                                currentProgress = itemIndex + 1;
                             }
                         }
                     }
                 }
+                scrollToCurrentIfFollowing(currentProgress);
             }
             statusBar.setText(context.getString(R.string.delete_progress_summary,
                     Math.min(totalProgressed + 1, srcItems.size()),
@@ -173,5 +208,28 @@ public class DeletePopup extends ProcessingPopup {
             worker.cancel();
         }
         updateButtons();
+    }
+
+    private void scrollToCurrentIfFollowing(int current) {
+        if (current < 0) {
+            return;
+        }
+        LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
+        if (layoutManager == null) {
+            return;
+        }
+        int theLastEntireVisible = layoutManager.findLastCompletelyVisibleItemPosition();
+        if (theLastEntireVisible == RecyclerView.NO_POSITION) {
+            return;
+        }
+        if (!touching
+                && itemsView.getScrollState() == RecyclerView.SCROLL_STATE_IDLE
+                && current >= theLastEntireVisible
+                && current <= layoutManager.findLastVisibleItemPosition()) {
+            followProgress = true;
+        }
+        if (followProgress) {
+            scrollToIndex(itemsView, current);
+        }
     }
 }

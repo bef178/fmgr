@@ -7,7 +7,10 @@ import android.annotation.SuppressLint;
 import android.os.Environment;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -143,6 +146,38 @@ public class Util {
             return bytes;
         } catch (CharacterCodingException | IllegalArgumentException ignored) {
             return null;
+        }
+    }
+
+    public static void scrollToIndex(RecyclerView itemsView, int index) {
+        LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
+        if (layoutManager == null) {
+            return;
+        }
+        int firstEntireVisibleIndex = layoutManager.findFirstCompletelyVisibleItemPosition();
+        int lastEntireVisibleIndex = layoutManager.findLastCompletelyVisibleItemPosition();
+        View firstEntireVisibleView = layoutManager.findViewByPosition(firstEntireVisibleIndex);
+        View lastEntireVisibleView = layoutManager.findViewByPosition(lastEntireVisibleIndex);
+        if (firstEntireVisibleView == null || lastEntireVisibleView == null) {
+            return;
+        }
+        int viewportTop = itemsView.getPaddingTop();
+        int viewportBottom = itemsView.getHeight() - itemsView.getPaddingBottom();
+        int dy;
+        if (index > lastEntireVisibleIndex) {
+            dy = (index - lastEntireVisibleIndex) * lastEntireVisibleView.getHeight()
+                    - (viewportBottom - lastEntireVisibleView.getBottom());
+        } else if (index < firstEntireVisibleIndex) {
+            dy = (index - firstEntireVisibleIndex) * firstEntireVisibleView.getHeight()
+                    + (firstEntireVisibleView.getTop() - viewportTop);
+        } else {
+            return;
+        }
+        final int SCROLL_ANIMATION_MILLISECONDS = 250;
+        if (Math.abs(dy) > itemsView.getHeight() - itemsView.getPaddingTop() - itemsView.getPaddingBottom()) {
+            itemsView.scrollBy(0, dy);
+        } else {
+            itemsView.smoothScrollBy(0, dy, new LinearInterpolator(), SCROLL_ANIMATION_MILLISECONDS);
         }
     }
 }
