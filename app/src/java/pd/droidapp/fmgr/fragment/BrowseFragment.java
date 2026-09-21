@@ -319,6 +319,8 @@ public class BrowseFragment extends Fragment {
         intent.setDataAndType(uri, mimeType);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+        intent.addFlags(Intent.FLAG_ACTIVITY_RETAIN_IN_RECENTS);
 
         try {
             startActivity(intent);
