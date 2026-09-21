@@ -135,6 +135,9 @@ public class DeletePopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         itemsAdapter.append(this.srcItems);
+        for (int i = 0; i < srcItems.size(); i++) {
+            itemsAdapter.setItemBadge(i, BadgeState.SELECTED);
+        }
     }
 
     private void start() {
