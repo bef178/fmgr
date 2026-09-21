@@ -25,6 +25,7 @@ import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.popup.PopupFileItemBar.BadgeState;
+import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 import static pd.droidapp.fmgr.util.Util.scrollToIndex;
 
 public class PastePopup extends ProcessingPopup {
@@ -37,6 +38,7 @@ public class PastePopup extends ProcessingPopup {
 
     // views
     private final StatusBar statusBar;
+    private final TextView targetDirectoryTextView;
     private final TextView resolutionTitleTextView;
     private final RadioGroup resolutionOptionsGroup;
     private final CheckBox mergeDirectoriesCheckBox;
@@ -64,6 +66,7 @@ public class PastePopup extends ProcessingPopup {
         this.srcItems = new LinkedList<>(srcItems);
 
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        targetDirectoryTextView = mainAreaView.findViewById(R.id.target_directory);
         resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
         mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
@@ -73,7 +76,7 @@ public class PastePopup extends ProcessingPopup {
         titleBar.setTitle(isCopy ? R.string.copy : R.string.cut);
 
         initStatusBar();
-        initConflictResolution();
+        initPasteOptions();
         initItemsView();
     }
 
@@ -90,9 +93,10 @@ public class PastePopup extends ProcessingPopup {
         statusBar.setText(context.getString(R.string.x_selected, srcItems.size()));
     }
 
-    private void initConflictResolution() {
-        resolutionTitleTextView.setText(R.string.select_resolution);
+    private void initPasteOptions() {
+        targetDirectoryTextView.setText(getDisplayPath(dstDirectory));
 
+        resolutionTitleTextView.setText(R.string.select_resolution);
         boolean inPlacePaste = srcItems.stream()
                 .allMatch(item -> dstDirectory.equals(PathOps.singleton.dirname(item.path)));
         mergeDirectoriesCheckBox.setChecked(!inPlacePaste);
