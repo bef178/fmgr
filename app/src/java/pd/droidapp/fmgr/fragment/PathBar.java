@@ -1,7 +1,6 @@
 package pd.droidapp.fmgr.fragment;
 
 import android.content.Context;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageButton;
@@ -10,9 +9,6 @@ import android.widget.TextView;
 
 import androidx.core.util.Consumer;
 
-import com.google.android.material.elevation.ElevationOverlayProvider;
-
-import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
 import pd.util.PathOps;
 
@@ -38,18 +34,6 @@ public class PathBar {
                 onFavIconClickedListener.run();
             }
         });
-
-        alignBackgroundColorToBottomNavigation();
-    }
-
-    private void alignBackgroundColorToBottomNavigation() {
-        Context context = selfView.getContext();
-        TypedValue typedValue = new TypedValue();
-        context.getTheme().resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true);
-        int surfaceColor = typedValue.data;
-        float bottomNavigationElevation = ((MainActivity) context).getBottomNavigationElevation();
-        int bgColor = new ElevationOverlayProvider(context).compositeOverlayIfNeeded(surfaceColor, bottomNavigationElevation);
-        selfView.setBackgroundColor(bgColor);
     }
 
     public void set(String directory, boolean isFavorite) {

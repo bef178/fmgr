@@ -6,7 +6,6 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
@@ -144,9 +143,5 @@ public class MainActivity extends AppCompatActivity {
 
     public void setBrowseFragment(BrowseFragment fragment) {
         this.browseFragment = fragment;
-    }
-
-    public float getBottomNavigationElevation() {
-        return ViewCompat.getElevation(bottomNavigation);
     }
 }
