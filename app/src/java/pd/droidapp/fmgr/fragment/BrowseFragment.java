@@ -53,7 +53,7 @@ import static pd.droidapp.fmgr.util.Util.toFileProperties;
 public class BrowseFragment extends Fragment {
 
     private FavStore favStore;
-    private PathBar pathBar;
+    private BreadcrumbBar breadcrumbBar;
     private ActionBar actionBar;
     private SelectionBar selectionBar;
     private RecyclerView itemsView;
@@ -80,9 +80,9 @@ public class BrowseFragment extends Fragment {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
         favStore = new FavStore(requireContext());
-        pathBar = new PathBar(view.findViewById(R.id.path_bar));
-        pathBar.whenBreadcrumbClicked(this::navigateToDirectory);
-        pathBar.whenFavIconClicked(this::toggleFavorite);
+        breadcrumbBar = new BreadcrumbBar(view.findViewById(R.id.breadcrumb_bar));
+        breadcrumbBar.whenBreadcrumbClicked(this::navigateToDirectory);
+        breadcrumbBar.whenFavIconClicked(this::toggleFavorite);
 
         ImageButton homeButton = view.findViewById(R.id.action_home);
         homeButton.setOnClickListener(v -> navigateToHome());
@@ -150,7 +150,7 @@ public class BrowseFragment extends Fragment {
 
     private void refresh() {
         String currentDirectory = navigator.getCurrentDirectory();
-        pathBar.set(currentDirectory, currentDirectory != null && favStore.contains(currentDirectory));
+        breadcrumbBar.set(currentDirectory, currentDirectory != null && favStore.contains(currentDirectory));
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
@@ -297,7 +297,7 @@ public class BrowseFragment extends Fragment {
             favStore.put(currentDirectory);
             Toast.makeText(requireContext(), R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
         }
-        pathBar.set(currentDirectory, favStore.contains(currentDirectory));
+        breadcrumbBar.set(currentDirectory, favStore.contains(currentDirectory));
     }
 
     private void openItem(String path) {
