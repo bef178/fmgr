@@ -41,7 +41,6 @@ import pd.droidapp.fmgr.popup.FindEmptyPopup;
 import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.ActionBar;
-import pd.droidapp.fmgr.util.Clipboard;
 import pd.droidapp.fmgr.util.FavStore;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
@@ -53,7 +52,6 @@ import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
 public class BrowseFragment extends Fragment {
 
-    private final Clipboard clipboard = new Clipboard();
     private FavStore favStore;
     private PathBar pathBar;
     private ActionBar actionBar;
@@ -96,9 +94,7 @@ public class BrowseFragment extends Fragment {
         actionBar.addButton(R.drawable.baseline_refresh_24, () -> true, this::refresh);
         actionBar.addPopupButton(R.drawable.i_directory_add_24, this::showCreateDirectoryPopup);
         actionBar.addPopupButton(R.drawable.i_file_add_24, this::showCreateFilePopup);
-        actionBar.addPopupButton(R.drawable.i_paste_go_24, clipboard::toCut, this::showPastePopup);
         actionBar.addPopupButton(R.drawable.baseline_search_24, this::showSearchPopup);
-        actionBar.addPopupButton(R.drawable.i_paste_24, clipboard::toCopy, this::showPastePopup);
         actionBar.addPopupButton(R.drawable.i_delete_empty_24, this::showFindEmptyPopup);
         actionBar.addPopupButton(R.drawable.i_delete_copy_24, this::showFindDupPopup);
 
@@ -116,8 +112,20 @@ public class BrowseFragment extends Fragment {
                 showRenamePopup(selectionBar.getFirst());
             }
         });
-        selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> markSelectedItemsForCopy());
-        selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> markSelectedItemsForCut());
+        selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
+            List<FileProperties> items = itemsAdapter.getSelectedItems();
+            selectionBar.clear();
+            selectionBar.invalidate();
+            itemsAdapter.invalidate(items);
+            showPastePopup(items, true);
+        });
+        selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
+            List<FileProperties> items = itemsAdapter.getSelectedItems();
+            selectionBar.clear();
+            selectionBar.invalidate();
+            itemsAdapter.invalidate(items);
+            showPastePopup(items, false);
+        });
         selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> showDeletePopup());
 
         selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
@@ -445,51 +453,7 @@ public class BrowseFragment extends Fragment {
         return null;
     }
 
-    private void markSelectedItemsForCut() {
-        List<FileProperties> items = itemsAdapter.getSelectedItems();
-        clipboard.setItemsToCut(items);
-        Toast.makeText(requireContext(), getString(R.string.cut_report_format, items.size()), Toast.LENGTH_SHORT).show();
-        actionBar.invalidate();
-        selectionBar.clear();
-        selectionBar.invalidate();
-        itemsAdapter.invalidate(items);
-    }
-
-    private void markSelectedItemsForCopy() {
-        List<FileProperties> items = itemsAdapter.getSelectedItems();
-        clipboard.setItemsToCopy(items);
-        Toast.makeText(requireContext(), getString(R.string.copied_report_format, items.size()), Toast.LENGTH_SHORT).show();
-        actionBar.invalidate();
-        selectionBar.clear();
-        selectionBar.invalidate();
-        itemsAdapter.invalidate(items);
-    }
-
-    private void copyToClipboard(Collection<FileProperties> items) {
-        clipboard.setItemsToCopy(items);
-        Toast.makeText(requireContext(), getString(R.string.copied_report_format, items.size()), Toast.LENGTH_SHORT).show();
-        actionBar.invalidate();
-    }
-
-    private void cutToClipboard(Collection<FileProperties> items) {
-        clipboard.setItemsToCut(items);
-        Toast.makeText(requireContext(), getString(R.string.cut_report_format, items.size()), Toast.LENGTH_SHORT).show();
-        actionBar.invalidate();
-    }
-
-    private void showPastePopup() {
-        boolean isCopy;
-        List<FileProperties> srcItems;
-        if (clipboard.toCut()) {
-            isCopy = false;
-            srcItems = clipboard.getItemsToCut();
-        } else if (clipboard.toCopy()) {
-            isCopy = true;
-            srcItems = clipboard.getItemsToCopy();
-        } else {
-            return;
-        }
-
+    private void showPastePopup(Collection<FileProperties> srcItems, boolean isCopy) {
         PastePopup pastePopup = new PastePopup(getView(), isCopy, srcItems, navigator.getCurrentDirectory());
         pastePopup.whenPopupDismissed(this::onPopupDismissed);
         pastePopup.show();
@@ -549,8 +513,8 @@ public class BrowseFragment extends Fragment {
     private void showSearchPopup() {
         SearchPopup popup = new SearchPopup(getView(), navigator.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpTo);
-        popup.whenCopyClicked(this::copyToClipboard);
-        popup.whenCutClicked(this::cutToClipboard);
+        popup.whenCopyClicked(items -> showPastePopup(items, true));
+        popup.whenCutClicked(items -> showPastePopup(items, false));
         popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
@@ -565,8 +529,8 @@ public class BrowseFragment extends Fragment {
     private void showFindDupPopup() {
         FindDupPopup popup = new FindDupPopup(getView(), navigator.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpTo);
-        popup.whenCopyClicked(this::copyToClipboard);
-        popup.whenCutClicked(this::cutToClipboard);
+        popup.whenCopyClicked(items -> showPastePopup(items, true));
+        popup.whenCutClicked(items -> showPastePopup(items, false));
         popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }
@@ -574,8 +538,6 @@ public class BrowseFragment extends Fragment {
     private void onPopupDismissed(Collection<FileProperties> added, Collection<FileProperties> removed) {
         String currentDirectory = navigator.getCurrentDirectory();
         if (!added.isEmpty()) {
-            clipboard.clear();
-            actionBar.invalidate();
             selectionBar.invalidate();
             Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();
@@ -584,8 +546,6 @@ public class BrowseFragment extends Fragment {
             itemsAdapter.loadProperties(implicit);
         }
         if (!removed.isEmpty()) {
-            clipboard.removeAllIfSameAsOrDescendantOf(removed);
-            actionBar.invalidate();
             selectionBar.removeProps(removed);
             selectionBar.invalidate();
             Map<String, FileProperties> explicit = new LinkedHashMap<>();
@@ -596,10 +556,10 @@ public class BrowseFragment extends Fragment {
         }
     }
 
-    private void getDirectChildren(String currentDirectory, Collection<FileProperties> items,
+    private void getDirectChildren(String directory, Collection<FileProperties> items,
             Map<String, FileProperties> outExplicit, Set<String> outImplicit) {
         for (FileProperties item : items) {
-            String directChild = getDirectChild(currentDirectory, item.path);
+            String directChild = getDirectChild(directory, item.path);
             if (directChild == null) {
                 continue;
             }
@@ -612,13 +572,13 @@ public class BrowseFragment extends Fragment {
         outImplicit.removeAll(outExplicit.keySet());
     }
 
-    private String getDirectChild(String currentDirectory, String path) {
+    private String getDirectChild(String directory, String path) {
         while (true) {
             String parent = PathOps.singleton.dirname(path);
             if (parent.equals(path)) {
                 return null;
             }
-            if (parent.equals(currentDirectory)) {
+            if (parent.equals(directory)) {
                 return path;
             }
             path = parent;

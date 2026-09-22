@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -64,7 +65,7 @@ public class PastePopup extends ProcessingPopup {
     private boolean followProgress = true;
     private boolean touching;
 
-    public PastePopup(View containerView, boolean isCopy, List<FileProperties> srcItems, String dstDirectory) {
+    public PastePopup(View containerView, boolean isCopy, Collection<FileProperties> srcItems, String dstDirectory) {
         super(containerView, R.layout.paste_popup);
         this.isCopy = isCopy;
         this.dstDirectory = dstDirectory;
@@ -218,10 +219,10 @@ public class PastePopup extends ProcessingPopup {
         final ConflictResolution resolution = getSelectedResolution();
         if (resolution == ConflictResolution.OVERWRITE) {
             shortId = R.string.resolution_short_overwrite;
-        } else if (resolution == ConflictResolution.SKIP_INCOMING) {
-            shortId = R.string.resolution_short_skip;
-        } else {
+        } else if (resolution == ConflictResolution.RENAME_INCOMING) {
             shortId = R.string.resolution_short_rename;
+        } else {
+            shortId = R.string.resolution_short_skip;
         }
         CharSequence title = context.getString(R.string.on_conflict_x, context.getString(shortId));
         LayoutTransition collapseTransition = createResolutionCollapseTransition(title);
@@ -342,12 +343,11 @@ public class PastePopup extends ProcessingPopup {
         int selectedId = resolutionOptionsGroup.getCheckedRadioButtonId();
         if (selectedId == R.id.resolution_option_overwrite) {
             return ConflictResolution.OVERWRITE;
-        } else if (selectedId == R.id.resolution_option_skip_incoming) {
-            return ConflictResolution.SKIP_INCOMING;
         } else if (selectedId == R.id.resolution_option_rename_incoming) {
             return ConflictResolution.RENAME_INCOMING;
+        } else {
+            return ConflictResolution.SKIP_INCOMING;
         }
-        return null;
     }
 
     private void abort() {

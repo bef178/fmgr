@@ -180,4 +180,13 @@ public class Util {
             itemsView.smoothScrollBy(0, dy, new LinearInterpolator(), SCROLL_ANIMATION_MILLISECONDS);
         }
     }
+
+    public static boolean isSameAsOrDescendantOfAny(String path, Collection<FileProperties> items) {
+        for (FileProperties item : items) {
+            if (path.equals(item.path) || path.startsWith(item.path + "/")) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -50,9 +50,6 @@
 
     <string name="error_rename_failed">Failed to rename</string>
 
-    <string name="cut_report_format">%d cut</string>
-    <string name="copied_report_format">%d copied</string>
-
     <!-- search popup -->
     <string name="search">Search</string>
     <string name="search_hint">Type to search</string>
