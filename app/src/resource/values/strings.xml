@@ -7,8 +7,6 @@
     <string name="browse_title">Browse</string>
     <string name="profile_title">Profile</string>
 
-    <string name="added_to_favorites">Added to favorites</string>
-    <string name="removed_from_favorites">Removed from favorites</string>
     <string name="edit_favorite_name">Edit favorite name</string>
 
     <string name="ok">OK</string>

@@ -34,6 +34,7 @@ import java.util.Set;
 
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.fragment.BreadcrumbBar.State;
 import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.popup.FindDupPopup;
@@ -150,7 +151,7 @@ public class BrowseFragment extends Fragment {
 
     private void refresh() {
         String currentDirectory = navigator.getCurrentDirectory();
-        breadcrumbBar.set(currentDirectory, currentDirectory != null && favStore.contains(currentDirectory));
+        breadcrumbBar.render(new State(currentDirectory, favStore.contains(currentDirectory)));
         actionBar.invalidate();
         selectionBar.clear();
         selectionBar.invalidate();
@@ -292,12 +293,10 @@ public class BrowseFragment extends Fragment {
 
         if (favStore.contains(currentDirectory)) {
             favStore.remove(currentDirectory);
-            Toast.makeText(requireContext(), R.string.removed_from_favorites, Toast.LENGTH_SHORT).show();
         } else {
             favStore.put(currentDirectory);
-            Toast.makeText(requireContext(), R.string.added_to_favorites, Toast.LENGTH_SHORT).show();
         }
-        breadcrumbBar.set(currentDirectory, favStore.contains(currentDirectory));
+        breadcrumbBar.render(new State(currentDirectory, favStore.contains(currentDirectory)));
     }
 
     private void openItem(String path) {

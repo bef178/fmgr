@@ -26,6 +26,9 @@ public class FavStore {
     }
 
     public boolean contains(String path) {
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
         return sharedPreferences.contains(buildPrefsKey(path));
     }
 
