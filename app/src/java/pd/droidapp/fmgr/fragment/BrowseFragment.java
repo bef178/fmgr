@@ -469,7 +469,7 @@ public class BrowseFragment extends Fragment {
         String currentName = PathOps.singleton.basename(path);
         EditPopup editPopup = new EditPopup(getView(),
                 getString(R.string.rename),
-                currentName,
+                suggestNewName(currentName),
                 currentName,
                 newName -> {
                     newName = newName.trim();
@@ -481,6 +481,50 @@ public class BrowseFragment extends Fragment {
                     return false;
                 });
         editPopup.show();
+    }
+
+    private static String suggestNewName(String name) {
+        {
+            String name1 = name.trim();
+            if (name1.isEmpty()) {
+                return name;
+            }
+            name = name1;
+        }
+
+        String extension = PathOps.singleton.extname(name);
+        String core = PathOps.singleton.basename(name, extension);
+
+        {
+            String core1 = core.replaceAll("(.+?)(\\s*\\(\\d+\\))*\\s*$", "$1");
+            if (!core1.isEmpty()) {
+                core = core1;
+            }
+        }
+        {
+            String core1 = core;
+            String prefix = "";
+            if (core1.charAt(0) == '.') {
+                prefix = ".";
+                core1 = core1.substring(1);
+            }
+            String core2 = core1.replaceAll("^[A-Za-z0-9.]*@", "");
+            if (!core2.isEmpty()) {
+                core1 = core2;
+            }
+            core = prefix + core1;
+        }
+
+        if (!extension.isEmpty()) {
+            String ext1 = extension
+                    .substring(1)
+                    .replaceAll("(.+?)(\\s*\\(\\d+\\))*\\s*$", "$1")
+                    .trim();
+            if (!ext1.isEmpty()) {
+                extension = "." + ext1;
+            }
+        }
+        return core + extension;
     }
 
     private boolean renameItem(String path, String newName) {
