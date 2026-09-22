@@ -34,8 +34,6 @@ import static pd.droidapp.fmgr.util.Util.scrollToIndex;
 
 public class PastePopup extends ProcessingPopup {
 
-    private static final int RESOLUTION_COLLAPSE_MILLISECONDS = 150;
-
     private final boolean isCopy;
     private final List<FileProperties> srcItems;
     private String dstDirectory;
@@ -45,7 +43,7 @@ public class PastePopup extends ProcessingPopup {
     private final TextView targetDirectoryTextView;
     private final HorizontalScrollView targetDirectoryScrollView;
     private final ImageButton changeDirectoryButton;
-    private final TextView resolutionTitleTextView;
+    private final TextView resolutionSummaryTextView;
     private final RadioGroup resolutionOptionsGroup;
     private final CheckBox mergeDirectoriesCheckBox;
     private final RecyclerView itemsView;
@@ -75,7 +73,7 @@ public class PastePopup extends ProcessingPopup {
         targetDirectoryTextView = mainAreaView.findViewById(R.id.target_directory);
         targetDirectoryScrollView = mainAreaView.findViewById(R.id.target_directory_scroll);
         changeDirectoryButton = mainAreaView.findViewById(R.id.change_directory);
-        resolutionTitleTextView = mainAreaView.findViewById(R.id.resolution_title);
+        resolutionSummaryTextView = mainAreaView.findViewById(R.id.resolution_summary);
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
         mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
@@ -91,7 +89,7 @@ public class PastePopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.start, () -> worker == null, () -> true, v -> start());
+        buttonBar.addButton(R.string.paste, () -> worker == null, () -> true, v -> start());
         buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
@@ -103,7 +101,6 @@ public class PastePopup extends ProcessingPopup {
 
     private void initPasteOptions() {
         changeDirectoryButton.setOnClickListener(v -> showDirectoryPicker());
-        resolutionTitleTextView.setText(R.string.select_resolution);
         invalidatePasteOptions();
     }
 
@@ -213,7 +210,7 @@ public class PastePopup extends ProcessingPopup {
     }
 
     private void start() {
-        changeDirectoryButton.setEnabled(false);
+        changeDirectoryButton.setVisibility(View.GONE);
 
         int shortId;
         final ConflictResolution resolution = getSelectedResolution();
@@ -224,8 +221,11 @@ public class PastePopup extends ProcessingPopup {
         } else {
             shortId = R.string.resolution_short_skip;
         }
-        CharSequence title = context.getString(R.string.on_conflict_x, context.getString(shortId));
-        LayoutTransition collapseTransition = createResolutionCollapseTransition(title);
+        String resolutionText = context.getString(shortId);
+        CharSequence summary = mergeDirectoriesCheckBox.isChecked()
+                ? context.getString(R.string.x_merge_directories, resolutionText)
+                : resolutionText;
+        LayoutTransition collapseTransition = createResolutionCollapseTransition(summary);
         ((ViewGroup) resolutionOptionsGroup.getParent()).setLayoutTransition(collapseTransition);
         resolutionOptionsGroup.setVisibility(View.GONE);
         mergeDirectoriesCheckBox.setVisibility(View.GONE);
@@ -321,19 +321,22 @@ public class PastePopup extends ProcessingPopup {
         updateButtons();
     }
 
-    private LayoutTransition createResolutionCollapseTransition(CharSequence title) {
+    private LayoutTransition createResolutionCollapseTransition(CharSequence summary) {
         LayoutTransition collapseTransition = new LayoutTransition();
-        collapseTransition.setDuration(RESOLUTION_COLLAPSE_MILLISECONDS);
+        collapseTransition.setDuration(150);
+        // there's 300ms start delay for APPEARING by default
+        collapseTransition.disableTransitionType(LayoutTransition.APPEARING);
         collapseTransition.addTransitionListener(new LayoutTransition.TransitionListener() {
             @Override
             public void startTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
+                if (transitionType == LayoutTransition.DISAPPEARING) {
+                    resolutionSummaryTextView.setText(summary);
+                    resolutionSummaryTextView.setVisibility(View.VISIBLE);
+                }
             }
 
             @Override
             public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-                if (transitionType == LayoutTransition.DISAPPEARING) {
-                    resolutionTitleTextView.setText(title);
-                }
             }
         });
         return collapseTransition;
