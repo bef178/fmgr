@@ -60,7 +60,7 @@ public class DeletePopup extends ProcessingPopup {
     @Override
     protected void initPopupButtons() {
         super.initPopupButtons();
-        buttonBar.addButton(R.string.start, () -> worker == null, () -> true, v -> start());
+        buttonBar.addButton(R.string.delete, () -> worker == null, () -> true, v -> start());
         buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
