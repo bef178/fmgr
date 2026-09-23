@@ -17,6 +17,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.popup.StatusBar.ButtonState;
+import pd.droidapp.fmgr.popup.StatusBar.IconState;
+import pd.droidapp.fmgr.popup.StatusBar.State;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 import pd.util.PathOps;
@@ -43,7 +46,7 @@ public class DirectoryPickerPopup extends ProcessingPopup {
         super(containerView, R.layout.directory_picker_popup);
         targetDirectory = startDirectory;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.i_directory_24);
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new DirectoryAdapter();
 
@@ -65,8 +68,11 @@ public class DirectoryPickerPopup extends ProcessingPopup {
     }
 
     private void initStatusBar() {
-        statusBar.markReady(R.drawable.i_directory_24);
-        statusBar.addButton(R.drawable.action_up, () -> true, this::canGoUp, this::goUp);
+        statusBar.whenButtonClicked(id -> {
+            if (id == R.drawable.action_up) {
+                goUp();
+            }
+        });
     }
 
     private boolean canGoUp() {
@@ -90,7 +96,9 @@ public class DirectoryPickerPopup extends ProcessingPopup {
 
     private void changeDirectory(String directory) {
         targetDirectory = directory;
-        statusBar.setText(getDisplayPath(directory));
+        statusBar.render(new State(IconState.IDLE,
+                getDisplayPath(directory),
+                new ButtonState(R.drawable.action_up, true, canGoUp())));
 
         List<String> paths = new LinkedList<>();
         FileOps.singleton.listDirectory(directory, 1, false, null,
@@ -102,8 +110,6 @@ public class DirectoryPickerPopup extends ProcessingPopup {
         itemsAdapter.set(toFileProperties(paths).stream()
                 .filter(item -> item.isDirectory)
                 .collect(Collectors.toList()));
-
-        statusBar.invalidateButtons();
     }
 
     @Override

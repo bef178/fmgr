@@ -50,7 +50,6 @@
     <!-- search popup -->
     <string name="search">Search</string>
     <string name="search_hint">Type to search</string>
-    <string name="status_searching">Searching…</string>
     <string name="status_find_and_grep">Find &amp; grep</string>
 
     <!-- find empty popup -->
@@ -59,7 +58,6 @@
 
     <!-- find dup popup -->
     <string name="find_duplicate">Find duplicate</string>
-    <string name="scanning">Scanning…</string>
     <string name="x_scanned_y_found_groups">%d scanned, %d(%d) found</string>
     <string name="x_files_y_each">%d files - %s each</string>
 

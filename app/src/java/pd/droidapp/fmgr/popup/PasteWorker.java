@@ -371,7 +371,11 @@ class PasteWorker extends ProcessingWorker {
     }
 
     public interface OnUpdatedListener {
-        void accept(List<FileProperties> added, List<FileProperties> removed, List<Map.Entry<FileProperties, FileProperties>> moved, int failed, List<Map.Entry<String, Boolean>> progressed);
+        void accept(List<FileProperties> added,
+                List<FileProperties> removed,
+                List<Map.Entry<FileProperties, FileProperties>> moved,
+                int failed,
+                List<Map.Entry<String, Boolean>> progressed);
     }
 
     public enum ConflictResolution {

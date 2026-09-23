@@ -11,6 +11,8 @@ import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.popup.StatusBar.IconState;
+import pd.droidapp.fmgr.popup.StatusBar.State;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 
@@ -36,7 +38,7 @@ public class FindEmptyPopup extends ProcessingPopup {
         super(containerView, R.layout.find_empty_popup);
         this.startDirectory = startDirectory;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.i_delete_empty_24);
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar);
@@ -142,27 +144,26 @@ public class FindEmptyPopup extends ProcessingPopup {
     protected void onShow() {
         worker = new FindEmptyWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            statusBar.markRunning();
-            statusBar.setText(context.getString(R.string.scanning));
+            renderStatusBar(IconState.RUNNING);
             selectionBar.invalidate();
         }));
         worker.whenUpdated((scanned, matched) -> containerView.post(() -> {
             totalScanned += scanned;
             itemsAdapter.append(matched);
             selectionBar.invalidate();
-            statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                    totalScanned, itemsAdapter.getItemCount()));
+            renderStatusBar(IconState.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
             updateButtons();
-            if (reason == StopReason.COMPLETED) {
-                statusBar.markDone();
-            } else {
-                statusBar.markStopped();
-            }
+            renderStatusBar(reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED);
         }));
         worker.start(startDirectory);
 
         updateButtons();
+    }
+
+    private void renderStatusBar(IconState iconState) {
+        statusBar.render(new State(iconState, context.getString(R.string.x_scanned_y_found,
+                totalScanned, itemsAdapter.getItemCount())));
     }
 }

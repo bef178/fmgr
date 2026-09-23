@@ -16,6 +16,8 @@ import java.util.function.Consumer;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.popup.StatusBar.IconState;
+import pd.droidapp.fmgr.popup.StatusBar.State;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.FileOps;
@@ -43,12 +45,13 @@ public class FindDupPopup extends ProcessingPopup {
     private final Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
     private final Map<String, FileProperties> byPath = new HashMap<>();
     private int totalScanned;
+    private IconState statusBarIconState = IconState.IDLE;
 
     public FindDupPopup(View containerView, String startDirectory) {
         super(containerView, R.layout.find_dup_popup);
         this.startDirectory = startDirectory;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.i_delete_copy_24);
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         groupsView = mainAreaView.findViewById(R.id.popup_items_list);
         groupsAdapter = new PopupFileGroupsAdapter(startDirectory, selectionBar);
@@ -182,8 +185,8 @@ public class FindDupPopup extends ProcessingPopup {
         byPath.clear();
 
         worker.whenStarted(() -> containerView.post(() -> {
-            statusBar.markRunning();
-            statusBar.setText(context.getString(R.string.scanning));
+            statusBarIconState = IconState.RUNNING;
+            renderStatusBar(statusBarIconState);
             selectionBar.invalidate();
         }));
         worker.whenUpdated((scanned, completed) -> containerView.post(() -> {
@@ -201,19 +204,22 @@ public class FindDupPopup extends ProcessingPopup {
             refreshGroups();
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
+            statusBarIconState = reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED;
+            renderStatusBar(statusBarIconState);
             updateButtons();
-            if (reason == StopReason.COMPLETED) {
-                statusBar.markDone();
-            } else {
-                statusBar.markStopped();
-            }
         }));
         worker.start(startDirectory);
         updateButtons();
     }
 
-    // derive the group totals from byChecksum, then refresh list and status
     private void refreshGroups() {
+        groupsAdapter.set(buildFileGroups());
+        selectionBar.invalidate();
+        renderStatusBar(statusBarIconState);
+    }
+
+    // derive the group totals from byChecksum
+    private void renderStatusBar(IconState iconState) {
         int totalGroups = 0;
         int totalGroupItems = 0;
         for (List<FileProperties> group : byChecksum.values()) {
@@ -222,10 +228,8 @@ public class FindDupPopup extends ProcessingPopup {
                 totalGroupItems += group.size();
             }
         }
-        groupsAdapter.set(buildFileGroups());
-        selectionBar.invalidate();
-        statusBar.setText(context.getString(R.string.x_scanned_y_found_groups,
-                totalScanned, totalGroups, totalGroupItems));
+        statusBar.render(new State(iconState, context.getString(R.string.x_scanned_y_found_groups,
+                totalScanned, totalGroups, totalGroupItems)));
     }
 
     private List<PopupFileGroup> buildFileGroups() {

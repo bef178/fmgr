@@ -25,6 +25,8 @@ import java.util.Map;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.popup.StatusBar.IconState;
+import pd.droidapp.fmgr.popup.StatusBar.State;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.PathOps;
 
@@ -69,7 +71,9 @@ public class PastePopup extends ProcessingPopup {
         this.dstDirectory = dstDirectory;
         this.srcItems = new LinkedList<>(srcItems);
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), isCopy
+                ? R.drawable.baseline_content_copy_24
+                : R.drawable.baseline_content_cut_24);
         targetDirectoryTextView = mainAreaView.findViewById(R.id.target_directory);
         targetDirectoryScrollView = mainAreaView.findViewById(R.id.target_directory_scroll);
         changeDirectoryButton = mainAreaView.findViewById(R.id.change_directory);
@@ -81,7 +85,7 @@ public class PastePopup extends ProcessingPopup {
 
         titleBar.setTitle(isCopy ? R.string.copy : R.string.cut);
 
-        initStatusBar();
+        renderStatusBar(IconState.IDLE);
         initPasteOptions();
         initItemsView();
     }
@@ -94,9 +98,18 @@ public class PastePopup extends ProcessingPopup {
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
-    private void initStatusBar() {
-        statusBar.markReady(isCopy ? R.drawable.baseline_content_copy_24 : R.drawable.baseline_content_cut_24);
-        statusBar.setText(context.getString(R.string.x_selected, srcItems.size()));
+    private void renderStatusBar(IconState iconState) {
+        if (iconState == IconState.IDLE) {
+            statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
+            return;
+        }
+        statusBar.render(new State(iconState, context.getString(R.string.paste_progress_summary,
+                Math.min(totalProcessed + 1, srcItems.size()),
+                srcItems.size(),
+                totalAdded,
+                totalRemoved,
+                totalMoved,
+                totalFailed)));
     }
 
     private void initPasteOptions() {
@@ -232,14 +245,7 @@ public class PastePopup extends ProcessingPopup {
 
         worker = new PasteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            statusBar.markRunning();
-            statusBar.setText(context.getString(R.string.paste_progress_summary,
-                    Math.min(totalProcessed + 1, srcItems.size()),
-                    srcItems.size(),
-                    totalAdded,
-                    totalRemoved,
-                    totalMoved,
-                    totalFailed));
+            renderStatusBar(IconState.RUNNING);
             itemsAdapter.setItemBadge(0, BadgeState.RUNNING);
         }));
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
@@ -296,20 +302,10 @@ public class PastePopup extends ProcessingPopup {
                 }
                 scrollToCurrentIfFollowing(currentProgress);
             }
-            statusBar.setText(context.getString(R.string.paste_progress_summary,
-                    Math.min(totalProcessed + 1, srcItems.size()),
-                    srcItems.size(),
-                    totalAdded,
-                    totalRemoved,
-                    totalMoved,
-                    totalFailed));
+            renderStatusBar(IconState.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            if (reason == StopReason.COMPLETED) {
-                statusBar.markDone();
-            } else {
-                statusBar.markStopped();
-            }
+            renderStatusBar(reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED);
             updateButtons();
         }));
         if (isCopy) {

@@ -21,6 +21,8 @@ import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.popup.StatusBar.IconState;
+import pd.droidapp.fmgr.popup.StatusBar.State;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
 
@@ -54,7 +56,7 @@ public class SearchPopup extends ProcessingPopup {
         super(containerView, R.layout.search_popup);
         this.startDirectory = startDirectory;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.baseline_search_24);
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         searchEdit = mainAreaView.findViewById(R.id.search_edit);
         searchEditClearButton = mainAreaView.findViewById(R.id.search_edit_clear);
@@ -63,7 +65,7 @@ public class SearchPopup extends ProcessingPopup {
 
         titleBar.setTitle(R.string.search);
 
-        initStatusBar();
+        renderStatusBar(IconState.IDLE);
         initSelectionBar();
         initSearchEdit();
         initItemsView();
@@ -87,9 +89,14 @@ public class SearchPopup extends ProcessingPopup {
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
-    private void initStatusBar() {
-        statusBar.markReady(R.drawable.baseline_search_24);
-        statusBar.setText(context.getString(R.string.status_find_and_grep));
+    private void renderStatusBar(IconState iconState) {
+        if (iconState == IconState.IDLE) {
+            statusBar.render(new State(iconState, context.getString(R.string.status_find_and_grep)));
+            return;
+        }
+        statusBar.render(new State(iconState, context.getString(R.string.x_scanned_y_found,
+                totalScanned,
+                itemsAdapter.getItemCount())));
     }
 
     private void initSearchEdit() {
@@ -254,7 +261,7 @@ public class SearchPopup extends ProcessingPopup {
         if (!query.isEmpty()) {
             worker = createAndStartSearcher(startDirectory, query);
         } else {
-            initStatusBar();
+            renderStatusBar(IconState.IDLE);
         }
         updateButtons();
     }
@@ -265,8 +272,7 @@ public class SearchPopup extends ProcessingPopup {
             if (worker != current) {
                 return;
             }
-            statusBar.markRunning();
-            statusBar.setText(context.getString(R.string.status_searching));
+            renderStatusBar(IconState.RUNNING);
         }));
         current.whenUpdated((scanned, matched) -> containerView.post(() -> {
             if (worker != current) {
@@ -274,19 +280,14 @@ public class SearchPopup extends ProcessingPopup {
             }
             totalScanned += scanned;
             itemsAdapter.append(matched);
-            statusBar.setText(context.getString(R.string.x_scanned_y_found,
-                    totalScanned, itemsAdapter.getItemCount()));
+            renderStatusBar(IconState.RUNNING);
         }));
         current.whenStopped(reason -> containerView.post(() -> {
             if (worker != current) {
                 return;
             }
             updateButtons();
-            if (reason == StopReason.COMPLETED) {
-                statusBar.markDone();
-            } else {
-                statusBar.markStopped();
-            }
+            renderStatusBar(reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED);
         }));
         if (current.start(startDirectory, query)) {
             return current;

@@ -16,6 +16,8 @@ import java.util.Map;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.popup.StatusBar.IconState;
+import pd.droidapp.fmgr.popup.StatusBar.State;
 import pd.droidapp.fmgr.util.FileProperties;
 
 import static pd.droidapp.fmgr.popup.PopupFileItemBar.BadgeState;
@@ -47,13 +49,13 @@ public class DeletePopup extends ProcessingPopup {
         this.srcItems = new LinkedList<>(srcItems);
         this.prune = prune;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar));
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.outline_delete_24);
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, null);
 
         titleBar.setTitle(R.string.delete);
 
-        initStatusBar();
+        renderStatusBar(IconState.IDLE);
         initItemsView();
     }
 
@@ -65,9 +67,16 @@ public class DeletePopup extends ProcessingPopup {
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
-    private void initStatusBar() {
-        statusBar.markReady(R.drawable.outline_delete_24);
-        statusBar.setText(context.getString(R.string.x_selected, srcItems.size()));
+    private void renderStatusBar(IconState iconState) {
+        if (iconState == IconState.IDLE) {
+            statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
+            return;
+        }
+        statusBar.render(new State(iconState, context.getString(R.string.delete_progress_summary,
+                Math.min(totalProgressed + 1, srcItems.size()),
+                srcItems.size(),
+                totalRemoved,
+                totalFailed)));
     }
 
     private void initItemsView() {
@@ -143,12 +152,7 @@ public class DeletePopup extends ProcessingPopup {
     private void start() {
         worker = new DeleteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            statusBar.markRunning();
-            statusBar.setText(context.getString(R.string.delete_progress_summary,
-                    Math.min(totalProgressed + 1, srcItems.size()),
-                    srcItems.size(),
-                    totalRemoved,
-                    totalFailed));
+            renderStatusBar(IconState.RUNNING);
             itemsAdapter.setItemBadge(0, BadgeState.RUNNING);
         }));
         worker.whenUpdated((removed, failed, progressed) -> containerView.post(() -> {
@@ -187,18 +191,10 @@ public class DeletePopup extends ProcessingPopup {
                 }
                 scrollToCurrentIfFollowing(currentProgress);
             }
-            statusBar.setText(context.getString(R.string.delete_progress_summary,
-                    Math.min(totalProgressed + 1, srcItems.size()),
-                    srcItems.size(),
-                    totalRemoved,
-                    totalFailed));
+            renderStatusBar(IconState.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            if (reason == StopReason.COMPLETED) {
-                statusBar.markDone();
-            } else {
-                statusBar.markStopped();
-            }
+            renderStatusBar(reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED);
             updateButtons();
         }));
         worker.start(srcItems, prune);
