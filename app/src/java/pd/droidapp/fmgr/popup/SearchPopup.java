@@ -22,10 +22,9 @@ import java.util.function.Consumer;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
-import pd.droidapp.fmgr.util.SelectionBar;
+import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
-import pd.droidapp.fmgr.view.StatusBar.IconState;
-import pd.droidapp.fmgr.view.StatusBar.State;
 
 public class SearchPopup extends ProcessingPopup {
 
@@ -63,14 +62,13 @@ public class SearchPopup extends ProcessingPopup {
         searchEditClearButton = mainAreaView.findViewById(R.id.search_edit_clear);
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, true);
-        itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
 
-        titleBar.setTitle(R.string.search);
-
-        renderStatusBar(IconState.IDLE);
         initSelectionBar();
         initSearchEdit();
         initItemsView();
+
+        titleBar.setTitle(R.string.search);
+        renderStatusBar(StatusBar.IconState.IDLE);
     }
 
     @Override
@@ -91,12 +89,12 @@ public class SearchPopup extends ProcessingPopup {
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
-    private void renderStatusBar(IconState iconState) {
-        if (iconState == IconState.IDLE) {
-            statusBar.render(new State(iconState, context.getString(R.string.status_find_and_grep)));
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        if (iconState == StatusBar.IconState.IDLE) {
+            statusBar.render(new StatusBar.State(iconState, context.getString(R.string.status_find_and_grep)));
             return;
         }
-        statusBar.render(new State(iconState, context.getString(R.string.x_scanned_y_found,
+        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found,
                 totalScanned,
                 itemsAdapter.getItemCount())));
     }
@@ -141,54 +139,54 @@ public class SearchPopup extends ProcessingPopup {
         });
     }
 
-    private void renderSelectionBar() {
-        selectionBar.render(itemsAdapter.getSelectedCount());
+    private void initSelectionBar() {
+        selectionBar.whenButtonClicked(id -> {
+            if (id == R.drawable.baseline_arrow_forward_24) {
+                if (itemsAdapter.getSelectedCount() == 1) {
+                    if (onJump != null) {
+                        onJump.accept(itemsAdapter.getSelectedItems().get(0).path);
+                    }
+                    selfWindow.dismiss();
+                }
+            } else if (id == R.drawable.baseline_content_copy_24) {
+                if (onCopy != null) {
+                    onCopy.accept(itemsAdapter.getSelectedItems());
+                }
+            } else if (id == R.drawable.baseline_content_cut_24) {
+                if (onCut != null) {
+                    onCut.accept(itemsAdapter.getSelectedItems());
+                }
+            } else if (id == R.drawable.outline_delete_24) {
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
+                deletePopup.whenPopupDismissed((added, removed) -> {
+                    netRemoved.addAll(removed);
+                    itemsAdapter.remove(removed);
+                    itemsAdapter.deselect(removed);
+                });
+                deletePopup.show();
+            } else if (id == R.drawable.i_check_all_24) {
+                itemsAdapter.selectAll();
+                itemsAdapter.notifyDataSetChanged();
+            } else if (id == R.drawable.baseline_close_24) {
+                itemsAdapter.clearSelection();
+                itemsAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
-    private void initSelectionBar() {
-        selectionBar.addButton(R.layout.selection_button_jump, () -> itemsAdapter.getSelectedCount() == 1, v -> {
-            if (itemsAdapter.getSelectedCount() == 1) {
-                if (onJump != null) {
-                    onJump.accept(itemsAdapter.getSelectedItems().get(0).path);
-                }
-                selfWindow.dismiss();
-            }
-        });
-
-        selectionBar.addButton(R.layout.selection_button_copy, () -> itemsAdapter.hasSelection(), v -> {
-            if (onCopy != null) {
-                onCopy.accept(itemsAdapter.getSelectedItems());
-            }
-        });
-
-        selectionBar.addButton(R.layout.selection_button_cut, () -> itemsAdapter.hasSelection(), v -> {
-            if (onCut != null) {
-                onCut.accept(itemsAdapter.getSelectedItems());
-            }
-        });
-
-        selectionBar.addButton(R.layout.selection_button_delete, () -> itemsAdapter.hasSelection(), v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
-            deletePopup.whenPopupDismissed((added, removed) -> {
-                netRemoved.addAll(removed);
-                itemsAdapter.remove(removed);
-                itemsAdapter.deselect(removed);
-            });
-            deletePopup.show();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_select_all, () -> itemsAdapter.hasSelection(), v -> {
-            itemsAdapter.selectAll();
-            itemsAdapter.notifyDataSetChanged();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_select_clear, () -> itemsAdapter.hasSelection(), v -> {
-            itemsAdapter.clearSelection();
-            itemsAdapter.notifyDataSetChanged();
-        });
+    private void renderSelectionBar() {
+        int numSelected = itemsAdapter.getSelectedCount();
+        selectionBar.render(new SelectionBar.State(numSelected,
+                new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
+                new ButtonState(R.drawable.baseline_content_copy_24, numSelected > 0),
+                new ButtonState(R.drawable.baseline_content_cut_24, numSelected > 0),
+                new ButtonState(R.drawable.outline_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.i_check_all_24, numSelected > 0),
+                new ButtonState(R.drawable.baseline_close_24, numSelected > 0)));
     }
 
     private void initItemsView() {
+        itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
         itemsView.setLayoutManager(new LinearLayoutManager(context));
         itemsView.setAdapter(itemsAdapter);
     }
@@ -262,7 +260,7 @@ public class SearchPopup extends ProcessingPopup {
         if (!query.isEmpty()) {
             worker = createAndStartSearcher(startDirectory, query);
         } else {
-            renderStatusBar(IconState.IDLE);
+            renderStatusBar(StatusBar.IconState.IDLE);
         }
         updateButtons();
     }
@@ -273,7 +271,7 @@ public class SearchPopup extends ProcessingPopup {
             if (worker != current) {
                 return;
             }
-            renderStatusBar(IconState.RUNNING);
+            renderStatusBar(StatusBar.IconState.RUNNING);
         }));
         current.whenUpdated((scanned, matched) -> containerView.post(() -> {
             if (worker != current) {
@@ -281,14 +279,14 @@ public class SearchPopup extends ProcessingPopup {
             }
             totalScanned += scanned;
             itemsAdapter.append(matched);
-            renderStatusBar(IconState.RUNNING);
+            renderStatusBar(StatusBar.IconState.RUNNING);
         }));
         current.whenStopped(reason -> containerView.post(() -> {
             if (worker != current) {
                 return;
             }
             updateButtons();
-            renderStatusBar(reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED);
+            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
         }));
         if (current.start(startDirectory, query)) {
             return current;

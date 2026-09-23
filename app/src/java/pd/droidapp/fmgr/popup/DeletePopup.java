@@ -18,7 +18,6 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.StatusBar;
-import pd.droidapp.fmgr.view.StatusBar.IconState;
 import pd.droidapp.fmgr.view.StatusBar.State;
 
 import static pd.droidapp.fmgr.popup.PopupFileItemBar.BadgeState;
@@ -56,7 +55,7 @@ public class DeletePopup extends ProcessingPopup {
 
         titleBar.setTitle(R.string.delete);
 
-        renderStatusBar(IconState.IDLE);
+        renderStatusBar(StatusBar.IconState.IDLE);
         initItemsView();
     }
 
@@ -68,8 +67,8 @@ public class DeletePopup extends ProcessingPopup {
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
-    private void renderStatusBar(IconState iconState) {
-        if (iconState == IconState.IDLE) {
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        if (iconState == StatusBar.IconState.IDLE) {
             statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
             return;
         }
@@ -153,7 +152,7 @@ public class DeletePopup extends ProcessingPopup {
     private void start() {
         worker = new DeleteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            renderStatusBar(IconState.RUNNING);
+            renderStatusBar(StatusBar.IconState.RUNNING);
             itemsAdapter.setItemBadge(0, BadgeState.RUNNING);
         }));
         worker.whenUpdated((removed, failed, progressed) -> containerView.post(() -> {
@@ -192,10 +191,10 @@ public class DeletePopup extends ProcessingPopup {
                 }
                 scrollToCurrentIfFollowing(currentProgress);
             }
-            renderStatusBar(IconState.RUNNING);
+            renderStatusBar(StatusBar.IconState.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            renderStatusBar(reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED);
+            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
             updateButtons();
         }));
         worker.start(srcItems, prune);

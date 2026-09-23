@@ -1,10 +1,7 @@
 package pd.droidapp.fmgr.view;
 
-import android.view.LayoutInflater;
-import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -17,6 +14,8 @@ import java.util.Objects;
 import java.util.function.IntConsumer;
 
 import pd.droidapp.fmgr.R;
+
+import static pd.droidapp.fmgr.util.Util.renderButtonStates;
 
 public class StatusBar {
 
@@ -61,7 +60,11 @@ public class StatusBar {
         }
 
         if (oldState == null || !Objects.equals(oldState.buttonStates, state.buttonStates)) {
-            renderButtonStates(state.buttonStates);
+            renderButtonStates(state.buttonStates, buttonsView, R.layout.status_button, buttonId -> {
+                if (onButtonClicked != null) {
+                    onButtonClicked.accept(buttonId);
+                }
+            });
         }
     }
 
@@ -87,52 +90,6 @@ public class StatusBar {
                 iconView.setImageResource(initDrawableId);
                 break;
         }
-    }
-
-    private void renderButtonStates(List<ButtonState> buttonStates) {
-        // remove unused
-        for (int i = buttonsView.getChildCount() - 1; i >= 0; i--) {
-            int id = buttonsView.getChildAt(i).getId();
-            boolean contains = false;
-            for (ButtonState buttonState : buttonStates) {
-                if (buttonState.id == id) {
-                    contains = true;
-                    break;
-                }
-            }
-            if (!contains) {
-                buttonsView.removeViewAt(i);
-            }
-        }
-
-        // add new and set status
-        for (ButtonState buttonState : buttonStates) {
-            ImageButton button = buttonsView.findViewById(buttonState.id);
-            if (button == null) {
-                button = createButtonView(buttonState.id, buttonState.drawableId);
-                buttonsView.addView(button);
-            }
-            button.setVisibility(buttonState.visible ? View.VISIBLE : View.GONE);
-            button.setEnabled(buttonState.enabled);
-        }
-
-        // sort without detach
-        for (ButtonState buttonState : buttonStates) {
-            buttonsView.bringChildToFront(buttonsView.findViewById(buttonState.id));
-        }
-    }
-
-    private ImageButton createButtonView(int id, @DrawableRes int drawableId) {
-        ImageButton button = (ImageButton) LayoutInflater.from(buttonsView.getContext())
-                .inflate(R.layout.status_button, buttonsView, false);
-        button.setId(id);
-        button.setImageResource(drawableId);
-        button.setOnClickListener(v -> {
-            if (onButtonClicked != null) {
-                onButtonClicked.accept(id);
-            }
-        });
-        return button;
     }
 
     public static class State {

@@ -20,7 +20,6 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.StatusBar;
-import pd.droidapp.fmgr.view.StatusBar.IconState;
 import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.FileOps;
 import pd.util.PathOps;
@@ -97,7 +96,7 @@ public class DirectoryPickerPopup extends ProcessingPopup {
 
     private void changeDirectory(String directory) {
         targetDirectory = directory;
-        statusBar.render(new State(IconState.IDLE,
+        statusBar.render(new State(StatusBar.IconState.IDLE,
                 getDisplayPath(directory),
                 new ButtonState(R.drawable.action_up, true, canGoUp())));
 

@@ -11,6 +11,10 @@ public class ButtonState {
     public final boolean visible;
     public final boolean enabled;
 
+    public ButtonState(@DrawableRes int drawableId, boolean visible) {
+        this(drawableId, visible, true);
+    }
+
     public ButtonState(@DrawableRes int drawableId, boolean visible, boolean enabled) {
         this.id = drawableId;
         this.drawableId = drawableId;

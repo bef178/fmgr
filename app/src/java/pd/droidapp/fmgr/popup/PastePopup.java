@@ -27,7 +27,6 @@ import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.StatusBar;
-import pd.droidapp.fmgr.view.StatusBar.IconState;
 import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.PathOps;
 
@@ -86,7 +85,7 @@ public class PastePopup extends ProcessingPopup {
 
         titleBar.setTitle(isCopy ? R.string.copy : R.string.cut);
 
-        renderStatusBar(IconState.IDLE);
+        renderStatusBar(StatusBar.IconState.IDLE);
         initPasteOptions();
         initItemsView();
     }
@@ -99,8 +98,8 @@ public class PastePopup extends ProcessingPopup {
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
-    private void renderStatusBar(IconState iconState) {
-        if (iconState == IconState.IDLE) {
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        if (iconState == StatusBar.IconState.IDLE) {
             statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
             return;
         }
@@ -246,7 +245,7 @@ public class PastePopup extends ProcessingPopup {
 
         worker = new PasteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            renderStatusBar(IconState.RUNNING);
+            renderStatusBar(StatusBar.IconState.RUNNING);
             itemsAdapter.setItemBadge(0, BadgeState.RUNNING);
         }));
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
@@ -303,10 +302,10 @@ public class PastePopup extends ProcessingPopup {
                 }
                 scrollToCurrentIfFollowing(currentProgress);
             }
-            renderStatusBar(IconState.RUNNING);
+            renderStatusBar(StatusBar.IconState.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            renderStatusBar(reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED);
+            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
             updateButtons();
         }));
         if (isCopy) {

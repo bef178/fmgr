@@ -17,10 +17,9 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
-import pd.droidapp.fmgr.util.SelectionBar;
+import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
-import pd.droidapp.fmgr.view.StatusBar.IconState;
-import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
@@ -46,7 +45,7 @@ public class FindDupPopup extends ProcessingPopup {
     private final Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
     private final Map<String, FileProperties> byPath = new HashMap<>();
     private int totalScanned;
-    private IconState statusBarIconState = IconState.IDLE;
+    private StatusBar.IconState statusBarIconState = StatusBar.IconState.IDLE;
 
     public FindDupPopup(View containerView, String startDirectory) {
         super(containerView, R.layout.find_dup_popup);
@@ -56,7 +55,6 @@ public class FindDupPopup extends ProcessingPopup {
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         groupsView = mainAreaView.findViewById(R.id.popup_items_list);
         groupsAdapter = new PopupFileGroupsAdapter(startDirectory);
-        groupsAdapter.whenSelectionChanged(this::renderSelectionBar);
 
         titleBar.setTitle(R.string.find_duplicate);
 
@@ -76,67 +74,67 @@ public class FindDupPopup extends ProcessingPopup {
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
-    private void renderSelectionBar() {
-        selectionBar.render(groupsAdapter.getSelectedCount());
-    }
-
     private void initSelectionBar() {
-        selectionBar.addButton(R.layout.selection_button_jump, () -> groupsAdapter.getSelectedCount() == 1, v -> {
-            if (groupsAdapter.getSelectedCount() == 1) {
-                if (onJump != null) {
-                    onJump.accept(groupsAdapter.getSelectedItems().get(0).path);
+        selectionBar.whenButtonClicked(id -> {
+            if (id == R.drawable.baseline_arrow_forward_24) {
+                if (groupsAdapter.getSelectedCount() == 1) {
+                    if (onJump != null) {
+                        onJump.accept(groupsAdapter.getSelectedItems().get(0).path);
+                    }
+                    selfWindow.dismiss();
+                }
+            } else if (id == R.drawable.baseline_content_copy_24) {
+                if (onCopy != null) {
+                    onCopy.accept(groupsAdapter.getSelectedItems());
                 }
                 selfWindow.dismiss();
-            }
-        });
-
-        selectionBar.addButton(R.layout.selection_button_copy, () -> groupsAdapter.hasSelection(), v -> {
-            if (onCopy != null) {
-                onCopy.accept(groupsAdapter.getSelectedItems());
-            }
-            selfWindow.dismiss();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_cut, () -> groupsAdapter.hasSelection(), v -> {
-            if (onCut != null) {
-                onCut.accept(groupsAdapter.getSelectedItems());
-            }
-            selfWindow.dismiss();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_delete, () -> groupsAdapter.hasSelection(), v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, groupsAdapter.getSelectedItems(), false);
-            deletePopup.whenPopupDismissed((added, removed) -> {
-                netRemoved.addAll(removed);
-                groupsAdapter.deselect(removed);
-                for (FileProperties item : removed) {
-                    FileProperties props = byPath.remove(item.path);
-                    if (props == null) {
-                        continue;
-                    }
-                    List<FileProperties> group = byChecksum.get(props.sha256sum);
-                    if (group != null) {
-                        group.remove(props);
-                    }
+            } else if (id == R.drawable.baseline_content_cut_24) {
+                if (onCut != null) {
+                    onCut.accept(groupsAdapter.getSelectedItems());
                 }
-                refreshGroups();
-            });
-            deletePopup.show();
+                selfWindow.dismiss();
+            } else if (id == R.drawable.outline_delete_24) {
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, groupsAdapter.getSelectedItems(), false);
+                deletePopup.whenPopupDismissed((added, removed) -> {
+                    netRemoved.addAll(removed);
+                    groupsAdapter.deselect(removed);
+                    for (FileProperties item : removed) {
+                        FileProperties props = byPath.remove(item.path);
+                        if (props == null) {
+                            continue;
+                        }
+                        List<FileProperties> group = byChecksum.get(props.sha256sum);
+                        if (group != null) {
+                            group.remove(props);
+                        }
+                    }
+                    refreshGroups();
+                });
+                deletePopup.show();
+            } else if (id == R.drawable.i_check_all_24) {
+                List<FileProperties> newlySelected = suggestToSelect();
+                groupsAdapter.select(newlySelected);
+                groupsAdapter.notifyDataSetChanged();
+            } else if (id == R.drawable.baseline_close_24) {
+                groupsAdapter.clearSelection();
+                groupsAdapter.notifyDataSetChanged();
+            }
         });
+    }
 
-        selectionBar.addButton(R.layout.selection_button_smart_select, () -> groupsAdapter.hasSelection(), v -> {
-            List<FileProperties> newlySelected = suggestToSelect();
-            groupsAdapter.select(newlySelected);
-            groupsAdapter.notifyDataSetChanged();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_select_clear, () -> groupsAdapter.hasSelection(), v -> {
-            groupsAdapter.clearSelection();
-            groupsAdapter.notifyDataSetChanged();
-        });
+    private void renderSelectionBar() {
+        int numSelected = groupsAdapter.getSelectedCount();
+        selectionBar.render(new SelectionBar.State(numSelected,
+                new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
+                new ButtonState(R.drawable.baseline_content_copy_24, numSelected > 0),
+                new ButtonState(R.drawable.baseline_content_cut_24, numSelected > 0),
+                new ButtonState(R.drawable.outline_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.i_check_all_24, numSelected > 0),
+                new ButtonState(R.drawable.baseline_close_24, numSelected > 0)));
     }
 
     private void initItemsView() {
+        groupsAdapter.whenSelectionChanged(this::renderSelectionBar);
         groupsView.setLayoutManager(new LinearLayoutManager(context));
         groupsView.setAdapter(groupsAdapter);
     }
@@ -189,7 +187,7 @@ public class FindDupPopup extends ProcessingPopup {
         byPath.clear();
 
         worker.whenStarted(() -> containerView.post(() -> {
-            statusBarIconState = IconState.RUNNING;
+            statusBarIconState = StatusBar.IconState.RUNNING;
             renderStatusBar(statusBarIconState);
         }));
         worker.whenUpdated((scanned, completed) -> containerView.post(() -> {
@@ -207,7 +205,7 @@ public class FindDupPopup extends ProcessingPopup {
             refreshGroups();
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            statusBarIconState = reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED;
+            statusBarIconState = reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED;
             renderStatusBar(statusBarIconState);
             updateButtons();
         }));
@@ -221,7 +219,7 @@ public class FindDupPopup extends ProcessingPopup {
     }
 
     // derive the group totals from byChecksum
-    private void renderStatusBar(IconState iconState) {
+    private void renderStatusBar(StatusBar.IconState iconState) {
         int totalGroups = 0;
         int totalGroupItems = 0;
         for (List<FileProperties> group : byChecksum.values()) {
@@ -230,7 +228,7 @@ public class FindDupPopup extends ProcessingPopup {
                 totalGroupItems += group.size();
             }
         }
-        statusBar.render(new State(iconState, context.getString(R.string.x_scanned_y_found_groups,
+        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found_groups,
                 totalScanned, totalGroups, totalGroupItems)));
     }
 

@@ -5,10 +5,14 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.os.Environment;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import androidx.annotation.LayoutRes;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,8 +27,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 
+import pd.droidapp.fmgr.view.ButtonState;
 import pd.util.PathOps;
 
 public class Util {
@@ -188,5 +194,44 @@ public class Util {
             }
         }
         return false;
+    }
+
+    public static void renderButtonStates(List<ButtonState> buttonStates, ViewGroup containerView, @LayoutRes int layoutId, IntConsumer onButtonClicked) {
+        // remove unused
+        for (int i = containerView.getChildCount() - 1; i >= 0; i--) {
+            int id = containerView.getChildAt(i).getId();
+            boolean contains = false;
+            for (ButtonState buttonState : buttonStates) {
+                if (buttonState.id == id) {
+                    contains = true;
+                    break;
+                }
+            }
+            if (!contains) {
+                containerView.removeViewAt(i);
+            }
+        }
+
+        // add new and set status
+        for (ButtonState buttonState : buttonStates) {
+            ImageButton button = containerView.findViewById(buttonState.id);
+            if (button == null) {
+                button = (ImageButton) LayoutInflater.from(containerView.getContext())
+                        .inflate(layoutId, containerView, false);
+                button.setId(buttonState.id);
+                button.setImageResource(buttonState.drawableId);
+                if (onButtonClicked != null) {
+                    button.setOnClickListener(v -> onButtonClicked.accept(buttonState.id));
+                }
+                containerView.addView(button);
+            }
+            button.setVisibility(buttonState.visible ? View.VISIBLE : View.GONE);
+            button.setEnabled(buttonState.enabled);
+        }
+
+        // sort without detach
+        for (ButtonState buttonState : buttonStates) {
+            containerView.bringChildToFront(containerView.findViewById(buttonState.id));
+        }
     }
 }

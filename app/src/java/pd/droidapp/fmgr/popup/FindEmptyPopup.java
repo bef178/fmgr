@@ -12,10 +12,9 @@ import java.util.function.Consumer;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
-import pd.droidapp.fmgr.util.SelectionBar;
+import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
-import pd.droidapp.fmgr.view.StatusBar.IconState;
-import pd.droidapp.fmgr.view.StatusBar.State;
 
 public class FindEmptyPopup extends ProcessingPopup {
 
@@ -43,60 +42,60 @@ public class FindEmptyPopup extends ProcessingPopup {
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, true);
-        itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
-
-        titleBar.setTitle(R.string.find_empty);
 
         initSelectionBar();
         initItemsView();
-    }
 
-    private void renderSelectionBar() {
-        selectionBar.render(itemsAdapter.getSelectedCount());
+        titleBar.setTitle(R.string.find_empty);
     }
 
     private void initSelectionBar() {
-        selectionBar.addButton(R.layout.selection_button_jump, () -> itemsAdapter.getSelectedCount() == 1, v -> {
-            if (itemsAdapter.getSelectedCount() == 1) {
-                if (onJump != null) {
-                    onJump.accept(itemsAdapter.getSelectedItems().get(0).path);
+        selectionBar.whenButtonClicked(id -> {
+            if (id == R.drawable.baseline_arrow_forward_24) {
+                if (itemsAdapter.getSelectedCount() == 1) {
+                    if (onJump != null) {
+                        onJump.accept(itemsAdapter.getSelectedItems().get(0).path);
+                    }
+                    selfWindow.dismiss();
                 }
-                selfWindow.dismiss();
+            } else if (id == R.drawable.outline_delete_24) {
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
+                deletePopup.whenPopupDismissed((added, removed) -> {
+                    netRemoved.addAll(removed);
+                    itemsAdapter.remove(removed);
+                    itemsAdapter.deselect(removed);
+                });
+                deletePopup.show();
+            } else if (id == R.drawable.i_delete_up_24) {
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), true);
+                deletePopup.whenPopupDismissed((added, removed) -> {
+                    netRemoved.addAll(removed);
+                    itemsAdapter.remove(removed);
+                    itemsAdapter.deselect(removed);
+                });
+                deletePopup.show();
+            } else if (id == R.drawable.i_check_all_24) {
+                itemsAdapter.selectAll();
+                itemsAdapter.notifyDataSetChanged();
+            } else if (id == R.drawable.baseline_close_24) {
+                itemsAdapter.clearSelection();
+                itemsAdapter.notifyDataSetChanged();
             }
-        });
-
-        selectionBar.addButton(R.layout.selection_button_delete, () -> itemsAdapter.hasSelection(), v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
-            deletePopup.whenPopupDismissed((added, removed) -> {
-                netRemoved.addAll(removed);
-                itemsAdapter.remove(removed);
-                itemsAdapter.deselect(removed);
-            });
-            deletePopup.show();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_delete_and_prune, () -> itemsAdapter.hasSelection(), v -> {
-            DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), true);
-            deletePopup.whenPopupDismissed((added, removed) -> {
-                netRemoved.addAll(removed);
-                itemsAdapter.remove(removed);
-                itemsAdapter.deselect(removed);
-            });
-            deletePopup.show();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_select_all, () -> itemsAdapter.hasSelection(), v -> {
-            itemsAdapter.selectAll();
-            itemsAdapter.notifyDataSetChanged();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_select_clear, () -> itemsAdapter.hasSelection(), v -> {
-            itemsAdapter.clearSelection();
-            itemsAdapter.notifyDataSetChanged();
         });
     }
 
+    private void renderSelectionBar() {
+        int numSelected = itemsAdapter.getSelectedCount();
+        selectionBar.render(new SelectionBar.State(numSelected,
+                new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
+                new ButtonState(R.drawable.outline_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.i_delete_up_24, numSelected > 0),
+                new ButtonState(R.drawable.i_check_all_24, numSelected > 0),
+                new ButtonState(R.drawable.baseline_close_24, numSelected > 0)));
+    }
+
     private void initItemsView() {
+        itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
         itemsView.setLayoutManager(new LinearLayoutManager(context));
         itemsView.setAdapter(itemsAdapter);
     }
@@ -145,24 +144,24 @@ public class FindEmptyPopup extends ProcessingPopup {
     protected void onShow() {
         worker = new FindEmptyWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            renderStatusBar(IconState.RUNNING);
+            renderStatusBar(StatusBar.IconState.RUNNING);
         }));
         worker.whenUpdated((scanned, matched) -> containerView.post(() -> {
             totalScanned += scanned;
             itemsAdapter.append(matched);
-            renderStatusBar(IconState.RUNNING);
+            renderStatusBar(StatusBar.IconState.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
+            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
             updateButtons();
-            renderStatusBar(reason == StopReason.COMPLETED ? IconState.COMPLETED : IconState.STOPPED);
         }));
         worker.start(startDirectory);
 
         updateButtons();
     }
 
-    private void renderStatusBar(IconState iconState) {
-        statusBar.render(new State(iconState, context.getString(R.string.x_scanned_y_found,
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found,
                 totalScanned, itemsAdapter.getItemCount())));
     }
 }

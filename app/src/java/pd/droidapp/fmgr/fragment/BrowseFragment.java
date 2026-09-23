@@ -34,8 +34,6 @@ import java.util.Set;
 
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.view.BreadcrumbBar;
-import pd.droidapp.fmgr.view.BreadcrumbBar.State;
 import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.popup.FindDupPopup;
@@ -45,7 +43,9 @@ import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.FavStore;
 import pd.droidapp.fmgr.util.FileProperties;
-import pd.droidapp.fmgr.util.SelectionBar;
+import pd.droidapp.fmgr.view.BreadcrumbBar;
+import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.SelectionBar;
 import pd.util.FileOps;
 import pd.util.FileStat;
 import pd.util.PathOps;
@@ -110,34 +110,7 @@ public class BrowseFragment extends Fragment {
         itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
         itemsView.setAdapter(itemsAdapter);
 
-        selectionBar.addButton(R.layout.selection_button_rename, () -> itemsAdapter.getSelectedCount() == 1, v -> {
-            if (itemsAdapter.getSelectedCount() == 1) {
-                showRenamePopup(itemsAdapter.getSelectedItems().get(0).path);
-            }
-        });
-        selectionBar.addButton(R.layout.selection_button_copy, () -> itemsAdapter.hasSelection(), v -> {
-            List<FileProperties> items = itemsAdapter.getSelectedItems();
-            itemsAdapter.clearSelection();
-            itemsAdapter.invalidate(items);
-            showPastePopup(items, true);
-        });
-        selectionBar.addButton(R.layout.selection_button_cut, () -> itemsAdapter.hasSelection(), v -> {
-            List<FileProperties> items = itemsAdapter.getSelectedItems();
-            itemsAdapter.clearSelection();
-            itemsAdapter.invalidate(items);
-            showPastePopup(items, false);
-        });
-        selectionBar.addButton(R.layout.selection_button_delete, () -> itemsAdapter.hasSelection(), v -> showDeletePopup());
-
-        selectionBar.addButton(R.layout.selection_button_select_all, () -> itemsAdapter.hasSelection(), v -> {
-            itemsAdapter.selectAll();
-            itemsAdapter.notifyDataSetChanged();
-        });
-
-        selectionBar.addButton(R.layout.selection_button_select_clear, () -> itemsAdapter.hasSelection(), v -> {
-            itemsAdapter.clearSelection();
-            itemsAdapter.notifyDataSetChanged();
-        });
+        initSelectionBar();
 
         if (savedInstanceState != null) {
             restoreState(savedInstanceState);
@@ -148,14 +121,49 @@ public class BrowseFragment extends Fragment {
 
     private void refresh() {
         String currentDirectory = navigator.getCurrentDirectory();
-        breadcrumbBar.render(new State(currentDirectory, favStore.contains(currentDirectory)));
+        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favStore.contains(currentDirectory)));
         actionBar.invalidate();
         itemsAdapter.clearSelection();
         loadItems(currentDirectory);
     }
 
+    private void initSelectionBar() {
+        selectionBar.whenButtonClicked(id -> {
+            if (id == R.drawable.baseline_edit_24) {
+                if (itemsAdapter.getSelectedCount() == 1) {
+                    showRenamePopup(itemsAdapter.getSelectedItems().get(0).path);
+                }
+            } else if (id == R.drawable.baseline_content_copy_24) {
+                List<FileProperties> items = itemsAdapter.getSelectedItems();
+                itemsAdapter.clearSelection();
+                itemsAdapter.invalidate(items);
+                showPastePopup(items, true);
+            } else if (id == R.drawable.baseline_content_cut_24) {
+                List<FileProperties> items = itemsAdapter.getSelectedItems();
+                itemsAdapter.clearSelection();
+                itemsAdapter.invalidate(items);
+                showPastePopup(items, false);
+            } else if (id == R.drawable.outline_delete_24) {
+                showDeletePopup();
+            } else if (id == R.drawable.i_check_all_24) {
+                itemsAdapter.selectAll();
+                itemsAdapter.notifyDataSetChanged();
+            } else if (id == R.drawable.baseline_close_24) {
+                itemsAdapter.clearSelection();
+                itemsAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
     private void renderSelectionBar() {
-        selectionBar.render(itemsAdapter.getSelectedCount());
+        int numSelected = itemsAdapter.getSelectedCount();
+        selectionBar.render(new SelectionBar.State(numSelected,
+                new ButtonState(R.drawable.baseline_edit_24, numSelected == 1),
+                new ButtonState(R.drawable.baseline_content_copy_24, numSelected > 0),
+                new ButtonState(R.drawable.baseline_content_cut_24, numSelected > 0),
+                new ButtonState(R.drawable.outline_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.i_check_all_24, numSelected > 0),
+                new ButtonState(R.drawable.baseline_close_24, numSelected > 0)));
     }
 
     private void loadItems(String directory) {
@@ -295,7 +303,7 @@ public class BrowseFragment extends Fragment {
         } else {
             favStore.put(currentDirectory);
         }
-        breadcrumbBar.render(new State(currentDirectory, favStore.contains(currentDirectory)));
+        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favStore.contains(currentDirectory)));
     }
 
     private void openItem(String path) {
