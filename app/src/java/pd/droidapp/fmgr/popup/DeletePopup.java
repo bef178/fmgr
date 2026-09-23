@@ -49,7 +49,7 @@ public class DeletePopup extends ProcessingPopup {
         this.srcItems = new LinkedList<>(srcItems);
         this.prune = prune;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.outline_delete_24);
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.ic_delete_24);
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, false);
 

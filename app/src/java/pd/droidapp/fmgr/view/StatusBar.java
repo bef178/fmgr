@@ -84,7 +84,7 @@ public class StatusBar {
                 iconView.setImageResource(R.drawable.baseline_done_24);
                 break;
             case STOPPED:
-                iconView.setImageResource(R.drawable.baseline_close_24);
+                iconView.setImageResource(R.drawable.ic_close_24);
                 break;
             default:
                 iconView.setImageResource(initDrawableId);

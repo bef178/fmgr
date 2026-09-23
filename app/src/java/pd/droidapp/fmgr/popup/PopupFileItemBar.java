@@ -40,7 +40,7 @@ class PopupFileItemBar {
 
     public void setBadge(BadgeState badgeState) {
         if (badgeState == BadgeState.RUNNING) {
-            badgeProgressView.setBackgroundResource(R.drawable.ic_none_yellow_16);
+            badgeProgressView.setBackgroundResource(R.drawable.ic_none_orange_16);
             badgeProgressView.setVisibility(View.VISIBLE);
             badgeIconView.setVisibility(View.GONE);
             return;
@@ -53,7 +53,7 @@ class PopupFileItemBar {
                 badgeIconView.setVisibility(View.VISIBLE);
                 break;
             case STOPPED:
-                badgeIconView.setImageResource(R.drawable.ic_prohibition_yellow_16);
+                badgeIconView.setImageResource(R.drawable.ic_prohibition_orange_16);
                 badgeIconView.setVisibility(View.VISIBLE);
                 break;
             case DONE:

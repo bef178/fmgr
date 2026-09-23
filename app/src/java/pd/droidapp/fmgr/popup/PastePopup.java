@@ -72,8 +72,8 @@ public class PastePopup extends ProcessingPopup {
         this.srcItems = new LinkedList<>(srcItems);
 
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), isCopy
-                ? R.drawable.baseline_content_copy_24
-                : R.drawable.baseline_content_cut_24);
+                ? R.drawable.ic_copy_24
+                : R.drawable.ic_cut_24);
         targetDirectoryTextView = mainAreaView.findViewById(R.id.target_directory);
         targetDirectoryScrollView = mainAreaView.findViewById(R.id.target_directory_scroll);
         changeDirectoryButton = mainAreaView.findViewById(R.id.change_directory);

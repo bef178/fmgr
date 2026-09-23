@@ -148,15 +148,15 @@ public class SearchPopup extends ProcessingPopup {
                     }
                     selfWindow.dismiss();
                 }
-            } else if (id == R.drawable.baseline_content_copy_24) {
+            } else if (id == R.drawable.ic_copy_24) {
                 if (onCopy != null) {
                     onCopy.accept(itemsAdapter.getSelectedItems());
                 }
-            } else if (id == R.drawable.baseline_content_cut_24) {
+            } else if (id == R.drawable.ic_cut_24) {
                 if (onCut != null) {
                     onCut.accept(itemsAdapter.getSelectedItems());
                 }
-            } else if (id == R.drawable.outline_delete_24) {
+            } else if (id == R.drawable.ic_delete_24) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
@@ -164,10 +164,10 @@ public class SearchPopup extends ProcessingPopup {
                     itemsAdapter.deselect(removed);
                 });
                 deletePopup.show();
-            } else if (id == R.drawable.i_check_all_24) {
+            } else if (id == R.drawable.ic_check_all_24) {
                 itemsAdapter.selectAll();
                 itemsAdapter.notifyDataSetChanged();
-            } else if (id == R.drawable.baseline_close_24) {
+            } else if (id == R.drawable.ic_close_24) {
                 itemsAdapter.clearSelection();
                 itemsAdapter.notifyDataSetChanged();
             }
@@ -178,11 +178,11 @@ public class SearchPopup extends ProcessingPopup {
         int numSelected = itemsAdapter.getSelectedCount();
         selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
-                new ButtonState(R.drawable.baseline_content_copy_24, numSelected > 0),
-                new ButtonState(R.drawable.baseline_content_cut_24, numSelected > 0),
-                new ButtonState(R.drawable.outline_delete_24, numSelected > 0),
-                new ButtonState(R.drawable.i_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.baseline_close_24, numSelected > 0)));
+                new ButtonState(R.drawable.ic_copy_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_cut_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
     }
 
     private void initItemsView() {

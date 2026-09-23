@@ -51,7 +51,7 @@ public class FindDupPopup extends ProcessingPopup {
         super(containerView, R.layout.find_dup_popup);
         this.startDirectory = startDirectory;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.i_delete_copy_24);
+        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.ic_find_dup_24);
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         groupsView = mainAreaView.findViewById(R.id.popup_items_list);
         groupsAdapter = new PopupFileGroupsAdapter(startDirectory);
@@ -83,17 +83,17 @@ public class FindDupPopup extends ProcessingPopup {
                     }
                     selfWindow.dismiss();
                 }
-            } else if (id == R.drawable.baseline_content_copy_24) {
+            } else if (id == R.drawable.ic_copy_24) {
                 if (onCopy != null) {
                     onCopy.accept(groupsAdapter.getSelectedItems());
                 }
                 selfWindow.dismiss();
-            } else if (id == R.drawable.baseline_content_cut_24) {
+            } else if (id == R.drawable.ic_cut_24) {
                 if (onCut != null) {
                     onCut.accept(groupsAdapter.getSelectedItems());
                 }
                 selfWindow.dismiss();
-            } else if (id == R.drawable.outline_delete_24) {
+            } else if (id == R.drawable.ic_delete_24) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, groupsAdapter.getSelectedItems(), false);
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
@@ -111,11 +111,11 @@ public class FindDupPopup extends ProcessingPopup {
                     refreshGroups();
                 });
                 deletePopup.show();
-            } else if (id == R.drawable.i_check_all_24) {
+            } else if (id == R.drawable.ic_check_all_24) {
                 List<FileProperties> newlySelected = suggestToSelect();
                 groupsAdapter.select(newlySelected);
                 groupsAdapter.notifyDataSetChanged();
-            } else if (id == R.drawable.baseline_close_24) {
+            } else if (id == R.drawable.ic_close_24) {
                 groupsAdapter.clearSelection();
                 groupsAdapter.notifyDataSetChanged();
             }
@@ -126,11 +126,11 @@ public class FindDupPopup extends ProcessingPopup {
         int numSelected = groupsAdapter.getSelectedCount();
         selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
-                new ButtonState(R.drawable.baseline_content_copy_24, numSelected > 0),
-                new ButtonState(R.drawable.baseline_content_cut_24, numSelected > 0),
-                new ButtonState(R.drawable.outline_delete_24, numSelected > 0),
-                new ButtonState(R.drawable.i_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.baseline_close_24, numSelected > 0)));
+                new ButtonState(R.drawable.ic_copy_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_cut_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
     }
 
     private void initItemsView() {

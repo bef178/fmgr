@@ -152,7 +152,7 @@ public class FavoritesCollapsible {
                 }
             });
 
-            viewHolder.favIcon.setImageResource(R.drawable.round_star_24);
+            viewHolder.favIcon.setImageResource(R.drawable.ic_round_star_filled_24);
             viewHolder.favIcon.setOnClickListener(v -> {
                 if (onFavIconClickedListener != null) {
                     onFavIconClickedListener.accept(favItem);

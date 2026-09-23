@@ -97,8 +97,8 @@ public class BrowseFragment extends Fragment {
         actionBar.addPopupButton(R.drawable.i_directory_add_24, this::showCreateDirectoryPopup);
         actionBar.addPopupButton(R.drawable.i_file_add_24, this::showCreateFilePopup);
         actionBar.addPopupButton(R.drawable.baseline_search_24, this::showSearchPopup);
-        actionBar.addPopupButton(R.drawable.i_delete_empty_24, this::showFindEmptyPopup);
-        actionBar.addPopupButton(R.drawable.i_delete_copy_24, this::showFindDupPopup);
+        actionBar.addPopupButton(R.drawable.ic_find_empty_24, this::showFindEmptyPopup);
+        actionBar.addPopupButton(R.drawable.ic_find_dup_24, this::showFindDupPopup);
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
@@ -129,26 +129,26 @@ public class BrowseFragment extends Fragment {
 
     private void initSelectionBar() {
         selectionBar.whenButtonClicked(id -> {
-            if (id == R.drawable.baseline_edit_24) {
+            if (id == R.drawable.ic_edit_24) {
                 if (itemsAdapter.getSelectedCount() == 1) {
                     showRenamePopup(itemsAdapter.getSelectedItems().get(0).path);
                 }
-            } else if (id == R.drawable.baseline_content_copy_24) {
+            } else if (id == R.drawable.ic_copy_24) {
                 List<FileProperties> items = itemsAdapter.getSelectedItems();
                 itemsAdapter.clearSelection();
                 itemsAdapter.invalidate(items);
                 showPastePopup(items, true);
-            } else if (id == R.drawable.baseline_content_cut_24) {
+            } else if (id == R.drawable.ic_cut_24) {
                 List<FileProperties> items = itemsAdapter.getSelectedItems();
                 itemsAdapter.clearSelection();
                 itemsAdapter.invalidate(items);
                 showPastePopup(items, false);
-            } else if (id == R.drawable.outline_delete_24) {
+            } else if (id == R.drawable.ic_delete_24) {
                 showDeletePopup();
-            } else if (id == R.drawable.i_check_all_24) {
+            } else if (id == R.drawable.ic_check_all_24) {
                 itemsAdapter.selectAll();
                 itemsAdapter.notifyDataSetChanged();
-            } else if (id == R.drawable.baseline_close_24) {
+            } else if (id == R.drawable.ic_close_24) {
                 itemsAdapter.clearSelection();
                 itemsAdapter.notifyDataSetChanged();
             }
@@ -158,12 +158,12 @@ public class BrowseFragment extends Fragment {
     private void renderSelectionBar() {
         int numSelected = itemsAdapter.getSelectedCount();
         selectionBar.render(new SelectionBar.State(numSelected,
-                new ButtonState(R.drawable.baseline_edit_24, numSelected == 1),
-                new ButtonState(R.drawable.baseline_content_copy_24, numSelected > 0),
-                new ButtonState(R.drawable.baseline_content_cut_24, numSelected > 0),
-                new ButtonState(R.drawable.outline_delete_24, numSelected > 0),
-                new ButtonState(R.drawable.i_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.baseline_close_24, numSelected > 0)));
+                new ButtonState(R.drawable.ic_edit_24, numSelected == 1),
+                new ButtonState(R.drawable.ic_copy_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_cut_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
     }
 
     private void loadItems(String directory) {

@@ -36,7 +36,7 @@
                 android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:scaleType="fitCenter"
-                android:src="@drawable/baseline_edit_24"
+                android:src="@drawable/ic_edit_24"
                 tools:ignore="ContentDescription" />
 
         </LinearLayout>
@@ -57,7 +57,7 @@
         android:layout_height="16dp"
         android:layout_marginEnd="4dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/round_star_24"
+        android:src="@drawable/ic_round_star_filled_24"
         tools:ignore="ContentDescription" />
 
 </LinearLayout>
