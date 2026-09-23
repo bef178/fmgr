@@ -16,9 +16,10 @@ import java.util.Map;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
-import pd.droidapp.fmgr.popup.StatusBar.IconState;
-import pd.droidapp.fmgr.popup.StatusBar.State;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.view.StatusBar;
+import pd.droidapp.fmgr.view.StatusBar.IconState;
+import pd.droidapp.fmgr.view.StatusBar.State;
 
 import static pd.droidapp.fmgr.popup.PopupFileItemBar.BadgeState;
 import static pd.droidapp.fmgr.util.Util.scrollToIndex;

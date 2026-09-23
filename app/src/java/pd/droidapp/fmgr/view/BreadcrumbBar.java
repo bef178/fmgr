@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.fragment;
+package pd.droidapp.fmgr.view;
 
 import android.content.Context;
 import android.os.Environment;

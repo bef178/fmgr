@@ -34,7 +34,8 @@ import java.util.Set;
 
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.fragment.BreadcrumbBar.State;
+import pd.droidapp.fmgr.view.BreadcrumbBar;
+import pd.droidapp.fmgr.view.BreadcrumbBar.State;
 import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.popup.FindDupPopup;

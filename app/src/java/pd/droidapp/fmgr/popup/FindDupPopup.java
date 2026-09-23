@@ -16,10 +16,11 @@ import java.util.function.Consumer;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
-import pd.droidapp.fmgr.popup.StatusBar.IconState;
-import pd.droidapp.fmgr.popup.StatusBar.State;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.SelectionBar;
+import pd.droidapp.fmgr.view.StatusBar;
+import pd.droidapp.fmgr.view.StatusBar.IconState;
+import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
