@@ -61,7 +61,8 @@ public class SearchPopup extends ProcessingPopup {
         searchEdit = mainAreaView.findViewById(R.id.search_edit);
         searchEditClearButton = mainAreaView.findViewById(R.id.search_edit_clear);
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemsAdapter(startDirectory, selectionBar);
+        itemsAdapter = new PopupFileItemsAdapter(startDirectory, true);
+        itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
 
         titleBar.setTitle(R.string.search);
 
@@ -139,9 +140,13 @@ public class SearchPopup extends ProcessingPopup {
         });
     }
 
+    private void renderSelectionBar() {
+        selectionBar.render(itemsAdapter.getSelectedCount());
+    }
+
     private void initSelectionBar() {
-        selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
-            if (selectionBar.size() == 1) {
+        selectionBar.addButton(R.layout.selection_button_jump, () -> itemsAdapter.getSelectedCount() == 1, v -> {
+            if (itemsAdapter.getSelectedCount() == 1) {
                 if (onJump != null) {
                     onJump.accept(itemsAdapter.getSelectedItems().get(0).path);
                 }
@@ -149,39 +154,35 @@ public class SearchPopup extends ProcessingPopup {
             }
         });
 
-        selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_copy, () -> itemsAdapter.hasSelection(), v -> {
             if (onCopy != null) {
                 onCopy.accept(itemsAdapter.getSelectedItems());
             }
         });
 
-        selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_cut, () -> itemsAdapter.hasSelection(), v -> {
             if (onCut != null) {
                 onCut.accept(itemsAdapter.getSelectedItems());
             }
         });
 
-        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_delete, () -> itemsAdapter.hasSelection(), v -> {
             DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
                 itemsAdapter.remove(removed);
-                selectionBar.removeProps(removed);
-                selectionBar.invalidate();
+                itemsAdapter.deselect(removed);
             });
             deletePopup.show();
         });
 
-        selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
-            selectionBar.clear();
-            selectionBar.addProps(itemsAdapter.getItems());
-            selectionBar.invalidate();
+        selectionBar.addButton(R.layout.selection_button_select_all, () -> itemsAdapter.hasSelection(), v -> {
+            itemsAdapter.selectAll();
             itemsAdapter.notifyDataSetChanged();
         });
 
-        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
-            selectionBar.clear();
-            selectionBar.invalidate();
+        selectionBar.addButton(R.layout.selection_button_select_clear, () -> itemsAdapter.hasSelection(), v -> {
+            itemsAdapter.clearSelection();
             itemsAdapter.notifyDataSetChanged();
         });
     }
@@ -254,8 +255,7 @@ public class SearchPopup extends ProcessingPopup {
             worker = null;
         }
         totalScanned = 0;
-        selectionBar.clear();
-        selectionBar.invalidate();
+        itemsAdapter.clearSelection();
         itemsAdapter.clear();
 
         if (!query.isEmpty()) {

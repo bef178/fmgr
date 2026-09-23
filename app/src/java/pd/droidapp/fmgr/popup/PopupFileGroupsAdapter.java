@@ -12,14 +12,16 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
-import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.animateCollapsed;
@@ -28,14 +30,19 @@ import static pd.droidapp.fmgr.util.Util.getSizeString;
 class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter.FileGroupViewHolder> {
 
     private final String startDirectory;
-    private final SelectionBar selectionBar;
     private final List<PopupFileGroup> groups = new ArrayList<>();
+    private final Set<String> selectedPaths = new LinkedHashSet<>();
     private final Map<String, Boolean> collapsedStates = new HashMap<>();
     private int[] startIndexes = new int[0];
 
-    public PopupFileGroupsAdapter(String startDirectory, SelectionBar selectionBar) {
+    private Runnable onSelectionChanged;
+
+    public PopupFileGroupsAdapter(String startDirectory) {
         this.startDirectory = startDirectory;
-        this.selectionBar = selectionBar;
+    }
+
+    public void whenSelectionChanged(Runnable onSelectionChanged) {
+        this.onSelectionChanged = onSelectionChanged;
     }
 
     public void set(List<PopupFileGroup> newGroups) {
@@ -87,16 +94,53 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
         return groups;
     }
 
+    public int getSelectedCount() {
+        return selectedPaths.size();
+    }
+
+    public boolean hasSelection() {
+        return !selectedPaths.isEmpty();
+    }
+
+    public boolean isSelected(FileProperties item) {
+        return selectedPaths.contains(item.path);
+    }
+
+    public void select(Collection<FileProperties> toSelect) {
+        for (FileProperties item : toSelect) {
+            selectedPaths.add(item.path);
+        }
+        notifySelectionChanged();
+    }
+
+    public void clearSelection() {
+        selectedPaths.clear();
+        notifySelectionChanged();
+    }
+
+    public void deselect(Collection<FileProperties> toDeselect) {
+        for (FileProperties item : toDeselect) {
+            selectedPaths.remove(item.path);
+        }
+        notifySelectionChanged();
+    }
+
     public List<FileProperties> getSelectedItems() {
         List<FileProperties> selected = new LinkedList<>();
         for (PopupFileGroup group : groups) {
             for (FileProperties item : group.getItems()) {
-                if (selectionBar.hasSelected(item)) {
+                if (isSelected(item)) {
                     selected.add(item);
                 }
             }
         }
         return selected;
+    }
+
+    private void notifySelectionChanged() {
+        if (onSelectionChanged != null) {
+            onSelectionChanged.run();
+        }
     }
 
     @NonNull
@@ -145,10 +189,10 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
             itemBar.forwardPathViewClicksTo(fileView);
             itemBar.setIcon(R.drawable.i_file_24);
             itemBar.setPath(PathOps.singleton.relativize(startDirectory, item.path));
-            itemBar.setSelected(selectionBar.hasSelected(item));
+            itemBar.setSelected(isSelected(item));
 
             fileView.setOnClickListener(v -> {
-                if (!selectionBar.isEmpty()) {
+                if (hasSelection()) {
                     toggleSelected(item, position);
                 }
             });
@@ -167,9 +211,13 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
     }
 
     private void toggleSelected(FileProperties item, int position) {
-        selectionBar.toggleSelected(item);
+        if (isSelected(item)) {
+            selectedPaths.remove(item.path);
+        } else {
+            selectedPaths.add(item.path);
+        }
         notifyItemChanged(position);
-        selectionBar.invalidate();
+        notifySelectionChanged();
     }
 
     @Override

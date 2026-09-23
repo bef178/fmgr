@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,6 @@ import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
-import pd.droidapp.fmgr.util.SelectionBar;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;
@@ -36,7 +36,6 @@ import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHolder> {
 
-    private final SelectionBar selectionBar;
     private final Comparator<FileProperties> itemComparator = (p1, p2) -> {
         if (p1.isDirectory != p2.isDirectory) {
             return p1.isDirectory ? -1 : 1;
@@ -45,14 +44,15 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
     };
 
     private final List<FileProperties> items = new LinkedList<>();
+    private final Set<String> selectedPaths = new LinkedHashSet<>();
     private final Progressor<String> progressor = new Progressor<>();
     private final PropertiesLoader propertiesLoader;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private Consumer<String> onItemClicked;
+    private Runnable onSelectionChanged;
 
-    FileItemsAdapter(SelectionBar selectionBar) {
-        this.selectionBar = selectionBar;
+    FileItemsAdapter() {
         propertiesLoader = new PropertiesLoader();
         propertiesLoader.whenUpdated(updated -> handler.post(() -> {
             Set<FileProperties> updatedSet = new HashSet<>(updated);
@@ -66,6 +66,10 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
 
     public void whenItemClicked(Consumer<String> onItemClicked) {
         this.onItemClicked = onItemClicked;
+    }
+
+    public void whenSelectionChanged(Runnable onSelectionChanged) {
+        this.onSelectionChanged = onSelectionChanged;
     }
 
     public void set(Collection<FileProperties> newItems) {
@@ -204,14 +208,61 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         });
     }
 
+    public int getSelectedCount() {
+        return selectedPaths.size();
+    }
+
+    public boolean hasSelection() {
+        return !selectedPaths.isEmpty();
+    }
+
+    public Collection<String> getSelectedPaths() {
+        return selectedPaths;
+    }
+
+    private boolean isSelected(FileProperties item) {
+        return selectedPaths.contains(item.path);
+    }
+
+    public void select(Collection<String> paths) {
+        selectedPaths.addAll(paths);
+        notifySelectionChanged();
+    }
+
+    public void selectAll() {
+        selectedPaths.clear();
+        for (FileProperties item : items) {
+            selectedPaths.add(item.path);
+        }
+        notifySelectionChanged();
+    }
+
+    public void clearSelection() {
+        selectedPaths.clear();
+        notifySelectionChanged();
+    }
+
+    public void deselect(Collection<FileProperties> toDeselect) {
+        for (FileProperties item : toDeselect) {
+            selectedPaths.remove(item.path);
+        }
+        notifySelectionChanged();
+    }
+
     public List<FileProperties> getSelectedItems() {
         List<FileProperties> selected = new LinkedList<>();
         for (FileProperties item : items) {
-            if (selectionBar.hasSelected(item)) {
+            if (isSelected(item)) {
                 selected.add(item);
             }
         }
         return selected;
+    }
+
+    private void notifySelectionChanged() {
+        if (onSelectionChanged != null) {
+            onSelectionChanged.run();
+        }
     }
 
     public void cancel() {
@@ -236,7 +287,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         viewHolder.detailsTextView.setText(getItemDetailsString(item, viewHolder.itemView.getContext()));
         viewHolder.detailsTextView.setVisibility(View.VISIBLE);
 
-        if (selectionBar.hasSelected(item)) {
+        if (isSelected(item)) {
             viewHolder.selectedIconImageView.setVisibility(View.VISIBLE);
         } else {
             viewHolder.selectedIconImageView.setVisibility(View.GONE);
@@ -245,7 +296,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         applyHighlightEffect(viewHolder.highlightView, progressor.getVelocity(item.path));
 
         viewHolder.itemView.setOnClickListener(v -> {
-            if (!selectionBar.isEmpty()) {
+            if (hasSelection()) {
                 toggleSelected(item);
                 return;
             }
@@ -316,8 +367,12 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
     }
 
     private void toggleSelected(FileProperties item) {
-        selectionBar.toggleSelected(item);
-        selectionBar.invalidate();
+        if (isSelected(item)) {
+            selectedPaths.remove(item.path);
+        } else {
+            selectedPaths.add(item.path);
+        }
+        notifySelectionChanged();
         for (int i = 0; i < items.size(); i++) {
             if (items.get(i).path.equals(item.path)) {
                 notifyItemChanged(i);

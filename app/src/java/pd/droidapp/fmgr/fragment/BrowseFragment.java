@@ -101,44 +101,40 @@ public class BrowseFragment extends Fragment {
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
-        itemsAdapter = new FileItemsAdapter(selectionBar);
+        itemsAdapter = new FileItemsAdapter();
         itemsAdapter.whenItemClicked(this::openItem);
+        itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
 
         itemsView = view.findViewById(R.id.items_list);
         itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
         itemsView.setAdapter(itemsAdapter);
 
-        selectionBar.addButton(R.layout.selection_button_rename, c -> c == 1, v -> {
-            if (selectionBar.size() == 1) {
-                showRenamePopup(selectionBar.getFirst());
+        selectionBar.addButton(R.layout.selection_button_rename, () -> itemsAdapter.getSelectedCount() == 1, v -> {
+            if (itemsAdapter.getSelectedCount() == 1) {
+                showRenamePopup(itemsAdapter.getSelectedItems().get(0).path);
             }
         });
-        selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_copy, () -> itemsAdapter.hasSelection(), v -> {
             List<FileProperties> items = itemsAdapter.getSelectedItems();
-            selectionBar.clear();
-            selectionBar.invalidate();
+            itemsAdapter.clearSelection();
             itemsAdapter.invalidate(items);
             showPastePopup(items, true);
         });
-        selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_cut, () -> itemsAdapter.hasSelection(), v -> {
             List<FileProperties> items = itemsAdapter.getSelectedItems();
-            selectionBar.clear();
-            selectionBar.invalidate();
+            itemsAdapter.clearSelection();
             itemsAdapter.invalidate(items);
             showPastePopup(items, false);
         });
-        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> showDeletePopup());
+        selectionBar.addButton(R.layout.selection_button_delete, () -> itemsAdapter.hasSelection(), v -> showDeletePopup());
 
-        selectionBar.addButton(R.layout.selection_button_select_all, c -> c > 0, v -> {
-            selectionBar.clear();
-            selectionBar.addProps(itemsAdapter.getItems());
-            selectionBar.invalidate();
+        selectionBar.addButton(R.layout.selection_button_select_all, () -> itemsAdapter.hasSelection(), v -> {
+            itemsAdapter.selectAll();
             itemsAdapter.notifyDataSetChanged();
         });
 
-        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
-            selectionBar.clear();
-            selectionBar.invalidate();
+        selectionBar.addButton(R.layout.selection_button_select_clear, () -> itemsAdapter.hasSelection(), v -> {
+            itemsAdapter.clearSelection();
             itemsAdapter.notifyDataSetChanged();
         });
 
@@ -153,9 +149,12 @@ public class BrowseFragment extends Fragment {
         String currentDirectory = navigator.getCurrentDirectory();
         breadcrumbBar.render(new State(currentDirectory, favStore.contains(currentDirectory)));
         actionBar.invalidate();
-        selectionBar.clear();
-        selectionBar.invalidate();
+        itemsAdapter.clearSelection();
         loadItems(currentDirectory);
+    }
+
+    private void renderSelectionBar() {
+        selectionBar.render(itemsAdapter.getSelectedCount());
     }
 
     private void loadItems(String directory) {
@@ -182,8 +181,7 @@ public class BrowseFragment extends Fragment {
 
         List<String> savedSelectedItems = (List<String>) savedInstanceState.getSerializable(STATE_SELECTED_ITEMS);
         if (savedSelectedItems != null) {
-            selectionBar.add(savedSelectedItems);
-            selectionBar.invalidate();
+            itemsAdapter.select(savedSelectedItems);
             itemsAdapter.invalidate(itemsAdapter.getSelectedItems());
         }
 
@@ -194,7 +192,7 @@ public class BrowseFragment extends Fragment {
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putSerializable(STATE_NAVIGATOR, navigator);
-        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectionBar.getAll()));
+        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(itemsAdapter.getSelectedPaths()));
     }
 
     @Override
@@ -473,8 +471,7 @@ public class BrowseFragment extends Fragment {
                 newName -> {
                     newName = newName.trim();
                     if (newName.isEmpty() || newName.equals(currentName) || renameItem(path, newName)) {
-                        selectionBar.clear();
-                        selectionBar.invalidate();
+                        itemsAdapter.clearSelection();
                         return true;
                     }
                     return false;
@@ -581,7 +578,6 @@ public class BrowseFragment extends Fragment {
     private void onPopupDismissed(Collection<FileProperties> added, Collection<FileProperties> removed) {
         String currentDirectory = navigator.getCurrentDirectory();
         if (!added.isEmpty()) {
-            selectionBar.invalidate();
             Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, added, explicit, implicit);
@@ -589,8 +585,7 @@ public class BrowseFragment extends Fragment {
             itemsAdapter.loadProperties(implicit);
         }
         if (!removed.isEmpty()) {
-            selectionBar.removeProps(removed);
-            selectionBar.invalidate();
+            itemsAdapter.deselect(removed);
             Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, removed, explicit, implicit);

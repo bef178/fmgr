@@ -54,7 +54,8 @@ public class FindDupPopup extends ProcessingPopup {
         statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.i_delete_copy_24);
         selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
         groupsView = mainAreaView.findViewById(R.id.popup_items_list);
-        groupsAdapter = new PopupFileGroupsAdapter(startDirectory, selectionBar);
+        groupsAdapter = new PopupFileGroupsAdapter(startDirectory);
+        groupsAdapter.whenSelectionChanged(this::renderSelectionBar);
 
         titleBar.setTitle(R.string.find_duplicate);
 
@@ -74,9 +75,13 @@ public class FindDupPopup extends ProcessingPopup {
         buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
     }
 
+    private void renderSelectionBar() {
+        selectionBar.render(groupsAdapter.getSelectedCount());
+    }
+
     private void initSelectionBar() {
-        selectionBar.addButton(R.layout.selection_button_jump, c -> c == 1, v -> {
-            if (selectionBar.size() == 1) {
+        selectionBar.addButton(R.layout.selection_button_jump, () -> groupsAdapter.getSelectedCount() == 1, v -> {
+            if (groupsAdapter.getSelectedCount() == 1) {
                 if (onJump != null) {
                     onJump.accept(groupsAdapter.getSelectedItems().get(0).path);
                 }
@@ -84,25 +89,25 @@ public class FindDupPopup extends ProcessingPopup {
             }
         });
 
-        selectionBar.addButton(R.layout.selection_button_copy, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_copy, () -> groupsAdapter.hasSelection(), v -> {
             if (onCopy != null) {
                 onCopy.accept(groupsAdapter.getSelectedItems());
             }
             selfWindow.dismiss();
         });
 
-        selectionBar.addButton(R.layout.selection_button_cut, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_cut, () -> groupsAdapter.hasSelection(), v -> {
             if (onCut != null) {
                 onCut.accept(groupsAdapter.getSelectedItems());
             }
             selfWindow.dismiss();
         });
 
-        selectionBar.addButton(R.layout.selection_button_delete, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_delete, () -> groupsAdapter.hasSelection(), v -> {
             DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, groupsAdapter.getSelectedItems(), false);
             deletePopup.whenPopupDismissed((added, removed) -> {
                 netRemoved.addAll(removed);
-                selectionBar.removeProps(removed);
+                groupsAdapter.deselect(removed);
                 for (FileProperties item : removed) {
                     FileProperties props = byPath.remove(item.path);
                     if (props == null) {
@@ -118,16 +123,14 @@ public class FindDupPopup extends ProcessingPopup {
             deletePopup.show();
         });
 
-        selectionBar.addButton(R.layout.selection_button_smart_select, c -> c > 0, v -> {
+        selectionBar.addButton(R.layout.selection_button_smart_select, () -> groupsAdapter.hasSelection(), v -> {
             List<FileProperties> newlySelected = suggestToSelect();
-            selectionBar.addProps(newlySelected);
-            selectionBar.invalidate();
+            groupsAdapter.select(newlySelected);
             groupsAdapter.notifyDataSetChanged();
         });
 
-        selectionBar.addButton(R.layout.selection_button_select_clear, c -> c > 0, v -> {
-            selectionBar.clear();
-            selectionBar.invalidate();
+        selectionBar.addButton(R.layout.selection_button_select_clear, () -> groupsAdapter.hasSelection(), v -> {
+            groupsAdapter.clearSelection();
             groupsAdapter.notifyDataSetChanged();
         });
     }
@@ -187,7 +190,6 @@ public class FindDupPopup extends ProcessingPopup {
         worker.whenStarted(() -> containerView.post(() -> {
             statusBarIconState = IconState.RUNNING;
             renderStatusBar(statusBarIconState);
-            selectionBar.invalidate();
         }));
         worker.whenUpdated((scanned, completed) -> containerView.post(() -> {
             totalScanned += scanned;
@@ -214,7 +216,6 @@ public class FindDupPopup extends ProcessingPopup {
 
     private void refreshGroups() {
         groupsAdapter.set(buildFileGroups());
-        selectionBar.invalidate();
         renderStatusBar(statusBarIconState);
     }
 
@@ -256,7 +257,7 @@ public class FindDupPopup extends ProcessingPopup {
             List<FileProperties> items = group.getItems();
             List<FileProperties> unselected = new LinkedList<>();
             for (FileProperties item : items) {
-                if (!selectionBar.hasSelected(item)) {
+                if (!groupsAdapter.isSelected(item)) {
                     unselected.add(item);
                 }
             }

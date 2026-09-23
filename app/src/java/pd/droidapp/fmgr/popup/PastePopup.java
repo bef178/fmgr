@@ -81,7 +81,7 @@ public class PastePopup extends ProcessingPopup {
         resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
         mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
         itemsView = mainAreaView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemsAdapter(PathOps.singleton.dirname(this.srcItems.get(0).path), null);
+        itemsAdapter = new PopupFileItemsAdapter(PathOps.singleton.dirname(this.srcItems.get(0).path), false);
 
         titleBar.setTitle(isCopy ? R.string.copy : R.string.cut);
 
