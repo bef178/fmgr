@@ -40,7 +40,7 @@ import pd.droidapp.fmgr.popup.FindDupPopup;
 import pd.droidapp.fmgr.popup.FindEmptyPopup;
 import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
-import pd.droidapp.fmgr.util.FavStore;
+import pd.droidapp.fmgr.util.FavoritesStore;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ActionBar;
 import pd.droidapp.fmgr.view.BreadcrumbBar;
@@ -54,7 +54,7 @@ import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
 public class BrowseFragment extends Fragment {
 
-    private FavStore favStore;
+    private FavoritesStore favoritesStore;
     private BreadcrumbBar breadcrumbBar;
     private ActionBar actionBar;
     private SelectionBar selectionBar;
@@ -81,7 +81,7 @@ public class BrowseFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
-        favStore = new FavStore(requireContext());
+        favoritesStore = new FavoritesStore(requireContext());
         breadcrumbBar = new BreadcrumbBar(view.findViewById(R.id.breadcrumb_bar));
         breadcrumbBar.whenBreadcrumbClicked(this::navigateToDirectory);
         breadcrumbBar.whenFavIconClicked(this::toggleFavorite);
@@ -142,7 +142,7 @@ public class BrowseFragment extends Fragment {
 
     private void renderBreadcrumbBar() {
         String currentDirectory = navigator.getCurrentDirectory();
-        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favStore.contains(currentDirectory)));
+        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
     }
 
     private void renderActionBar() {
@@ -332,12 +332,12 @@ public class BrowseFragment extends Fragment {
             return;
         }
 
-        if (favStore.contains(currentDirectory)) {
-            favStore.remove(currentDirectory);
+        if (favoritesStore.contains(currentDirectory)) {
+            favoritesStore.remove(currentDirectory);
         } else {
-            favStore.put(currentDirectory);
+            favoritesStore.put(currentDirectory);
         }
-        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favStore.contains(currentDirectory)));
+        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
     }
 
     private void openItem(String path) {

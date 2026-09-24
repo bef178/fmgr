@@ -3,6 +3,8 @@ package pd.droidapp.fmgr.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import androidx.annotation.NonNull;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -10,14 +12,18 @@ import java.util.stream.Collectors;
 import pd.util.PathOps;
 
 // TODO save to sqlite
-public class FavStore {
+public class FavoritesStore {
 
     private static final String PREFS_FAV = "favorites";
     private static final String PREFS_ITEM_PREFIX = "fav_item_";
 
+    public static String getDefaultName(String path) {
+        return PathOps.singleton.basename(path);
+    }
+
     private final SharedPreferences sharedPreferences;
 
-    public FavStore(Context context) {
+    public FavoritesStore(Context context) {
         sharedPreferences = context.getSharedPreferences(PREFS_FAV, Context.MODE_PRIVATE);
     }
 
@@ -32,6 +38,14 @@ public class FavStore {
         return sharedPreferences.contains(buildPrefsKey(path));
     }
 
+    public FavItem get(String path) {
+        String name = sharedPreferences.getString(buildPrefsKey(path), null);
+        if (name == null) {
+            return null;
+        }
+        return new FavItem(path, name);
+    }
+
     public List<FavItem> getAll() {
         return sharedPreferences.getAll().entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith(PREFS_ITEM_PREFIX))
@@ -43,17 +57,16 @@ public class FavStore {
     }
 
     public void put(String path) {
-        put(new FavItem(path));
+        put(path, null);
     }
 
-    public void put(FavItem favItem) {
+    public void put(String path, String name) {
+        if (name == null || name.isEmpty()) {
+            name = getDefaultName(path);
+        }
         sharedPreferences.edit()
-                .putString(buildPrefsKey(favItem.path), favItem.getDisplayName())
+                .putString(buildPrefsKey(path), name)
                 .apply();
-    }
-
-    public void remove(FavItem favItem) {
-        remove(favItem.path);
     }
 
     public void remove(String path) {
@@ -64,34 +77,11 @@ public class FavStore {
 
         public final String path;
 
-        private String displayName;
+        public final String name;
 
-        FavItem(String path) {
-            this(path, null);
-        }
-
-        FavItem(String path, String displayName) {
+        FavItem(@NonNull String path, @NonNull String name) {
             this.path = path;
-            this.displayName = displayName;
-        }
-
-        public String getDisplayName() {
-            if (displayName == null || displayName.isEmpty()) {
-                return getDefaultName();
-            }
-            return displayName;
-        }
-
-        public void setDisplayName(String displayName) {
-            if (displayName != null && !displayName.isEmpty()) {
-                this.displayName = displayName;
-            } else {
-                this.displayName = null;
-            }
-        }
-
-        public String getDefaultName() {
-            return PathOps.singleton.basename(path);
+            this.name = name;
         }
     }
 }
