@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.util.ActionBar.ActionButton;
 
 public class PopupButtonBar {
 
@@ -38,6 +37,19 @@ public class PopupButtonBar {
         for (ActionButton action : actionButtons) {
             action.view.setVisibility(action.visible.getAsBoolean() ? View.VISIBLE : View.GONE);
             action.view.setEnabled(action.enabled.getAsBoolean());
+        }
+    }
+
+    private static class ActionButton {
+
+        public final View view;
+        public final BooleanSupplier visible;
+        public final BooleanSupplier enabled;
+
+        public ActionButton(View view, BooleanSupplier visible, BooleanSupplier enabled) {
+            this.view = view;
+            this.visible = visible;
+            this.enabled = enabled;
         }
     }
 }

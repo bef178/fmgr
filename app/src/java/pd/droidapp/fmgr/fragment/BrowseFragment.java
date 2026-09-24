@@ -40,9 +40,9 @@ import pd.droidapp.fmgr.popup.FindDupPopup;
 import pd.droidapp.fmgr.popup.FindEmptyPopup;
 import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
-import pd.droidapp.fmgr.util.ActionBar;
 import pd.droidapp.fmgr.util.FavStore;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.view.ActionBar;
 import pd.droidapp.fmgr.view.BreadcrumbBar;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.SelectionBar;
@@ -90,15 +90,27 @@ public class BrowseFragment extends Fragment {
         homeButton.setOnClickListener(v -> navigateToHome());
 
         actionBar = new ActionBar(view.findViewById(R.id.action_bar));
-        actionBar.addButton(R.drawable.action_back, () -> navigator.canGoBack(), this::navigateBack);
-        actionBar.addButton(R.drawable.action_forward, () -> navigator.canGoForward(), this::navigateForward);
-        actionBar.addButton(R.drawable.action_up, () -> navigator.canGoUp(), this::navigateUp);
-        actionBar.addButton(R.drawable.baseline_refresh_24, () -> true, this::refresh);
-        actionBar.addPopupButton(R.drawable.i_directory_add_24, this::showCreateDirectoryPopup);
-        actionBar.addPopupButton(R.drawable.i_file_add_24, this::showCreateFilePopup);
-        actionBar.addPopupButton(R.drawable.baseline_search_24, this::showSearchPopup);
-        actionBar.addPopupButton(R.drawable.ic_find_empty_24, this::showFindEmptyPopup);
-        actionBar.addPopupButton(R.drawable.ic_find_dup_24, this::showFindDupPopup);
+        actionBar.whenButtonClicked(id -> {
+            if (id == R.drawable.action_back) {
+                navigateBack();
+            } else if (id == R.drawable.action_forward) {
+                navigateForward();
+            } else if (id == R.drawable.action_up) {
+                navigateUp();
+            } else if (id == R.drawable.baseline_refresh_24) {
+                refresh();
+            } else if (id == R.drawable.i_directory_add_24) {
+                showCreateDirectoryPopup();
+            } else if (id == R.drawable.i_file_add_24) {
+                showCreateFilePopup();
+            } else if (id == R.drawable.baseline_search_24) {
+                showSearchPopup();
+            } else if (id == R.drawable.ic_find_empty_24) {
+                showFindEmptyPopup();
+            } else if (id == R.drawable.ic_find_dup_24) {
+                showFindDupPopup();
+            }
+        });
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
@@ -116,15 +128,32 @@ public class BrowseFragment extends Fragment {
             restoreState(savedInstanceState);
         }
 
+        renderActionBar();
+
         return view;
     }
 
     private void refresh() {
         String currentDirectory = navigator.getCurrentDirectory();
         breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favStore.contains(currentDirectory)));
-        actionBar.invalidate();
+        renderActionBar();
         itemsAdapter.clearSelection();
         loadItems(currentDirectory);
+    }
+
+    private void renderActionBar() {
+        actionBar.render(new ActionBar.State(
+                new ButtonState[] {
+                        new ButtonState(R.drawable.action_back, true, navigator.canGoBack()),
+                        new ButtonState(R.drawable.action_forward, true, navigator.canGoForward()),
+                        new ButtonState(R.drawable.action_up, true, navigator.canGoUp()),
+                        new ButtonState(R.drawable.baseline_refresh_24),
+                },
+                new ButtonState(R.drawable.i_directory_add_24),
+                new ButtonState(R.drawable.i_file_add_24),
+                new ButtonState(R.drawable.baseline_search_24),
+                new ButtonState(R.drawable.ic_find_empty_24),
+                new ButtonState(R.drawable.ic_find_dup_24)));
     }
 
     private void initSelectionBar() {
@@ -193,8 +222,6 @@ public class BrowseFragment extends Fragment {
             itemsAdapter.select(savedSelectedItems);
             itemsAdapter.invalidate(itemsAdapter.getSelectedItems());
         }
-
-        actionBar.invalidate();
     }
 
     @Override
@@ -269,7 +296,7 @@ public class BrowseFragment extends Fragment {
 
     public boolean navigateBack() {
         if (!navigator.goBack()) {
-            actionBar.invalidate();
+            renderActionBar();
             return false;
         }
         refresh();
@@ -278,7 +305,7 @@ public class BrowseFragment extends Fragment {
 
     private void navigateForward() {
         if (!navigator.goForward()) {
-            actionBar.invalidate();
+            renderActionBar();
             return;
         }
         refresh();
@@ -286,7 +313,7 @@ public class BrowseFragment extends Fragment {
 
     private void navigateUp() {
         if (!navigator.goUp()) {
-            actionBar.invalidate();
+            renderActionBar();
             return;
         }
         refresh();

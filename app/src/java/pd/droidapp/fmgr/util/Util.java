@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -194,6 +195,12 @@ public class Util {
             }
         }
         return false;
+    }
+
+    public static <T> List<T> listOf(T[] elements) {
+        return elements == null || elements.length == 0
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(Arrays.asList(elements));
     }
 
     public static void renderButtonStates(List<ButtonState> buttonStates, ViewGroup containerView, @LayoutRes int layoutId, IntConsumer onButtonClicked) {

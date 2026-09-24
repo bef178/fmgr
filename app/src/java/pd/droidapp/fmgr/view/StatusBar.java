@@ -7,14 +7,13 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.DrawableRes;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.IntConsumer;
 
 import pd.droidapp.fmgr.R;
 
+import static pd.droidapp.fmgr.util.Util.listOf;
 import static pd.droidapp.fmgr.util.Util.renderButtonStates;
 
 public class StatusBar {
@@ -105,9 +104,7 @@ public class StatusBar {
         public State(IconState iconState, String text, ButtonState... buttonStates) {
             this.iconState = iconState;
             this.text = text;
-            this.buttonStates = buttonStates == null || buttonStates.length == 0
-                    ? Collections.emptyList()
-                    : Collections.unmodifiableList(Arrays.asList(buttonStates));
+            this.buttonStates = listOf(buttonStates);
         }
     }
 

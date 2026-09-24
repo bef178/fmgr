@@ -4,14 +4,13 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.IntConsumer;
 
 import pd.droidapp.fmgr.R;
 
+import static pd.droidapp.fmgr.util.Util.listOf;
 import static pd.droidapp.fmgr.util.Util.renderButtonStates;
 
 public class SelectionBar {
@@ -70,9 +69,7 @@ public class SelectionBar {
 
         public State(int numSelected, ButtonState... buttonStates) {
             this.numSelected = numSelected;
-            this.buttonStates = buttonStates == null || buttonStates.length == 0
-                    ? Collections.emptyList()
-                    : Collections.unmodifiableList(Arrays.asList(buttonStates));
+            this.buttonStates = listOf(buttonStates);
         }
     }
 }
