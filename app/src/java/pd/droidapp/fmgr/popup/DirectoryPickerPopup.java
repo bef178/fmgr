@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.FileOps;
@@ -54,7 +55,7 @@ public class DirectoryPickerPopup extends ProcessingPopup {
         itemsAdapter = new DirectoryAdapter();
 
         // init views
-        titleBar.setTitle(R.string.select_directory);
+        titleBar.render(new PopupTitleBar.State(context.getString(R.string.select_directory)));
         bottomBar.addButton(R.string.select, () -> true, () -> true, v -> {
             if (onDirectorySelected != null) {
                 onDirectorySelected.accept(targetDirectory);

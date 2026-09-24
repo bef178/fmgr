@@ -46,7 +46,6 @@
                 android:layout_height="32dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:scaleType="fitCenter"
-                android:src="@drawable/action_close"
                 tools:ignore="ContentDescription" />
 
         </LinearLayout>

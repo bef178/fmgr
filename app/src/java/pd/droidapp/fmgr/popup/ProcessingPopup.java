@@ -13,6 +13,7 @@ import android.widget.PopupWindow;
 import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.view.PopupTitleBar;
 
 public abstract class ProcessingPopup {
 
@@ -47,9 +48,10 @@ public abstract class ProcessingPopup {
                     return;
                 }
                 dismissing = true;
-                titleBar.enableCloseButton(false);
+                renderTitleBar();
                 onDismissing(() -> selfView.post(() -> {
                     dismissing = false;
+                    renderTitleBar();
                     super.dismiss();
                 }));
             }
@@ -59,8 +61,16 @@ public abstract class ProcessingPopup {
         inflateContent();
     }
 
+    private void renderTitleBar() {
+        PopupTitleBar.State currentState = titleBar.getState();
+        if (currentState != null) {
+            titleBar.render(currentState.copyWithButtonEnabled(!dismissing));
+        }
+    }
+
     protected void initPopup() {
-        titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
+        titleBar.whenCloseButtonClicked(selfWindow::dismiss);
+
         selfView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View v) {

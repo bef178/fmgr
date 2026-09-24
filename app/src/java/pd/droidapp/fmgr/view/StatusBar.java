@@ -50,12 +50,12 @@ public class StatusBar {
         State oldState = this.state;
         this.state = state;
 
-        if (oldState == null || !Objects.equals(oldState.text, state.text)) {
-            textView.setText(state.text);
-        }
-
         if (oldState == null || oldState.iconState != state.iconState) {
             renderIconState(state.iconState);
+        }
+
+        if (oldState == null || !Objects.equals(oldState.text, state.text)) {
+            textView.setText(state.text);
         }
 
         if (oldState == null || !Objects.equals(oldState.buttonStates, state.buttonStates)) {

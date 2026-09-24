@@ -20,6 +20,7 @@ import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.util.FileOps;
@@ -58,7 +59,7 @@ public class FindDupPopup extends ProcessingPopup {
         groupsView = contentView.findViewById(R.id.popup_items_list);
         groupsAdapter = new PopupFileGroupsAdapter(startDirectory);
 
-        titleBar.setTitle(R.string.find_duplicate);
+        titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_duplicate)));
         bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
             if (worker != null) {
                 worker.cancel();

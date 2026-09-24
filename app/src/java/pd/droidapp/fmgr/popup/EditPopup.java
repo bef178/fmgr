@@ -16,6 +16,7 @@ import android.widget.FrameLayout;
 import java.util.function.Predicate;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.view.PopupTitleBar;
 
 public class EditPopup extends ProcessingPopup {
 
@@ -32,7 +33,7 @@ public class EditPopup extends ProcessingPopup {
         textEditView.setText(text);
         textEditView.setHint(hintText);
 
-        titleBar.setTitle(title);
+        titleBar.render(new PopupTitleBar.State(title));
         bottomBar.addButton(R.string.ok, () -> true, () -> true, v -> confirm());
 
         initTextEdit();

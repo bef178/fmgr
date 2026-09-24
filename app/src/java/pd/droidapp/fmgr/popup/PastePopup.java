@@ -29,6 +29,7 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.PathOps;
@@ -86,7 +87,7 @@ public class PastePopup extends ProcessingPopup {
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(PathOps.singleton.dirname(this.srcItems.get(0).path), false);
 
-        titleBar.setTitle(isCopy ? R.string.copy : R.string.cut);
+        titleBar.render(new PopupTitleBar.State(context.getString(isCopy ? R.string.copy : R.string.cut)));
         bottomBar.addButton(R.string.paste, () -> worker == null, () -> true, v -> start());
         bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
         bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
