@@ -29,6 +29,8 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
@@ -87,12 +89,19 @@ public class PastePopup extends ProcessingPopup {
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(PathOps.singleton.dirname(this.srcItems.get(0).path), false);
 
-        titleBar.render(new PopupTitleBar.State(context.getString(isCopy ? R.string.copy : R.string.cut)));
-        bottomBar.addButton(R.string.paste, () -> worker == null, () -> true, v -> start());
-        bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
-        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
+        bottomBar.whenButtonClicked(id -> {
+            if (id == R.string.paste) {
+                start();
+            } else if (id == R.string.abort) {
+                if (worker != null) {
+                    worker.cancel();
+                }
+                renderBottomBar();
+            } else if (id == R.string.close) {
+                selfWindow.dismiss();
+            }
+        });
 
-        renderStatusBar(StatusBar.IconState.IDLE);
         initPasteOptions();
         initItemsView();
     }
@@ -108,20 +117,6 @@ public class PastePopup extends ProcessingPopup {
         contentParams.weight = 1;
         contentView.setLayoutParams(contentParams);
         LayoutInflater.from(context).inflate(R.layout.paste_popup_content, contentView, true);
-    }
-
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        if (iconState == StatusBar.IconState.IDLE) {
-            statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
-            return;
-        }
-        statusBar.render(new State(iconState, context.getString(R.string.paste_progress_summary,
-                Math.min(totalProcessed + 1, srcItems.size()),
-                srcItems.size(),
-                totalAdded,
-                totalRemoved,
-                totalMoved,
-                totalFailed)));
     }
 
     private void initPasteOptions() {
@@ -205,11 +200,6 @@ public class PastePopup extends ProcessingPopup {
     }
 
     @Override
-    protected boolean isProcessing() {
-        return worker != null && worker.isWorking();
-    }
-
-    @Override
     protected void onDismissing(Runnable continueDismiss) {
         if (worker != null) {
             worker.cancel();
@@ -228,10 +218,38 @@ public class PastePopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
+        titleBar.render(new PopupTitleBar.State(context.getString(isCopy ? R.string.copy : R.string.cut)));
+        renderStatusBar(StatusBar.IconState.IDLE);
+        renderBottomBar();
+
         itemsAdapter.append(this.srcItems);
         for (int i = 0; i < srcItems.size(); i++) {
             itemsAdapter.setItemBadge(i, BadgeState.SELECTED);
         }
+    }
+
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        if (iconState == StatusBar.IconState.IDLE) {
+            statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
+            return;
+        }
+        statusBar.render(new State(iconState, context.getString(R.string.paste_progress_summary,
+                Math.min(totalProcessed + 1, srcItems.size()),
+                srcItems.size(),
+                totalAdded,
+                totalRemoved,
+                totalMoved,
+                totalFailed)));
+    }
+
+    private void renderBottomBar() {
+        boolean isProcessing = worker != null && worker.isWorking();
+        bottomBar.render(new PopupBottomBar.State(
+                ButtonState.ofText(R.string.paste, context.getString(R.string.paste), worker == null),
+                ButtonState.ofText(R.string.abort, context.getString(R.string.abort),
+                        isProcessing, isProcessing && !worker.isCancelled()),
+                ButtonState.ofText(R.string.close, context.getString(R.string.close),
+                        worker != null && !worker.isWorking())));
     }
 
     private void start() {
@@ -318,7 +336,7 @@ public class PastePopup extends ProcessingPopup {
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
             renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
-            updateButtons();
+            renderBottomBar();
         }));
         if (isCopy) {
             worker.startCopy(srcItems, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
@@ -326,7 +344,7 @@ public class PastePopup extends ProcessingPopup {
             worker.startCut(srcItems, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
         }
 
-        updateButtons();
+        renderBottomBar();
     }
 
     private LayoutTransition createResolutionCollapseTransition(CharSequence summary) {
@@ -359,13 +377,6 @@ public class PastePopup extends ProcessingPopup {
         } else {
             return ConflictResolution.SKIP_INCOMING;
         }
-    }
-
-    private void abort() {
-        if (worker != null) {
-            worker.cancel();
-        }
-        updateButtons();
     }
 
     private void scrollToCurrentIfFollowing(int current) {

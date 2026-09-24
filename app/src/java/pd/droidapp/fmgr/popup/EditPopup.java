@@ -16,10 +16,13 @@ import android.widget.FrameLayout;
 import java.util.function.Predicate;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 
 public class EditPopup extends ProcessingPopup {
 
+    private final String title;
     private final Predicate<String> onConfirm;
 
     // views
@@ -27,14 +30,18 @@ public class EditPopup extends ProcessingPopup {
 
     public EditPopup(View containerView, String title, String text, String hintText, Predicate<String> onConfirm) {
         super(containerView);
+        this.title = title;
         this.onConfirm = onConfirm;
 
         textEditView = contentView.findViewById(R.id.popup_edit);
         textEditView.setText(text);
         textEditView.setHint(hintText);
 
-        titleBar.render(new PopupTitleBar.State(title));
-        bottomBar.addButton(R.string.ok, () -> true, () -> true, v -> confirm());
+        bottomBar.whenButtonClicked(id -> {
+            if (id == R.string.ok) {
+                start();
+            }
+        });
 
         initTextEdit();
         trackKeyboardHeight();
@@ -63,7 +70,7 @@ public class EditPopup extends ProcessingPopup {
                 if (imm != null) {
                     imm.hideSoftInputFromWindow(textEditView.getWindowToken(), 0);
                 }
-                confirm();
+                start();
                 return true;
             }
             return false;
@@ -91,11 +98,6 @@ public class EditPopup extends ProcessingPopup {
     }
 
     @Override
-    protected boolean isProcessing() {
-        return false;
-    }
-
-    @Override
     protected void onDismissing(Runnable continueDismiss) {
         continueDismiss.run();
     }
@@ -106,6 +108,9 @@ public class EditPopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
+        titleBar.render(new PopupTitleBar.State(title));
+        bottomBar.render(new PopupBottomBar.State(ButtonState.ofText(R.string.ok, context.getString(R.string.ok))));
+
         textEditView.requestFocus();
         textEditView.selectAll();
         textEditView.postDelayed(() -> {
@@ -116,7 +121,7 @@ public class EditPopup extends ProcessingPopup {
         }, 300);
     }
 
-    private void confirm() {
+    private void start() {
         if (onConfirm.test(textEditView.getText().toString())) {
             selfWindow.dismiss();
         }

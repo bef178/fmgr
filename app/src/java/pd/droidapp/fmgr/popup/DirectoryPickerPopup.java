@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
@@ -55,12 +56,13 @@ public class DirectoryPickerPopup extends ProcessingPopup {
         itemsAdapter = new DirectoryAdapter();
 
         // init views
-        titleBar.render(new PopupTitleBar.State(context.getString(R.string.select_directory)));
-        bottomBar.addButton(R.string.select, () -> true, () -> true, v -> {
-            if (onDirectorySelected != null) {
-                onDirectorySelected.accept(targetDirectory);
+        bottomBar.whenButtonClicked(id -> {
+            if (id == R.string.select) {
+                if (onDirectorySelected != null) {
+                    onDirectorySelected.accept(targetDirectory);
+                }
+                selfWindow.dismiss();
             }
-            selfWindow.dismiss();
         });
         initStatusBar();
         initItemsView();
@@ -117,11 +119,6 @@ public class DirectoryPickerPopup extends ProcessingPopup {
     }
 
     @Override
-    protected boolean isProcessing() {
-        return false;
-    }
-
-    @Override
     protected void onDismissing(Runnable continueDismiss) {
         continueDismiss.run();
     }
@@ -132,6 +129,9 @@ public class DirectoryPickerPopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
+        titleBar.render(new PopupTitleBar.State(context.getString(R.string.select_directory)));
+        bottomBar.render(new PopupBottomBar.State(ButtonState.ofText(R.string.select, context.getString(R.string.select))));
+
         changeDirectory(targetDirectory);
     }
 

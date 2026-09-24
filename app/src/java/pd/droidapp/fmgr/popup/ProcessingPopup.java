@@ -13,6 +13,7 @@ import android.widget.PopupWindow;
 import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 
 public abstract class ProcessingPopup {
@@ -25,7 +26,7 @@ public abstract class ProcessingPopup {
     protected final LinearLayout areaView;
     protected final PopupTitleBar titleBar;
     protected final LinearLayout contentView;
-    protected final PopupButtonBar bottomBar;
+    protected final PopupBottomBar bottomBar;
     protected final PopupWindow selfWindow;
 
     // guard
@@ -39,7 +40,7 @@ public abstract class ProcessingPopup {
         areaView = selfView.findViewById(R.id.popup_area);
         titleBar = new PopupTitleBar(areaView.findViewById(R.id.popup_title_bar));
         contentView = areaView.findViewById(R.id.popup_content);
-        bottomBar = new PopupButtonBar(areaView.findViewById(R.id.popup_bottom_bar));
+        bottomBar = new PopupBottomBar(areaView.findViewById(R.id.popup_bottom_bar));
 
         selfWindow = new PopupWindow(selfView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, true) {
             @Override
@@ -71,17 +72,6 @@ public abstract class ProcessingPopup {
     protected void initPopup() {
         titleBar.whenCloseButtonClicked(selfWindow::dismiss);
 
-        selfView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override
-            public void onViewAttachedToWindow(View v) {
-                updateButtons();
-            }
-
-            @Override
-            public void onViewDetachedFromWindow(View v) {
-            }
-        });
-
         selfWindow.setOutsideTouchable(false);
         selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         selfWindow.setElevation(24);
@@ -89,12 +79,6 @@ public abstract class ProcessingPopup {
     }
 
     protected abstract void inflateContent();
-
-    protected final void updateButtons() {
-        bottomBar.invalidate();
-    }
-
-    protected abstract boolean isProcessing();
 
     protected abstract void onDismissing(Runnable continueDismiss);
 

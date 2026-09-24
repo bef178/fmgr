@@ -20,6 +20,7 @@ import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
@@ -59,14 +60,16 @@ public class FindDupPopup extends ProcessingPopup {
         groupsView = contentView.findViewById(R.id.popup_items_list);
         groupsAdapter = new PopupFileGroupsAdapter(startDirectory);
 
-        titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_duplicate)));
-        bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
-            if (worker != null) {
-                worker.cancel();
+        bottomBar.whenButtonClicked(id -> {
+            if (id == R.string.abort) {
+                if (worker != null) {
+                    worker.cancel();
+                }
+                renderBottomBar();
+            } else if (id == R.string.close) {
+                selfWindow.dismiss();
             }
-            updateButtons();
         });
-        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
 
         initSelectionBar();
         initItemsView();
@@ -158,11 +161,6 @@ public class FindDupPopup extends ProcessingPopup {
     }
 
     @Override
-    protected boolean isProcessing() {
-        return worker != null && worker.isWorking();
-    }
-
-    @Override
     protected void onDismissing(Runnable continueDismiss) {
         if (worker != null) {
             worker.cancel();
@@ -179,10 +177,37 @@ public class FindDupPopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
-        doScan();
+        titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_duplicate)));
+        renderStatusBar(statusBarIconState);
+        renderBottomBar();
+
+        start();
     }
 
-    private void doScan() {
+    // derive the group totals from byChecksum
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        int totalGroups = 0;
+        int totalGroupItems = 0;
+        for (List<FileProperties> group : byChecksum.values()) {
+            if (group.size() > 1) {
+                totalGroups++;
+                totalGroupItems += group.size();
+            }
+        }
+        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found_groups,
+                totalScanned, totalGroups, totalGroupItems)));
+    }
+
+    private void renderBottomBar() {
+        boolean isProcessing = worker != null && worker.isWorking();
+        bottomBar.render(new PopupBottomBar.State(
+                ButtonState.ofText(R.string.abort, context.getString(R.string.abort),
+                        isProcessing, isProcessing && !worker.isCancelled()),
+                ButtonState.ofText(R.string.close, context.getString(R.string.close),
+                        worker != null && !worker.isWorking())));
+    }
+
+    private void start() {
         worker = new FindDupWorker();
         totalScanned = 0;
         byChecksum.clear();
@@ -209,29 +234,15 @@ public class FindDupPopup extends ProcessingPopup {
         worker.whenStopped(reason -> containerView.post(() -> {
             statusBarIconState = reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED;
             renderStatusBar(statusBarIconState);
-            updateButtons();
+            renderBottomBar();
         }));
         worker.start(startDirectory);
-        updateButtons();
+        renderBottomBar();
     }
 
     private void refreshGroups() {
         groupsAdapter.set(buildFileGroups());
         renderStatusBar(statusBarIconState);
-    }
-
-    // derive the group totals from byChecksum
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        int totalGroups = 0;
-        int totalGroupItems = 0;
-        for (List<FileProperties> group : byChecksum.values()) {
-            if (group.size() > 1) {
-                totalGroups++;
-                totalGroupItems += group.size();
-            }
-        }
-        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found_groups,
-                totalScanned, totalGroups, totalGroupItems)));
     }
 
     private List<PopupFileGroup> buildFileGroups() {

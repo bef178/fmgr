@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 import androidx.annotation.LayoutRes;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -221,12 +222,16 @@ public class Util {
 
         // add new and set status
         for (ButtonState buttonState : buttonStates) {
-            ImageButton button = containerView.findViewById(buttonState.id);
+            View button = containerView.findViewById(buttonState.id);
             if (button == null) {
-                button = (ImageButton) LayoutInflater.from(containerView.getContext())
+                button = LayoutInflater.from(containerView.getContext())
                         .inflate(layoutId, containerView, false);
                 button.setId(buttonState.id);
-                button.setImageResource(buttonState.drawableId);
+                if (button instanceof TextView) {
+                    ((TextView) button).setText(buttonState.text);
+                } else {
+                    ((ImageButton) button).setImageResource(buttonState.drawableId);
+                }
                 if (onButtonClicked != null) {
                     button.setOnClickListener(v -> onButtonClicked.accept(buttonState.id));
                 }

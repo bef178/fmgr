@@ -20,6 +20,8 @@ import java.util.Map;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
@@ -57,12 +59,19 @@ public class DeletePopup extends ProcessingPopup {
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, false);
 
-        titleBar.render(new PopupTitleBar.State(context.getString(R.string.delete)));
-        bottomBar.addButton(R.string.delete, () -> worker == null, () -> true, v -> start());
-        bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
-        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
+        bottomBar.whenButtonClicked(id -> {
+            if (id == R.string.delete) {
+                start();
+            } else if (id == R.string.abort) {
+                if (worker != null) {
+                    worker.cancel();
+                }
+                renderBottomBar();
+            } else if (id == R.string.close) {
+                selfWindow.dismiss();
+            }
+        });
 
-        renderStatusBar(StatusBar.IconState.IDLE);
         initItemsView();
     }
 
@@ -77,18 +86,6 @@ public class DeletePopup extends ProcessingPopup {
         contentParams.weight = 1;
         contentView.setLayoutParams(contentParams);
         LayoutInflater.from(context).inflate(R.layout.delete_popup_content, contentView, true);
-    }
-
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        if (iconState == StatusBar.IconState.IDLE) {
-            statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
-            return;
-        }
-        statusBar.render(new State(iconState, context.getString(R.string.delete_progress_summary,
-                Math.min(totalProgressed + 1, srcItems.size()),
-                srcItems.size(),
-                totalRemoved,
-                totalFailed)));
     }
 
     private void initItemsView() {
@@ -132,11 +129,6 @@ public class DeletePopup extends ProcessingPopup {
     }
 
     @Override
-    protected boolean isProcessing() {
-        return worker != null && worker.isWorking();
-    }
-
-    @Override
     protected void onDismissing(Runnable continueDismiss) {
         if (worker != null) {
             worker.cancel();
@@ -155,10 +147,36 @@ public class DeletePopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
+        titleBar.render(new PopupTitleBar.State(context.getString(R.string.delete)));
+        renderStatusBar(StatusBar.IconState.IDLE);
+        renderBottomBar();
+
         itemsAdapter.append(this.srcItems);
         for (int i = 0; i < srcItems.size(); i++) {
             itemsAdapter.setItemBadge(i, BadgeState.SELECTED);
         }
+    }
+
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        if (iconState == StatusBar.IconState.IDLE) {
+            statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
+            return;
+        }
+        statusBar.render(new State(iconState, context.getString(R.string.delete_progress_summary,
+                Math.min(totalProgressed + 1, srcItems.size()),
+                srcItems.size(),
+                totalRemoved,
+                totalFailed)));
+    }
+
+    private void renderBottomBar() {
+        boolean isProcessing = worker != null && worker.isWorking();
+        bottomBar.render(new PopupBottomBar.State(
+                ButtonState.ofText(R.string.delete, context.getString(R.string.delete), worker == null),
+                ButtonState.ofText(R.string.abort, context.getString(R.string.abort),
+                        isProcessing, isProcessing && !worker.isCancelled()),
+                ButtonState.ofText(R.string.close, context.getString(R.string.close),
+                        worker != null && !worker.isWorking())));
     }
 
     private void start() {
@@ -207,18 +225,11 @@ public class DeletePopup extends ProcessingPopup {
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
             renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
-            updateButtons();
+            renderBottomBar();
         }));
         worker.start(srcItems, prune);
 
-        updateButtons();
-    }
-
-    private void abort() {
-        if (worker != null) {
-            worker.cancel();
-        }
-        updateButtons();
+        renderBottomBar();
     }
 
     private void scrollToCurrentIfFollowing(int current) {

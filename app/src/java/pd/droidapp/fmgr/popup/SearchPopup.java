@@ -25,6 +25,7 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
@@ -66,17 +67,18 @@ public class SearchPopup extends ProcessingPopup {
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, true);
 
-        titleBar.render(new PopupTitleBar.State(context.getString(R.string.search)));
-        bottomBar.addButton(R.string.abort, () -> worker == null || isProcessing(), () -> isProcessing() && !worker.isCancelled(), v -> {
-            if (worker != null) {
-                worker.cancel();
+        bottomBar.whenButtonClicked(id -> {
+            if (id == R.string.abort) {
+                if (worker != null) {
+                    worker.cancel();
+                }
+                renderBottomBar();
+            } else if (id == R.string.close) {
+                selfWindow.dismiss();
             }
-            updateButtons();
         });
-        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
 
         initSearchEdit();
-        renderStatusBar(StatusBar.IconState.IDLE);
         initSelectionBar();
         initItemsView();
     }
@@ -110,22 +112,22 @@ public class SearchPopup extends ProcessingPopup {
             @Override
             public void afterTextChanged(Editable s) {
                 searchEditClearButton.setEnabled(!s.toString().isEmpty());
-                updateButtons();
-                handler.removeCallbacks(SearchPopup.this::doSearch);
-                handler.postDelayed(SearchPopup.this::doSearch, SEARCH_START_DELAY_IN_MILLISECONDS);
+                renderBottomBar();
+                handler.removeCallbacks(SearchPopup.this::start);
+                handler.postDelayed(SearchPopup.this::start, SEARCH_START_DELAY_IN_MILLISECONDS);
             }
         });
 
         searchEditClearButton.setOnClickListener(v -> {
             searchEdit.setText("");
-            handler.removeCallbacks(SearchPopup.this::doSearch);
-            doSearch();
+            handler.removeCallbacks(SearchPopup.this::start);
+            start();
         });
 
         searchEdit.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                handler.removeCallbacks(SearchPopup.this::doSearch);
-                doSearch();
+                handler.removeCallbacks(SearchPopup.this::start);
+                start();
                 InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (imm != null) {
                     imm.hideSoftInputFromWindow(searchEdit.getWindowToken(), 0);
@@ -134,16 +136,6 @@ public class SearchPopup extends ProcessingPopup {
             }
             return false;
         });
-    }
-
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        if (iconState == StatusBar.IconState.IDLE) {
-            statusBar.render(new StatusBar.State(iconState, context.getString(R.string.status_find_and_grep)));
-            return;
-        }
-        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found,
-                totalScanned,
-                itemsAdapter.getItemCount())));
     }
 
     private void initSelectionBar() {
@@ -210,13 +202,8 @@ public class SearchPopup extends ProcessingPopup {
     }
 
     @Override
-    protected boolean isProcessing() {
-        return worker != null && worker.isWorking();
-    }
-
-    @Override
     protected void onDismissing(Runnable continueDismiss) {
-        handler.removeCallbacks(this::doSearch);
+        handler.removeCallbacks(this::start);
         if (worker != null) {
             worker.cancel();
             worker = null; // late callbacks are dropped by the guards
@@ -233,6 +220,10 @@ public class SearchPopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
+        titleBar.render(new PopupTitleBar.State(context.getString(R.string.search)));
+        renderStatusBar(StatusBar.IconState.IDLE);
+        renderBottomBar();
+
         searchEdit.requestFocus();
         searchEditClearButton.setEnabled(false);
         searchEdit.postDelayed(() -> {
@@ -243,7 +234,26 @@ public class SearchPopup extends ProcessingPopup {
         }, 300);
     }
 
-    private void doSearch() {
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        if (iconState == StatusBar.IconState.IDLE) {
+            statusBar.render(new StatusBar.State(iconState, context.getString(R.string.status_find_and_grep)));
+            return;
+        }
+        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found,
+                totalScanned,
+                itemsAdapter.getItemCount())));
+    }
+
+    private void renderBottomBar() {
+        boolean isProcessing = worker != null && worker.isWorking();
+        bottomBar.render(new PopupBottomBar.State(
+                ButtonState.ofText(R.string.abort, context.getString(R.string.abort),
+                        worker == null || isProcessing, isProcessing && !worker.isCancelled()),
+                ButtonState.ofText(R.string.close, context.getString(R.string.close),
+                        worker != null && !worker.isWorking())));
+    }
+
+    private void start() {
         String query = searchEdit.getText().toString();
         if (query.equals(lastQuery)) {
             return;
@@ -264,7 +274,7 @@ public class SearchPopup extends ProcessingPopup {
         } else {
             renderStatusBar(StatusBar.IconState.IDLE);
         }
-        updateButtons();
+        renderBottomBar();
     }
 
     private SearchWorker createAndStartSearcher(String startDirectory, String query) {
@@ -287,7 +297,7 @@ public class SearchPopup extends ProcessingPopup {
             if (worker != current) {
                 return;
             }
-            updateButtons();
+            renderBottomBar();
             renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
         }));
         if (current.start(startDirectory, query)) {

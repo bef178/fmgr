@@ -15,6 +15,7 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
@@ -46,14 +47,16 @@ public class FindEmptyPopup extends ProcessingPopup {
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, true);
 
-        titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_empty)));
-        bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
-            if (worker != null) {
-                worker.cancel();
+        bottomBar.whenButtonClicked(id -> {
+            if (id == R.string.abort) {
+                if (worker != null) {
+                    worker.cancel();
+                }
+                renderBottomBar();
+            } else if (id == R.string.close) {
+                selfWindow.dismiss();
             }
-            updateButtons();
         });
-        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
 
         initSelectionBar();
         initItemsView();
@@ -123,11 +126,6 @@ public class FindEmptyPopup extends ProcessingPopup {
     }
 
     @Override
-    protected boolean isProcessing() {
-        return worker != null && worker.isWorking();
-    }
-
-    @Override
     protected void onDismissing(Runnable continueDismiss) {
         if (worker != null) {
             worker.cancel();
@@ -144,6 +142,28 @@ public class FindEmptyPopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
+        titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_empty)));
+        renderStatusBar(StatusBar.IconState.IDLE);
+        renderBottomBar();
+
+        start();
+    }
+
+    private void renderStatusBar(StatusBar.IconState iconState) {
+        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found,
+                totalScanned, itemsAdapter.getItemCount())));
+    }
+
+    private void renderBottomBar() {
+        boolean isProcessing = worker != null && worker.isWorking();
+        bottomBar.render(new PopupBottomBar.State(
+                ButtonState.ofText(R.string.abort, context.getString(R.string.abort),
+                        isProcessing, isProcessing && !worker.isCancelled()),
+                ButtonState.ofText(R.string.close, context.getString(R.string.close),
+                        worker != null && !worker.isWorking())));
+    }
+
+    private void start() {
         worker = new FindEmptyWorker();
         worker.whenStarted(() -> containerView.post(() -> {
             renderStatusBar(StatusBar.IconState.RUNNING);
@@ -155,15 +175,10 @@ public class FindEmptyPopup extends ProcessingPopup {
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
             renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
-            updateButtons();
+            renderBottomBar();
         }));
         worker.start(startDirectory);
 
-        updateButtons();
-    }
-
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found,
-                totalScanned, itemsAdapter.getItemCount())));
+        renderBottomBar();
     }
 }
