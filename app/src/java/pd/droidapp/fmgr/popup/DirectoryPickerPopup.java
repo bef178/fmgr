@@ -4,6 +4,8 @@ import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
@@ -32,6 +34,8 @@ public class DirectoryPickerPopup extends ProcessingPopup {
 
     private static final String CAPPING_DIRECTORY = Environment.getExternalStorageDirectory().getPath();
 
+    private String targetDirectory;
+
     // views
     private final StatusBar statusBar;
     private final RecyclerView itemsView;
@@ -40,65 +44,60 @@ public class DirectoryPickerPopup extends ProcessingPopup {
     // callbacks
     private Consumer<String> onDirectorySelected;
 
-    private String targetDirectory;
-
     public DirectoryPickerPopup(View containerView, String startDirectory) {
-        super(containerView, R.layout.directory_picker_popup);
+        super(containerView);
         targetDirectory = startDirectory;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.i_directory_24);
-        itemsView = mainAreaView.findViewById(R.id.popup_items_list);
+        // find views
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.i_directory_24);
+        itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new DirectoryAdapter();
 
+        // init views
         titleBar.setTitle(R.string.select_directory);
-
-        initStatusBar();
-        initItemsView();
-    }
-
-    @Override
-    protected void initPopupButtons() {
-        super.initPopupButtons();
-        buttonBar.addButton(R.string.select, () -> true, () -> true, v -> {
+        bottomBar.addButton(R.string.select, () -> true, () -> true, v -> {
             if (onDirectorySelected != null) {
                 onDirectorySelected.accept(targetDirectory);
             }
             selfWindow.dismiss();
         });
+        initStatusBar();
+        initItemsView();
+    }
+
+    @Override
+    protected void inflateContent() {
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
+        params.height = context.getResources().getDimensionPixelSize(R.dimen.directory_picker_popup_height);
+        areaView.setLayoutParams(params);
+
+        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
+        contentParams.height = 0;
+        contentParams.weight = 1;
+        contentView.setLayoutParams(contentParams);
+        LayoutInflater.from(context).inflate(R.layout.directory_picker_popup_content, contentView, true);
     }
 
     private void initStatusBar() {
         statusBar.whenButtonClicked(id -> {
             if (id == R.drawable.action_up) {
-                goUp();
+                changeDirectory(PathOps.singleton.dirname(targetDirectory));
             }
         });
     }
 
-    private boolean canGoUp() {
-        return !CAPPING_DIRECTORY.equals(targetDirectory)
-                && !PathOps.singleton.dirname(targetDirectory).equals(targetDirectory);
-    }
-
-    private void goUp() {
-        changeDirectory(PathOps.singleton.dirname(targetDirectory));
-    }
-
     private void initItemsView() {
-        itemsView.setLayoutManager(new LinearLayoutManager(context));
         itemsAdapter.setOnItemClicked(this::changeDirectory);
+        itemsView.setLayoutManager(new LinearLayoutManager(context));
         itemsView.setAdapter(itemsAdapter);
-    }
-
-    public void whenDirectorySelected(Consumer<String> onDirectorySelected) {
-        this.onDirectorySelected = onDirectorySelected;
     }
 
     private void changeDirectory(String directory) {
         targetDirectory = directory;
         statusBar.render(new State(StatusBar.IconState.IDLE,
                 getDisplayPath(directory),
-                new ButtonState(R.drawable.action_up, true, canGoUp())));
+                new ButtonState(R.drawable.action_up, true, !CAPPING_DIRECTORY.equals(targetDirectory)
+                        && !PathOps.singleton.dirname(targetDirectory).equals(targetDirectory))));
 
         List<String> paths = new LinkedList<>();
         FileOps.singleton.listDirectory(directory, 1, false, null,
@@ -110,6 +109,10 @@ public class DirectoryPickerPopup extends ProcessingPopup {
         itemsAdapter.set(toFileProperties(paths).stream()
                 .filter(item -> item.isDirectory)
                 .collect(Collectors.toList()));
+    }
+
+    public void whenDirectorySelected(Consumer<String> onDirectorySelected) {
+        this.onDirectorySelected = onDirectorySelected;
     }
 
     @Override

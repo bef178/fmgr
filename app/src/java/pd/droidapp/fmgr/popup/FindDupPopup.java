@@ -1,6 +1,8 @@
 package pd.droidapp.fmgr.popup;
 
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.LinearLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -48,30 +50,34 @@ public class FindDupPopup extends ProcessingPopup {
     private StatusBar.IconState statusBarIconState = StatusBar.IconState.IDLE;
 
     public FindDupPopup(View containerView, String startDirectory) {
-        super(containerView, R.layout.find_dup_popup);
+        super(containerView);
         this.startDirectory = startDirectory;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.ic_find_dup_24);
-        selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
-        groupsView = mainAreaView.findViewById(R.id.popup_items_list);
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_find_dup_24);
+        selectionBar = new SelectionBar(contentView.findViewById(R.id.selection_bar));
+        groupsView = contentView.findViewById(R.id.popup_items_list);
         groupsAdapter = new PopupFileGroupsAdapter(startDirectory);
 
         titleBar.setTitle(R.string.find_duplicate);
+        bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
+            if (worker != null) {
+                worker.cancel();
+            }
+            updateButtons();
+        });
+        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
 
         initSelectionBar();
         initItemsView();
     }
 
     @Override
-    protected void initPopupButtons() {
-        super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
-            if (worker != null) {
-                worker.cancel();
-            }
-            updateButtons();
-        });
-        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
+    protected void inflateContent() {
+        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
+        contentParams.height = 0;
+        contentParams.weight = 1;
+        contentView.setLayoutParams(contentParams);
+        LayoutInflater.from(context).inflate(R.layout.find_dup_popup_content, contentView, true);
     }
 
     private void initSelectionBar() {
@@ -122,21 +128,32 @@ public class FindDupPopup extends ProcessingPopup {
         });
     }
 
-    private void renderSelectionBar() {
-        int numSelected = groupsAdapter.getSelectedCount();
-        selectionBar.render(new SelectionBar.State(numSelected,
+    private void initItemsView() {
+        groupsAdapter.whenSelectionChanged(numSelected -> selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
                 new ButtonState(R.drawable.ic_copy_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_cut_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
-    }
-
-    private void initItemsView() {
-        groupsAdapter.whenSelectionChanged(this::renderSelectionBar);
+                new ButtonState(R.drawable.ic_close_24, numSelected > 0))));
         groupsView.setLayoutManager(new LinearLayoutManager(context));
         groupsView.setAdapter(groupsAdapter);
+    }
+
+    public void whenJumpClicked(Consumer<String> onJump) {
+        this.onJump = onJump;
+    }
+
+    public void whenCopyClicked(Consumer<Collection<FileProperties>> onCopy) {
+        this.onCopy = onCopy;
+    }
+
+    public void whenCutClicked(Consumer<Collection<FileProperties>> onCut) {
+        this.onCut = onCut;
+    }
+
+    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
+        this.onPopupDismissed = onPopupDismissed;
     }
 
     @Override
@@ -157,22 +174,6 @@ public class FindDupPopup extends ProcessingPopup {
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(Collections.emptyList(), netRemoved);
         }
-    }
-
-    public void whenJumpClicked(Consumer<String> onJump) {
-        this.onJump = onJump;
-    }
-
-    public void whenCopyClicked(Consumer<Collection<FileProperties>> onCopy) {
-        this.onCopy = onCopy;
-    }
-
-    public void whenCutClicked(Consumer<Collection<FileProperties>> onCut) {
-        this.onCut = onCut;
-    }
-
-    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
-        this.onPopupDismissed = onPopupDismissed;
     }
 
     @Override

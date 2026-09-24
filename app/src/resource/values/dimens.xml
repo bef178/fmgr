@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="delete_popup_height">420dp</dimen>
+    <dimen name="directory_picker_popup_height">450dp</dimen>
+    <dimen name="paste_popup_height">560dp</dimen>
+</resources>

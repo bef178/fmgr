@@ -1,13 +1,16 @@
 package pd.droidapp.fmgr.popup;
 
 import android.animation.LayoutTransition;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.CheckBox;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -66,24 +69,27 @@ public class PastePopup extends ProcessingPopup {
     private boolean touching;
 
     public PastePopup(View containerView, boolean isCopy, Collection<FileProperties> srcItems, String dstDirectory) {
-        super(containerView, R.layout.paste_popup);
+        super(containerView);
         this.isCopy = isCopy;
         this.dstDirectory = dstDirectory;
         this.srcItems = new LinkedList<>(srcItems);
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), isCopy
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), isCopy
                 ? R.drawable.ic_copy_24
                 : R.drawable.ic_cut_24);
-        targetDirectoryTextView = mainAreaView.findViewById(R.id.target_directory);
-        targetDirectoryScrollView = mainAreaView.findViewById(R.id.target_directory_scroll);
-        changeDirectoryButton = mainAreaView.findViewById(R.id.change_directory);
-        resolutionSummaryTextView = mainAreaView.findViewById(R.id.resolution_summary);
-        resolutionOptionsGroup = mainAreaView.findViewById(R.id.resolution_options);
-        mergeDirectoriesCheckBox = mainAreaView.findViewById(R.id.merge_directories_checkbox);
-        itemsView = mainAreaView.findViewById(R.id.popup_items_list);
+        targetDirectoryTextView = contentView.findViewById(R.id.target_directory);
+        targetDirectoryScrollView = contentView.findViewById(R.id.target_directory_scroll);
+        changeDirectoryButton = contentView.findViewById(R.id.change_directory);
+        resolutionSummaryTextView = contentView.findViewById(R.id.resolution_summary);
+        resolutionOptionsGroup = contentView.findViewById(R.id.resolution_options);
+        mergeDirectoriesCheckBox = contentView.findViewById(R.id.merge_directories_checkbox);
+        itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(PathOps.singleton.dirname(this.srcItems.get(0).path), false);
 
         titleBar.setTitle(isCopy ? R.string.copy : R.string.cut);
+        bottomBar.addButton(R.string.paste, () -> worker == null, () -> true, v -> start());
+        bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
+        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
 
         renderStatusBar(StatusBar.IconState.IDLE);
         initPasteOptions();
@@ -91,11 +97,16 @@ public class PastePopup extends ProcessingPopup {
     }
 
     @Override
-    protected void initPopupButtons() {
-        super.initPopupButtons();
-        buttonBar.addButton(R.string.paste, () -> worker == null, () -> true, v -> start());
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
-        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
+    protected void inflateContent() {
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
+        params.height = context.getResources().getDimensionPixelSize(R.dimen.paste_popup_height);
+        areaView.setLayoutParams(params);
+
+        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
+        contentParams.height = 0;
+        contentParams.weight = 1;
+        contentView.setLayoutParams(contentParams);
+        LayoutInflater.from(context).inflate(R.layout.paste_popup_content, contentView, true);
     }
 
     private void renderStatusBar(StatusBar.IconState iconState) {
@@ -115,6 +126,41 @@ public class PastePopup extends ProcessingPopup {
     private void initPasteOptions() {
         changeDirectoryButton.setOnClickListener(v -> showDirectoryPicker());
         invalidatePasteOptions();
+    }
+
+    private void showDirectoryPicker() {
+        DirectoryPickerPopup popup = new DirectoryPickerPopup(containerView, dstDirectory);
+        popup.whenDirectorySelected(d -> {
+            dstDirectory = d;
+            invalidatePasteOptions();
+            targetDirectoryScrollView.getViewTreeObserver().addOnGlobalLayoutListener(
+                    new ViewTreeObserver.OnGlobalLayoutListener() {
+                        @Override
+                        public void onGlobalLayout() {
+                            targetDirectoryScrollView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                            // the furthest HorizontalScrollView will scroll to, same figure it clamps by
+                            int end = targetDirectoryScrollView.getChildAt(0).getWidth()
+                                    - targetDirectoryScrollView.getWidth()
+                                    + targetDirectoryScrollView.getPaddingLeft()
+                                    + targetDirectoryScrollView.getPaddingRight();
+                            if (end <= 0) {
+                                return;
+                            }
+                            targetDirectoryScrollView.smoothScrollTo(end, 0);
+                            targetDirectoryScrollView.postDelayed(
+                                    () -> targetDirectoryScrollView.smoothScrollTo(0, 0),
+                                    600);
+                        }
+                    });
+        });
+        popup.show();
+    }
+
+    private void invalidatePasteOptions() {
+        targetDirectoryTextView.setText(getDisplayPath(dstDirectory));
+        boolean inPlace = srcItems.stream()
+                .allMatch(item -> dstDirectory.equals(PathOps.singleton.dirname(item.path)));
+        mergeDirectoriesCheckBox.setChecked(!inPlace);
     }
 
     private void initItemsView() {
@@ -153,39 +199,8 @@ public class PastePopup extends ProcessingPopup {
         });
     }
 
-    private void showDirectoryPicker() {
-        DirectoryPickerPopup popup = new DirectoryPickerPopup(containerView, dstDirectory);
-        popup.whenDirectorySelected(d -> {
-            dstDirectory = d;
-            invalidatePasteOptions();
-            targetDirectoryScrollView.getViewTreeObserver().addOnGlobalLayoutListener(
-                    new ViewTreeObserver.OnGlobalLayoutListener() {
-                        @Override
-                        public void onGlobalLayout() {
-                            targetDirectoryScrollView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                            // the furthest HorizontalScrollView will scroll to, same figure it clamps by
-                            int end = targetDirectoryScrollView.getChildAt(0).getWidth()
-                                    - targetDirectoryScrollView.getWidth()
-                                    + targetDirectoryScrollView.getPaddingLeft()
-                                    + targetDirectoryScrollView.getPaddingRight();
-                            if (end <= 0) {
-                                return;
-                            }
-                            targetDirectoryScrollView.smoothScrollTo(end, 0);
-                            targetDirectoryScrollView.postDelayed(
-                                    () -> targetDirectoryScrollView.smoothScrollTo(0, 0),
-                                    600);
-                        }
-                    });
-        });
-        popup.show();
-    }
-
-    private void invalidatePasteOptions() {
-        targetDirectoryTextView.setText(getDisplayPath(dstDirectory));
-        boolean inPlace = srcItems.stream()
-                .allMatch(item -> dstDirectory.equals(PathOps.singleton.dirname(item.path)));
-        mergeDirectoriesCheckBox.setChecked(!inPlace);
+    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
+        this.onPopupDismissed = onPopupDismissed;
     }
 
     @Override
@@ -208,10 +223,6 @@ public class PastePopup extends ProcessingPopup {
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(netAdded.values(), netRemoved.values());
         }
-    }
-
-    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
-        this.onPopupDismissed = onPopupDismissed;
     }
 
     @Override

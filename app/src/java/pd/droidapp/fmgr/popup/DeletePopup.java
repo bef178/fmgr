@@ -1,7 +1,10 @@
 package pd.droidapp.fmgr.popup;
 
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -45,26 +48,34 @@ public class DeletePopup extends ProcessingPopup {
     private boolean touching;
 
     public DeletePopup(View containerView, String startDirectory, Collection<FileProperties> srcItems, boolean prune) {
-        super(containerView, R.layout.delete_popup);
+        super(containerView);
         this.srcItems = new LinkedList<>(srcItems);
         this.prune = prune;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.ic_delete_24);
-        itemsView = mainAreaView.findViewById(R.id.popup_items_list);
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_delete_24);
+        itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, false);
 
         titleBar.setTitle(R.string.delete);
+        bottomBar.addButton(R.string.delete, () -> worker == null, () -> true, v -> start());
+        bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
+        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
 
         renderStatusBar(StatusBar.IconState.IDLE);
         initItemsView();
     }
 
     @Override
-    protected void initPopupButtons() {
-        super.initPopupButtons();
-        buttonBar.addButton(R.string.delete, () -> worker == null, () -> true, v -> start());
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> abort());
-        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
+    protected void inflateContent() {
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
+        params.height = context.getResources().getDimensionPixelSize(R.dimen.delete_popup_height);
+        areaView.setLayoutParams(params);
+
+        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
+        contentParams.height = 0;
+        contentParams.weight = 1;
+        contentView.setLayoutParams(contentParams);
+        LayoutInflater.from(context).inflate(R.layout.delete_popup_content, contentView, true);
     }
 
     private void renderStatusBar(StatusBar.IconState iconState) {
@@ -115,6 +126,10 @@ public class DeletePopup extends ProcessingPopup {
         });
     }
 
+    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
+        this.onPopupDismissed = onPopupDismissed;
+    }
+
     @Override
     protected boolean isProcessing() {
         return worker != null && worker.isWorking();
@@ -135,10 +150,6 @@ public class DeletePopup extends ProcessingPopup {
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(Collections.emptyList(), netRemoved);
         }
-    }
-
-    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
-        this.onPopupDismissed = onPopupDismissed;
     }
 
     @Override

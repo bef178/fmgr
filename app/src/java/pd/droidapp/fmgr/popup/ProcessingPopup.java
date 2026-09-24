@@ -9,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
-import androidx.annotation.LayoutRes;
 
 import java.util.Objects;
 
@@ -22,19 +21,25 @@ public abstract class ProcessingPopup {
 
     // views
     protected final View selfView;
-    protected final PopupWindow selfWindow;
-    protected final LinearLayout mainAreaView;
+    protected final LinearLayout areaView;
     protected final PopupTitleBar titleBar;
-    protected final PopupButtonBar buttonBar;
+    protected final LinearLayout contentView;
+    protected final PopupButtonBar bottomBar;
+    protected final PopupWindow selfWindow;
 
     // guard
     private boolean dismissing;
 
-    protected ProcessingPopup(View containerView, @LayoutRes int layoutId) {
+    protected ProcessingPopup(View containerView) {
         this.context = Objects.requireNonNull(containerView, "containerView").getContext();
         this.containerView = containerView;
 
-        selfView = LayoutInflater.from(context).inflate(layoutId, (ViewGroup) containerView, false);
+        selfView = LayoutInflater.from(context).inflate(R.layout.popup_frame, (ViewGroup) containerView, false);
+        areaView = selfView.findViewById(R.id.popup_area);
+        titleBar = new PopupTitleBar(areaView.findViewById(R.id.popup_title_bar));
+        contentView = areaView.findViewById(R.id.popup_content);
+        bottomBar = new PopupButtonBar(areaView.findViewById(R.id.popup_bottom_bar));
+
         selfWindow = new PopupWindow(selfView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, true) {
             @Override
             public void dismiss() {
@@ -49,23 +54,12 @@ public abstract class ProcessingPopup {
                 }));
             }
         };
-        mainAreaView = selfView.findViewById(R.id.popup_area);
 
-        titleBar = new PopupTitleBar(mainAreaView.findViewById(R.id.popup_title_bar));
-        buttonBar = new PopupButtonBar(mainAreaView.findViewById(R.id.popup_button_bar));
-
-        initPopupWindow();
-        initPopupButtons();
+        initPopup();
+        inflateContent();
     }
 
-    protected void initPopupWindow() {
-        selfWindow.setOutsideTouchable(false);
-        selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        selfWindow.setElevation(24);
-        selfWindow.setOnDismissListener(this::onDismissed);
-    }
-
-    protected void initPopupButtons() {
+    protected void initPopup() {
         titleBar.whenCloseButtonClicked(v -> selfWindow.dismiss());
         selfView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
@@ -77,10 +71,17 @@ public abstract class ProcessingPopup {
             public void onViewDetachedFromWindow(View v) {
             }
         });
+
+        selfWindow.setOutsideTouchable(false);
+        selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        selfWindow.setElevation(24);
+        selfWindow.setOnDismissListener(this::onDismissed);
     }
 
+    protected abstract void inflateContent();
+
     protected final void updateButtons() {
-        buttonBar.invalidate();
+        bottomBar.invalidate();
     }
 
     protected abstract boolean isProcessing();

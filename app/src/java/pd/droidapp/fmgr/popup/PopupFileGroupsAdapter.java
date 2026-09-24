@@ -19,6 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntConsumer;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
@@ -35,13 +36,13 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
     private final Map<String, Boolean> collapsedStates = new HashMap<>();
     private int[] startIndexes = new int[0];
 
-    private Runnable onSelectionChanged;
+    private IntConsumer onSelectionChanged;
 
     public PopupFileGroupsAdapter(String startDirectory) {
         this.startDirectory = startDirectory;
     }
 
-    public void whenSelectionChanged(Runnable onSelectionChanged) {
+    public void whenSelectionChanged(IntConsumer onSelectionChanged) {
         this.onSelectionChanged = onSelectionChanged;
     }
 
@@ -139,7 +140,7 @@ class PopupFileGroupsAdapter extends RecyclerView.Adapter<PopupFileGroupsAdapter
 
     private void notifySelectionChanged() {
         if (onSelectionChanged != null) {
-            onSelectionChanged.run();
+            onSelectionChanged.accept(getSelectedCount());
         }
     }
 

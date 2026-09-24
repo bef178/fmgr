@@ -3,7 +3,9 @@ package pd.droidapp.fmgr.popup;
 import android.content.Context;
 import android.graphics.Rect;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
@@ -23,29 +25,34 @@ public class EditPopup extends ProcessingPopup {
     private final EditText textEditView;
 
     public EditPopup(View containerView, String title, String text, String hintText, Predicate<String> onConfirm) {
-        super(containerView, R.layout.edit_popup);
+        super(containerView);
         this.onConfirm = onConfirm;
 
-        titleBar.setTitle(title);
-        textEditView = mainAreaView.findViewById(R.id.popup_edit);
+        textEditView = contentView.findViewById(R.id.popup_edit);
         textEditView.setText(text);
         textEditView.setHint(hintText);
+
+        titleBar.setTitle(title);
+        bottomBar.addButton(R.string.ok, () -> true, () -> true, v -> confirm());
 
         initTextEdit();
         trackKeyboardHeight();
     }
 
     @Override
-    protected void initPopupWindow() {
-        super.initPopupWindow();
+    protected void initPopup() {
+        super.initPopup();
         selfWindow.setFocusable(true);
         selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
     }
 
     @Override
-    protected void initPopupButtons() {
-        super.initPopupButtons();
-        buttonBar.addButton(R.string.ok, () -> true, () -> true, v -> confirm());
+    protected void inflateContent() {
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
+        params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        areaView.setLayoutParams(params);
+
+        LayoutInflater.from(context).inflate(R.layout.edit_popup_content, contentView, true);
     }
 
     private void initTextEdit() {
@@ -73,10 +80,10 @@ public class EditPopup extends ProcessingPopup {
                 int keyboardHeight = selfView.getRootView().getHeight() - rect.bottom;
                 if (keyboardHeight != lastKeyboardHeight) {
                     lastKeyboardHeight = keyboardHeight;
-                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mainAreaView.getLayoutParams();
-                    params.topMargin = rect.top + (rect.height() - mainAreaView.getHeight()) / 2;
+                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
+                    params.topMargin = rect.top + (rect.height() - areaView.getHeight()) / 2;
                     params.gravity = Gravity.CENTER_HORIZONTAL;
-                    mainAreaView.setLayoutParams(params);
+                    areaView.setLayoutParams(params);
                 }
             }
         });

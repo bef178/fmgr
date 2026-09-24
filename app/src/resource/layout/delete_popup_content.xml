@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <include layout="@layout/status_bar" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/popup_items_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginBottom="12dp"
+        android:layout_weight="1"
+        android:scrollbarStyle="insideOverlay"
+        android:scrollbars="vertical" />
+
+</merge>

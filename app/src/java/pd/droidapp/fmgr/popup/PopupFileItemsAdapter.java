@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.IntConsumer;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
@@ -29,14 +30,14 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
     // more data
     private final List<BadgeState> badgeStates = new ArrayList<>();
 
-    private Runnable onSelectionChanged;
+    private IntConsumer onSelectionChanged;
 
     public PopupFileItemsAdapter(String startDirectory, boolean selectable) {
         this.startDirectory = startDirectory;
         this.selectable = selectable;
     }
 
-    public void whenSelectionChanged(Runnable onSelectionChanged) {
+    public void whenSelectionChanged(IntConsumer onSelectionChanged) {
         this.onSelectionChanged = onSelectionChanged;
     }
 
@@ -132,7 +133,7 @@ class PopupFileItemsAdapter extends RecyclerView.Adapter<PopupFileItemsAdapter.I
 
     private void notifySelectionChanged() {
         if (onSelectionChanged != null) {
-            onSelectionChanged.run();
+            onSelectionChanged.accept(getSelectedCount());
         }
     }
 

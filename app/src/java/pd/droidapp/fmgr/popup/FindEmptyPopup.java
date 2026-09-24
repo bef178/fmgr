@@ -1,6 +1,8 @@
 package pd.droidapp.fmgr.popup;
 
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.LinearLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -35,18 +37,34 @@ public class FindEmptyPopup extends ProcessingPopup {
     private final Collection<FileProperties> netRemoved = new LinkedList<>();
 
     public FindEmptyPopup(View containerView, String startDirectory) {
-        super(containerView, R.layout.find_empty_popup);
+        super(containerView);
         this.startDirectory = startDirectory;
 
-        statusBar = new StatusBar(mainAreaView.findViewById(R.id.status_bar), R.drawable.ic_find_empty_24);
-        selectionBar = new SelectionBar(mainAreaView.findViewById(R.id.selection_bar));
-        itemsView = mainAreaView.findViewById(R.id.popup_items_list);
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_find_empty_24);
+        selectionBar = new SelectionBar(contentView.findViewById(R.id.selection_bar));
+        itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new PopupFileItemsAdapter(startDirectory, true);
+
+        titleBar.setTitle(R.string.find_empty);
+        bottomBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
+            if (worker != null) {
+                worker.cancel();
+            }
+            updateButtons();
+        });
+        bottomBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
 
         initSelectionBar();
         initItemsView();
+    }
 
-        titleBar.setTitle(R.string.find_empty);
+    @Override
+    protected void inflateContent() {
+        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
+        contentParams.height = 0;
+        contentParams.weight = 1;
+        contentView.setLayoutParams(contentParams);
+        LayoutInflater.from(context).inflate(R.layout.find_empty_popup_content, contentView, true);
     }
 
     private void initSelectionBar() {
@@ -84,32 +102,23 @@ public class FindEmptyPopup extends ProcessingPopup {
         });
     }
 
-    private void renderSelectionBar() {
-        int numSelected = itemsAdapter.getSelectedCount();
-        selectionBar.render(new SelectionBar.State(numSelected,
+    private void initItemsView() {
+        itemsAdapter.whenSelectionChanged(numSelected -> selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
                 new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_delete_up_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
-    }
-
-    private void initItemsView() {
-        itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
+                new ButtonState(R.drawable.ic_close_24, numSelected > 0))));
         itemsView.setLayoutManager(new LinearLayoutManager(context));
         itemsView.setAdapter(itemsAdapter);
     }
 
-    @Override
-    protected void initPopupButtons() {
-        super.initPopupButtons();
-        buttonBar.addButton(R.string.abort, this::isProcessing, () -> isProcessing() && !worker.isCancelled(), v -> {
-            if (worker != null) {
-                worker.cancel();
-            }
-            updateButtons();
-        });
-        buttonBar.addButton(R.string.close, () -> worker != null && !worker.isWorking(), () -> true, v -> selfWindow.dismiss());
+    public void whenJumpClicked(Consumer<String> onJump) {
+        this.onJump = onJump;
+    }
+
+    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
+        this.onPopupDismissed = onPopupDismissed;
     }
 
     @Override
@@ -130,14 +139,6 @@ public class FindEmptyPopup extends ProcessingPopup {
         if (onPopupDismissed != null) {
             onPopupDismissed.accept(Collections.emptyList(), netRemoved);
         }
-    }
-
-    public void whenJumpClicked(Consumer<String> onJump) {
-        this.onJump = onJump;
-    }
-
-    public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
-        this.onPopupDismissed = onPopupDismissed;
     }
 
     @Override
