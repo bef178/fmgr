@@ -134,11 +134,15 @@ public class BrowseFragment extends Fragment {
     }
 
     private void refresh() {
-        String currentDirectory = navigator.getCurrentDirectory();
-        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favStore.contains(currentDirectory)));
+        renderBreadcrumbBar();
         renderActionBar();
         itemsAdapter.clearSelection();
-        loadItems(currentDirectory);
+        loadItems(navigator.getCurrentDirectory());
+    }
+
+    private void renderBreadcrumbBar() {
+        String currentDirectory = navigator.getCurrentDirectory();
+        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favStore.contains(currentDirectory)));
     }
 
     private void renderActionBar() {
@@ -236,9 +240,12 @@ public class BrowseFragment extends Fragment {
         super.onResume();
         if (navigator.getCurrentDirectory() == null) {
             navigateToDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath());
-        } else if (mightGrantedAllFilesAccess) {
-            mightGrantedAllFilesAccess = false;
-            loadItems(navigator.getCurrentDirectory());
+        } else {
+            renderBreadcrumbBar();
+            if (mightGrantedAllFilesAccess) {
+                mightGrantedAllFilesAccess = false;
+                loadItems(navigator.getCurrentDirectory());
+            }
         }
         askForAllFilesAccessIfNecessary();
     }
