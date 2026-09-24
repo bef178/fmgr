@@ -16,6 +16,7 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.util.FavoritesStore;
 import pd.droidapp.fmgr.view.FavoritesBar;
+import pd.droidapp.fmgr.view.LocationsBar;
 import pd.util.FileOps;
 
 import static pd.droidapp.fmgr.util.FavoritesStore.FavItem;
@@ -63,8 +64,8 @@ public class HomeFragment extends Fragment {
             editPopup.show();
         });
 
-        LocationsCollapsible locationsCollapsible = new LocationsCollapsible(view.findViewById(R.id.locations_collapsible));
-        locationsCollapsible.whenLocationClicked(() -> {
+        LocationsBar locationsBar = new LocationsBar(view.findViewById(R.id.locations_bar));
+        locationsBar.whenLocationClicked(id -> {
             MainActivity mainActivity = (MainActivity) requireActivity();
             mainActivity.navigateToBrowse();
         });

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/locations_collapsible"
+    android:id="@+id/locations_bar"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="16dp"
@@ -41,7 +41,7 @@
         android:orientation="vertical">
 
         <LinearLayout
-            android:id="@+id/locations_local_files"
+            android:id="@+id/location_local_files"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackground"
