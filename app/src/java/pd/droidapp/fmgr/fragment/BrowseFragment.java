@@ -43,7 +43,7 @@ import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.FavoritesStore;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ActionBar;
-import pd.droidapp.fmgr.view.BreadcrumbBar;
+import pd.droidapp.fmgr.view.BreadcrumbsBar;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.util.FileOps;
@@ -55,7 +55,7 @@ import static pd.droidapp.fmgr.util.Util.toFileProperties;
 public class BrowseFragment extends Fragment {
 
     private FavoritesStore favoritesStore;
-    private BreadcrumbBar breadcrumbBar;
+    private BreadcrumbsBar breadcrumbsBar;
     private ActionBar actionBar;
     private SelectionBar selectionBar;
     private RecyclerView itemsView;
@@ -82,9 +82,9 @@ public class BrowseFragment extends Fragment {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
         favoritesStore = new FavoritesStore(requireContext());
-        breadcrumbBar = new BreadcrumbBar(view.findViewById(R.id.breadcrumb_bar));
-        breadcrumbBar.whenBreadcrumbClicked(this::navigateToDirectory);
-        breadcrumbBar.whenFavIconClicked(this::toggleFavorite);
+        breadcrumbsBar = new BreadcrumbsBar(view.findViewById(R.id.breadcrumbs_bar));
+        breadcrumbsBar.whenBreadcrumbClicked(this::navigateToDirectory);
+        breadcrumbsBar.whenFavIconClicked(this::toggleFavorite);
 
         ImageButton homeButton = view.findViewById(R.id.action_home);
         homeButton.setOnClickListener(v -> navigateToHome());
@@ -134,15 +134,15 @@ public class BrowseFragment extends Fragment {
     }
 
     private void refresh() {
-        renderBreadcrumbBar();
+        renderBreadcrumbsBar();
         renderActionBar();
         itemsAdapter.clearSelection();
         loadItems(navigator.getCurrentDirectory());
     }
 
-    private void renderBreadcrumbBar() {
+    private void renderBreadcrumbsBar() {
         String currentDirectory = navigator.getCurrentDirectory();
-        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
+        breadcrumbsBar.render(new BreadcrumbsBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
     }
 
     private void renderActionBar() {
@@ -241,7 +241,7 @@ public class BrowseFragment extends Fragment {
         if (navigator.getCurrentDirectory() == null) {
             navigateToDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath());
         } else {
-            renderBreadcrumbBar();
+            renderBreadcrumbsBar();
             if (mightGrantedAllFilesAccess) {
                 mightGrantedAllFilesAccess = false;
                 loadItems(navigator.getCurrentDirectory());
@@ -337,7 +337,7 @@ public class BrowseFragment extends Fragment {
         } else {
             favoritesStore.put(currentDirectory);
         }
-        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
+        breadcrumbsBar.render(new BreadcrumbsBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
     }
 
     private void openItem(String path) {

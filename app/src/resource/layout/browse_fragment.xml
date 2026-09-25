@@ -43,7 +43,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <include layout="@layout/breadcrumb_bar" />
+        <include layout="@layout/breadcrumbs_bar" />
 
         <include layout="@layout/selection_bar" />
 

@@ -16,7 +16,7 @@ import java.util.Objects;
 import pd.droidapp.fmgr.R;
 import pd.util.PathOps;
 
-public class BreadcrumbBar {
+public class BreadcrumbsBar {
 
     private static final String CAPPING_DIRECTORY = Environment.getExternalStorageDirectory().getPath();
 
@@ -29,9 +29,9 @@ public class BreadcrumbBar {
 
     private State state;
 
-    public BreadcrumbBar(LinearLayout selfView) {
+    public BreadcrumbsBar(LinearLayout selfView) {
         this.selfView = selfView;
-        breadcrumbsView = selfView.findViewById(R.id.breadcrumb_container);
+        breadcrumbsView = selfView.findViewById(R.id.breadcrumbs_container);
         favIcon = selfView.findViewById(R.id.fav_icon);
 
         selfView.setVisibility(View.GONE);

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/breadcrumb_bar"
+    android:id="@+id/breadcrumbs_bar"
     android:layout_width="match_parent"
     android:layout_height="36dp"
     android:background="@color/purple_50"
@@ -22,7 +22,7 @@
         android:scrollbars="horizontal">
 
         <LinearLayout
-            android:id="@+id/breadcrumb_container"
+            android:id="@+id/breadcrumbs_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal" />
