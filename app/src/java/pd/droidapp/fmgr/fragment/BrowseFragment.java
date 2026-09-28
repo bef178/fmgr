@@ -513,7 +513,10 @@ public class BrowseFragment extends Fragment {
                 currentName,
                 newName -> {
                     newName = newName.trim();
-                    if (newName.isEmpty() || newName.equals(currentName) || renameItem(path, newName)) {
+                    if (newName.isEmpty() || newName.equals(currentName)) {
+                        return true;
+                    }
+                    if (renameItem(path, newName)) {
                         itemsAdapter.clearSelection();
                         return true;
                     }
