@@ -83,19 +83,36 @@ public class Util {
     }
 
     public static void animateCollapsed(ImageView triangleView, View contentView, boolean collapsed) {
+        animateCollapsed(triangleView, collapsed,
+                () -> contentView.setVisibility(collapsed ? View.GONE : View.VISIBLE));
+    }
+
+    public static ValueAnimator animateCollapsed(ImageView triangleView, boolean collapsed, Runnable onAnimationEnded) {
         // rotate the triangle
         float targetRotation = collapsed ? -90f : 0f;
         ValueAnimator animator = ValueAnimator.ofFloat(triangleView.getRotation(), targetRotation);
         animator.setDuration(200);
         animator.addUpdateListener(animation ->
                 triangleView.setRotation((float) animation.getAnimatedValue()));
-        animator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                contentView.setVisibility(collapsed ? View.GONE : View.VISIBLE);
-            }
-        });
+        if (onAnimationEnded != null) {
+            animator.addListener(new AnimatorListenerAdapter() {
+                private boolean cancelled;
+
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                    cancelled = true;
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    if (!cancelled) {
+                        onAnimationEnded.run();
+                    }
+                }
+            });
+        }
         animator.start();
+        return animator;
     }
 
     /**
@@ -244,6 +261,15 @@ public class Util {
         // sort without detach
         for (ButtonState buttonState : buttonStates) {
             containerView.bringChildToFront(containerView.findViewById(buttonState.id));
+        }
+    }
+
+    public static void renderText(TextView textView, String text) {
+        if (text == null) {
+            textView.setVisibility(View.GONE);
+        } else {
+            textView.setText(text);
+            textView.setVisibility(View.VISIBLE);
         }
     }
 }

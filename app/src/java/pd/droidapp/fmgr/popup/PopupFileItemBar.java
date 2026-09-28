@@ -19,7 +19,7 @@ class PopupFileItemBar {
 
     public PopupFileItemBar(View selfView) {
         iconImageView = selfView.findViewById(R.id.item_icon);
-        badgeIconView = selfView.findViewById(R.id.item_badge_icon);
+        badgeIconView = selfView.findViewById(R.id.item_badge_image);
         badgeProgressView = selfView.findViewById(R.id.item_badge_progress);
         pathTextView = selfView.findViewById(R.id.item_name);
         indexTextView = selfView.findViewById(R.id.item_index);

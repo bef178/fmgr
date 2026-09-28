@@ -148,7 +148,7 @@ public class DeletePopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.delete)));
-        renderStatusBar(StatusBar.IconState.IDLE);
+        renderStatusBar(StatusBar.IconStatus.IDLE);
         renderBottomBar();
 
         itemsAdapter.append(this.srcItems);
@@ -157,12 +157,12 @@ public class DeletePopup extends ProcessingPopup {
         }
     }
 
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        if (iconState == StatusBar.IconState.IDLE) {
-            statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
+    private void renderStatusBar(StatusBar.IconStatus iconStatus) {
+        if (iconStatus == StatusBar.IconStatus.IDLE) {
+            statusBar.render(new State(iconStatus, context.getString(R.string.x_selected, srcItems.size())));
             return;
         }
-        statusBar.render(new State(iconState, context.getString(R.string.delete_progress_summary,
+        statusBar.render(new State(iconStatus, context.getString(R.string.delete_progress_summary,
                 Math.min(totalProgressed + 1, srcItems.size()),
                 srcItems.size(),
                 totalRemoved,
@@ -182,7 +182,7 @@ public class DeletePopup extends ProcessingPopup {
     private void start() {
         worker = new DeleteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            renderStatusBar(StatusBar.IconState.RUNNING);
+            renderStatusBar(StatusBar.IconStatus.RUNNING);
             itemsAdapter.setItemBadge(0, BadgeState.RUNNING);
         }));
         worker.whenUpdated((removed, failed, progressed) -> containerView.post(() -> {
@@ -221,10 +221,10 @@ public class DeletePopup extends ProcessingPopup {
                 }
                 scrollToCurrentIfFollowing(currentProgress);
             }
-            renderStatusBar(StatusBar.IconState.RUNNING);
+            renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
+            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconStatus.COMPLETED : StatusBar.IconStatus.STOPPED);
             renderBottomBar();
         }));
         worker.start(srcItems, prune);

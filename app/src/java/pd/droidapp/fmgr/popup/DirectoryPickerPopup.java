@@ -97,7 +97,7 @@ public class DirectoryPickerPopup extends ProcessingPopup {
 
     private void changeDirectory(String directory) {
         targetDirectory = directory;
-        statusBar.render(new State(StatusBar.IconState.IDLE,
+        statusBar.render(new State(StatusBar.IconStatus.IDLE,
                 getDisplayPath(directory),
                 new ButtonState(R.drawable.action_up, true, !CAPPING_DIRECTORY.equals(targetDirectory)
                         && !PathOps.singleton.dirname(targetDirectory).equals(targetDirectory))));

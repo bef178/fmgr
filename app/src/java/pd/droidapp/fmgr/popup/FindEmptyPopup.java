@@ -143,14 +143,14 @@ public class FindEmptyPopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_empty)));
-        renderStatusBar(StatusBar.IconState.IDLE);
+        renderStatusBar(StatusBar.IconStatus.IDLE);
         renderBottomBar();
 
         start();
     }
 
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found,
+    private void renderStatusBar(StatusBar.IconStatus iconStatus) {
+        statusBar.render(new StatusBar.State(iconStatus, context.getString(R.string.x_scanned_y_found,
                 totalScanned, itemsAdapter.getItemCount())));
     }
 
@@ -166,15 +166,15 @@ public class FindEmptyPopup extends ProcessingPopup {
     private void start() {
         worker = new FindEmptyWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            renderStatusBar(StatusBar.IconState.RUNNING);
+            renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         worker.whenUpdated((scanned, matched) -> containerView.post(() -> {
             totalScanned += scanned;
             itemsAdapter.append(matched);
-            renderStatusBar(StatusBar.IconState.RUNNING);
+            renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
+            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconStatus.COMPLETED : StatusBar.IconStatus.STOPPED);
             renderBottomBar();
         }));
         worker.start(startDirectory);

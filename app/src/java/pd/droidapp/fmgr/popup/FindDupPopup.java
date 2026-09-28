@@ -9,23 +9,29 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.popup.PopupFileGroupsAdapter.PopupFileGroup;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.FileItemBar;
 import pd.droidapp.fmgr.view.PopupBottomBar;
+import pd.droidapp.fmgr.view.FileGroupsAdapter;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.util.FileOps;
 import pd.util.PathOps;
+
+import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 public class FindDupPopup extends ProcessingPopup {
 
@@ -35,7 +41,7 @@ public class FindDupPopup extends ProcessingPopup {
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private final RecyclerView groupsView;
-    private final PopupFileGroupsAdapter groupsAdapter;
+    private final FileGroupsAdapter groupsAdapter;
 
     // callbacks
     private Consumer<String> onJump;
@@ -48,8 +54,9 @@ public class FindDupPopup extends ProcessingPopup {
 
     private final Map<String, List<FileProperties>> byChecksum = new LinkedHashMap<>();
     private final Map<String, FileProperties> byPath = new HashMap<>();
+    private final Set<String> selectedPaths = new LinkedHashSet<>();
     private int totalScanned;
-    private StatusBar.IconState statusBarIconState = StatusBar.IconState.IDLE;
+    private StatusBar.IconStatus statusBarIconStatus = StatusBar.IconStatus.IDLE;
 
     public FindDupPopup(View containerView, String startDirectory) {
         super(containerView);
@@ -58,7 +65,7 @@ public class FindDupPopup extends ProcessingPopup {
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_find_dup_24);
         selectionBar = new SelectionBar(contentView.findViewById(R.id.selection_bar));
         groupsView = contentView.findViewById(R.id.popup_items_list);
-        groupsAdapter = new PopupFileGroupsAdapter(startDirectory);
+        groupsAdapter = new FileGroupsAdapter();
 
         bottomBar.whenButtonClicked(id -> {
             if (id == R.string.abort) {
@@ -87,28 +94,28 @@ public class FindDupPopup extends ProcessingPopup {
     private void initSelectionBar() {
         selectionBar.whenButtonClicked(id -> {
             if (id == R.drawable.baseline_arrow_forward_24) {
-                if (groupsAdapter.getSelectedCount() == 1) {
+                if (selectedPaths.size() == 1) {
                     if (onJump != null) {
-                        onJump.accept(groupsAdapter.getSelectedItems().get(0).path);
+                        onJump.accept(selectedPaths.iterator().next());
                     }
                     selfWindow.dismiss();
                 }
             } else if (id == R.drawable.ic_copy_24) {
                 if (onCopy != null) {
-                    onCopy.accept(groupsAdapter.getSelectedItems());
+                    onCopy.accept(getSelectedItems());
                 }
                 selfWindow.dismiss();
             } else if (id == R.drawable.ic_cut_24) {
                 if (onCut != null) {
-                    onCut.accept(groupsAdapter.getSelectedItems());
+                    onCut.accept(getSelectedItems());
                 }
                 selfWindow.dismiss();
             } else if (id == R.drawable.ic_delete_24) {
-                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, groupsAdapter.getSelectedItems(), false);
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), false);
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
-                    groupsAdapter.deselect(removed);
                     for (FileProperties item : removed) {
+                        selectedPaths.remove(item.path);
                         FileProperties props = byPath.remove(item.path);
                         if (props == null) {
                             continue;
@@ -118,30 +125,63 @@ public class FindDupPopup extends ProcessingPopup {
                             group.remove(props);
                         }
                     }
+                    selectedPaths.retainAll(getVisiblePaths());
                     refreshGroups();
+                    renderSelectionBar();
                 });
                 deletePopup.show();
             } else if (id == R.drawable.ic_check_all_24) {
                 List<FileProperties> newlySelected = suggestToSelect();
-                groupsAdapter.select(newlySelected);
-                groupsAdapter.notifyDataSetChanged();
+                for (FileProperties item : newlySelected) {
+                    selectedPaths.add(item.path);
+                }
+                refreshGroups();
+                renderSelectionBar();
             } else if (id == R.drawable.ic_close_24) {
-                groupsAdapter.clearSelection();
-                groupsAdapter.notifyDataSetChanged();
+                selectedPaths.clear();
+                refreshGroups();
+                renderSelectionBar();
             }
         });
     }
 
-    private void initItemsView() {
-        groupsAdapter.whenSelectionChanged(numSelected -> selectionBar.render(new SelectionBar.State(numSelected,
+    private void renderSelectionBar() {
+        int numSelected = selectedPaths.size();
+        selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
                 new ButtonState(R.drawable.ic_copy_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_cut_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_close_24, numSelected > 0))));
+                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
+    }
+
+    private void initItemsView() {
+        groupsAdapter.whenItemClicked(path -> {
+            if (!selectedPaths.isEmpty()) {
+                toggleSelected(path);
+            }
+        });
+        groupsAdapter.whenItemLongClicked(this::toggleSelected);
         groupsView.setLayoutManager(new LinearLayoutManager(context));
         groupsView.setAdapter(groupsAdapter);
+    }
+
+    private void toggleSelected(String path) {
+        if (selectedPaths.contains(path)) {
+            selectedPaths.remove(path);
+        } else {
+            selectedPaths.add(path);
+        }
+
+        renderSelectionBar();
+
+        FileProperties item = byPath.get(path);
+        List<FileProperties> group = item == null ? null : byChecksum.get(item.sha256sum);
+        if (group == null) {
+            return;
+        }
+        groupsAdapter.update(buildGroupState(group));
     }
 
     public void whenJumpClicked(Consumer<String> onJump) {
@@ -178,14 +218,14 @@ public class FindDupPopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_duplicate)));
-        renderStatusBar(statusBarIconState);
+        renderStatusBar(statusBarIconStatus);
         renderBottomBar();
 
         start();
     }
 
     // derive the group totals from byChecksum
-    private void renderStatusBar(StatusBar.IconState iconState) {
+    private void renderStatusBar(StatusBar.IconStatus iconStatus) {
         int totalGroups = 0;
         int totalGroupItems = 0;
         for (List<FileProperties> group : byChecksum.values()) {
@@ -194,7 +234,7 @@ public class FindDupPopup extends ProcessingPopup {
                 totalGroupItems += group.size();
             }
         }
-        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found_groups,
+        statusBar.render(new StatusBar.State(iconStatus, context.getString(R.string.x_scanned_y_found_groups,
                 totalScanned, totalGroups, totalGroupItems)));
     }
 
@@ -212,28 +252,39 @@ public class FindDupPopup extends ProcessingPopup {
         totalScanned = 0;
         byChecksum.clear();
         byPath.clear();
+        selectedPaths.clear();
 
         worker.whenStarted(() -> containerView.post(() -> {
-            statusBarIconState = StatusBar.IconState.RUNNING;
-            renderStatusBar(statusBarIconState);
+            statusBarIconStatus = StatusBar.IconStatus.RUNNING;
+            renderStatusBar(statusBarIconStatus);
         }));
         worker.whenUpdated((scanned, completed) -> containerView.post(() -> {
             totalScanned += scanned;
-            for (FileProperties props : completed) {
-                List<FileProperties> group = byChecksum.computeIfAbsent(props.sha256sum, k -> new LinkedList<>());
-                group.add(props);
-                byPath.put(props.path, props);
+            Map<String, List<FileProperties>> dirty = new LinkedHashMap<>();
+            for (FileProperties completedItem : completed) {
+                List<FileProperties> group = byChecksum.computeIfAbsent(completedItem.sha256sum, k -> new LinkedList<>());
+                group.add(completedItem);
+                byPath.put(completedItem.path, completedItem);
+                if (group.size() < 2) {
+                    continue;
+                }
                 if (group.size() == 2) {
                     // keep the new visible group appended not inserted
-                    byChecksum.remove(props.sha256sum);
-                    byChecksum.put(props.sha256sum, group);
+                    byChecksum.remove(completedItem.sha256sum);
+                    byChecksum.put(completedItem.sha256sum, group);
                 }
+                dirty.put(completedItem.sha256sum, group);
             }
-            refreshGroups();
+            List<FileGroupsAdapter.State> states = new LinkedList<>();
+            for (List<FileProperties> group : dirty.values()) {
+                states.add(buildGroupState(group));
+            }
+            groupsAdapter.updateOrAppend(states);
+            renderStatusBar(statusBarIconStatus);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            statusBarIconState = reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED;
-            renderStatusBar(statusBarIconState);
+            statusBarIconStatus = reason == StopReason.COMPLETED ? StatusBar.IconStatus.COMPLETED : StatusBar.IconStatus.STOPPED;
+            renderStatusBar(statusBarIconStatus);
             renderBottomBar();
         }));
         worker.start(startDirectory);
@@ -241,22 +292,65 @@ public class FindDupPopup extends ProcessingPopup {
     }
 
     private void refreshGroups() {
-        groupsAdapter.set(buildFileGroups());
-        renderStatusBar(statusBarIconState);
+        groupsAdapter.render(buildFileGroupStates());
+        renderStatusBar(statusBarIconStatus);
     }
 
-    private List<PopupFileGroup> buildFileGroups() {
-        List<PopupFileGroup> newFileGroups = new LinkedList<>();
+    private List<FileGroupsAdapter.State> buildFileGroupStates() {
+        List<FileGroupsAdapter.State> states = new LinkedList<>();
+        for (List<FileProperties> group : getVisibleGroups()) {
+            states.add(buildGroupState(group));
+        }
+        return states;
+    }
+
+    private FileGroupsAdapter.State buildGroupState(List<FileProperties> group) {
+        FileItemBar.State[] itemStates = new FileItemBar.State[group.size()];
+        for (int i = 0; i < itemStates.length; i++) {
+            FileProperties item = group.get(i);
+            itemStates[i] = new FileItemBar.State(item.path,
+                    PathOps.singleton.relativize(startDirectory, item.path),
+                    null,
+                    null,
+                    R.drawable.i_file_24,
+                    selectedPaths.contains(item.path),
+                    null);
+        }
+        FileProperties first = group.get(0);
+        String title = context.getString(R.string.x_files_y_each, group.size(), getSizeString(first.size));
+        return new FileGroupsAdapter.State(first.sha256sum, title, itemStates);
+    }
+
+    private List<List<FileProperties>> getVisibleGroups() {
+        List<List<FileProperties>> visibleGroups = new LinkedList<>();
         for (List<FileProperties> group : byChecksum.values()) {
-            if (group.size() > 1) {
-                FileProperties first = group.get(0);
-                if (first.size == null) {
-                    continue;
-                }
-                newFileGroups.add(new PopupFileGroup(first.size, first.sha256sum, group));
+            if (group.size() > 1 && group.get(0).size != null) {
+                visibleGroups.add(group);
             }
         }
-        return newFileGroups;
+        return visibleGroups;
+    }
+
+    private Set<String> getVisiblePaths() {
+        Set<String> visiblePaths = new HashSet<>();
+        for (List<FileProperties> group : getVisibleGroups()) {
+            for (FileProperties item : group) {
+                visiblePaths.add(item.path);
+            }
+        }
+        return visiblePaths;
+    }
+
+    private List<FileProperties> getSelectedItems() {
+        List<FileProperties> selected = new LinkedList<>();
+        for (List<FileProperties> group : getVisibleGroups()) {
+            for (FileProperties item : group) {
+                if (selectedPaths.contains(item.path)) {
+                    selected.add(item);
+                }
+            }
+        }
+        return selected;
     }
 
     /**
@@ -265,11 +359,10 @@ public class FindDupPopup extends ProcessingPopup {
      */
     private List<FileProperties> suggestToSelect() {
         List<FileProperties> newlySelected = new LinkedList<>();
-        for (PopupFileGroup group : groupsAdapter.getGroups()) {
-            List<FileProperties> items = group.getItems();
+        for (List<FileProperties> items : getVisibleGroups()) {
             List<FileProperties> unselected = new LinkedList<>();
             for (FileProperties item : items) {
-                if (!groupsAdapter.isSelected(item)) {
+                if (!selectedPaths.contains(item.path)) {
                     unselected.add(item);
                 }
             }

@@ -59,7 +59,7 @@
     <!-- find dup popup -->
     <string name="find_duplicate">Find duplicate</string>
     <string name="x_scanned_y_found_groups">%d scanned, %d(%d) found</string>
-    <string name="x_files_y_each">%d files - %s each</string>
+    <string name="x_files_y_each">%d files - %s</string>
 
     <!-- paste popup -->
     <string name="copy">Copy</string>

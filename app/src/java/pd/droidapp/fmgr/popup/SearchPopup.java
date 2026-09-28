@@ -221,7 +221,7 @@ public class SearchPopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.search)));
-        renderStatusBar(StatusBar.IconState.IDLE);
+        renderStatusBar(StatusBar.IconStatus.IDLE);
         renderBottomBar();
 
         searchEdit.requestFocus();
@@ -234,12 +234,12 @@ public class SearchPopup extends ProcessingPopup {
         }, 300);
     }
 
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        if (iconState == StatusBar.IconState.IDLE) {
-            statusBar.render(new StatusBar.State(iconState, context.getString(R.string.status_find_and_grep)));
+    private void renderStatusBar(StatusBar.IconStatus iconStatus) {
+        if (iconStatus == StatusBar.IconStatus.IDLE) {
+            statusBar.render(new StatusBar.State(iconStatus, context.getString(R.string.status_find_and_grep)));
             return;
         }
-        statusBar.render(new StatusBar.State(iconState, context.getString(R.string.x_scanned_y_found,
+        statusBar.render(new StatusBar.State(iconStatus, context.getString(R.string.x_scanned_y_found,
                 totalScanned,
                 itemsAdapter.getItemCount())));
     }
@@ -272,7 +272,7 @@ public class SearchPopup extends ProcessingPopup {
         if (!query.isEmpty()) {
             worker = createAndStartSearcher(startDirectory, query);
         } else {
-            renderStatusBar(StatusBar.IconState.IDLE);
+            renderStatusBar(StatusBar.IconStatus.IDLE);
         }
         renderBottomBar();
     }
@@ -283,7 +283,7 @@ public class SearchPopup extends ProcessingPopup {
             if (worker != current) {
                 return;
             }
-            renderStatusBar(StatusBar.IconState.RUNNING);
+            renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         current.whenUpdated((scanned, matched) -> containerView.post(() -> {
             if (worker != current) {
@@ -291,14 +291,14 @@ public class SearchPopup extends ProcessingPopup {
             }
             totalScanned += scanned;
             itemsAdapter.append(matched);
-            renderStatusBar(StatusBar.IconState.RUNNING);
+            renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         current.whenStopped(reason -> containerView.post(() -> {
             if (worker != current) {
                 return;
             }
             renderBottomBar();
-            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
+            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconStatus.COMPLETED : StatusBar.IconStatus.STOPPED);
         }));
         if (current.start(startDirectory, query)) {
             return current;

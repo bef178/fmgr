@@ -398,9 +398,9 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
             super(itemView);
             highlightView = itemView.findViewById(R.id.item_highlight);
             iconImageView = itemView.findViewById(R.id.item_icon);
-            selectedIconImageView = itemView.findViewById(R.id.item_badge_icon);
+            selectedIconImageView = itemView.findViewById(R.id.item_badge_image);
             pathTextView = itemView.findViewById(R.id.item_name);
-            detailsTextView = itemView.findViewById(R.id.item_details);
+            detailsTextView = itemView.findViewById(R.id.item_summary);
         }
     }
 }

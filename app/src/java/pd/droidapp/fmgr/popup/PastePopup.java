@@ -219,7 +219,7 @@ public class PastePopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(isCopy ? R.string.copy : R.string.cut)));
-        renderStatusBar(StatusBar.IconState.IDLE);
+        renderStatusBar(StatusBar.IconStatus.IDLE);
         renderBottomBar();
 
         itemsAdapter.append(this.srcItems);
@@ -228,12 +228,12 @@ public class PastePopup extends ProcessingPopup {
         }
     }
 
-    private void renderStatusBar(StatusBar.IconState iconState) {
-        if (iconState == StatusBar.IconState.IDLE) {
-            statusBar.render(new State(iconState, context.getString(R.string.x_selected, srcItems.size())));
+    private void renderStatusBar(StatusBar.IconStatus iconStatus) {
+        if (iconStatus == StatusBar.IconStatus.IDLE) {
+            statusBar.render(new State(iconStatus, context.getString(R.string.x_selected, srcItems.size())));
             return;
         }
-        statusBar.render(new State(iconState, context.getString(R.string.paste_progress_summary,
+        statusBar.render(new State(iconStatus, context.getString(R.string.paste_progress_summary,
                 Math.min(totalProcessed + 1, srcItems.size()),
                 srcItems.size(),
                 totalAdded,
@@ -275,7 +275,7 @@ public class PastePopup extends ProcessingPopup {
 
         worker = new PasteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
-            renderStatusBar(StatusBar.IconState.RUNNING);
+            renderStatusBar(StatusBar.IconStatus.RUNNING);
             itemsAdapter.setItemBadge(0, BadgeState.RUNNING);
         }));
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
@@ -332,10 +332,10 @@ public class PastePopup extends ProcessingPopup {
                 }
                 scrollToCurrentIfFollowing(currentProgress);
             }
-            renderStatusBar(StatusBar.IconState.RUNNING);
+            renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
-            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconState.COMPLETED : StatusBar.IconState.STOPPED);
+            renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconStatus.COMPLETED : StatusBar.IconStatus.STOPPED);
             renderBottomBar();
         }));
         if (isCopy) {

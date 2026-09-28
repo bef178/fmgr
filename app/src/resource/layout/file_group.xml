@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
@@ -16,7 +17,7 @@
         android:orientation="horizontal"
         android:paddingStart="2dp"
         android:paddingTop="4dp"
-        android:paddingEnd="12dp"
+        android:paddingEnd="18dp"
         android:paddingBottom="4dp">
 
         <ImageView
@@ -24,20 +25,31 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/i_rt_triangle_down_24"
-            app:tint="#666" />
+            app:tint="@color/grey_700"
+            tools:ignore="ContentDescription" />
 
         <TextView
             android:id="@+id/group_title"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="#333"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:layout_weight="1"
+            android:textColor="@color/grey_700"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/group_index"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:gravity="end"
+            android:textColor="@color/grey_600"
+            android:textSize="12sp"
+            android:visibility="gone" />
 
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/group_files"
+        android:id="@+id/group_items"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical" />

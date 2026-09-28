@@ -50,8 +50,8 @@ public class StatusBar {
         State oldState = this.state;
         this.state = state;
 
-        if (oldState == null || oldState.iconState != state.iconState) {
-            renderIconState(state.iconState);
+        if (oldState == null || oldState.iconStatus != state.iconStatus) {
+            renderIconState(state.iconStatus);
         }
 
         if (oldState == null || !Objects.equals(oldState.text, state.text)) {
@@ -67,9 +67,9 @@ public class StatusBar {
         }
     }
 
-    private void renderIconState(IconState iconState) {
+    private void renderIconState(IconStatus iconStatus) {
         iconView.clearAnimation();
-        switch (iconState) {
+        switch (iconStatus) {
             case RUNNING:
                 iconView.setImageResource(R.drawable.baseline_refresh_24);
                 RotateAnimation rotateAnim = new RotateAnimation(0, 360,
@@ -93,22 +93,22 @@ public class StatusBar {
 
     public static class State {
 
-        public final IconState iconState;
+        public final IconStatus iconStatus;
         public final String text;
         public final List<ButtonState> buttonStates;
 
-        public State(IconState iconState, String text) {
-            this(iconState, text, (ButtonState[]) null);
+        public State(IconStatus iconStatus, String text) {
+            this(iconStatus, text, (ButtonState[]) null);
         }
 
-        public State(IconState iconState, String text, ButtonState... buttonStates) {
-            this.iconState = iconState;
+        public State(IconStatus iconStatus, String text, ButtonState... buttonStates) {
+            this.iconStatus = iconStatus;
             this.text = text;
             this.buttonStates = listOf(buttonStates);
         }
     }
 
-    public enum IconState {
+    public enum IconStatus {
         IDLE, RUNNING, COMPLETED, STOPPED
     }
 }
