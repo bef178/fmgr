@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace 'pd.droidapp.fmgr'
+    namespace = 'pd.droidapp.fmgr'
     compileSdk 35
 
     sourceSets {
