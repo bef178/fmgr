@@ -36,7 +36,7 @@ class FindDupWorker extends ProcessingWorker {
     }
 
     public boolean start(String startDirectory) {
-        return start(() -> FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
+        return start(() -> FileOps.singleton.listDirectory(startDirectory, 32, false, true, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         synchronized (lock) {

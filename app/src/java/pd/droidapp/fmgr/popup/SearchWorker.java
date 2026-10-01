@@ -44,7 +44,7 @@ class SearchWorker extends ProcessingWorker {
     }
 
     private void scanNames(String startDirectory, String query) {
-        FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
+        FileOps.singleton.listDirectory(startDirectory, 32, false, true, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         boolean hit = PathOps.singleton.basename(src).contains(query)
@@ -73,7 +73,7 @@ class SearchWorker extends ProcessingWorker {
             return;
         }
         byte[] buffer = new byte[256 * 1024]; // avoid to allocate for every file
-        FileOps.singleton.listDirectory(startDirectory, 32, false, cancelRequested,
+        FileOps.singleton.listDirectory(startDirectory, 32, false, true, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         boolean hit = !src.endsWith("/")

@@ -202,7 +202,7 @@ public class BrowseFragment extends Fragment {
     private void loadItems(String directory) {
         List<String> paths = new LinkedList<>();
         if (directory != null) {
-            FileOps.singleton.listDirectory(directory, 1, false, null,
+            FileOps.singleton.listDirectory(directory, 1, false, false, null,
                     (action, src, dst, succeeded) -> {
                         if (action == FileOps.Action.MEET) {
                             paths.add(src);

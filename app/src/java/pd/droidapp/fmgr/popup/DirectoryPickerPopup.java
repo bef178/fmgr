@@ -103,7 +103,7 @@ public class DirectoryPickerPopup extends ProcessingPopup {
                         && !PathOps.singleton.dirname(targetDirectory).equals(targetDirectory))));
 
         List<String> paths = new LinkedList<>();
-        FileOps.singleton.listDirectory(directory, 1, false, null,
+        FileOps.singleton.listDirectory(directory, 1, false, false, null,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         paths.add(src);
@@ -148,6 +148,7 @@ public class DirectoryPickerPopup extends ProcessingPopup {
             List<FileProperties> oldItems = new ArrayList<>(items);
             items.clear();
             items.addAll(newItems);
+            items.sort((p1, p2) -> PathOps.singleton.compare(p1.path, p2.path));
             DiffUtil.calculateDiff(new DiffUtil.Callback() {
                 @Override
                 public int getOldListSize() {
