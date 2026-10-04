@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -43,7 +44,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         return PathOps.singleton.compare(p1.path, p2.path);
     };
 
-    private final List<FileProperties> items = new LinkedList<>();
+    private final List<FileProperties> items = new ArrayList<>();
     private final Set<String> selectedPaths = new LinkedHashSet<>();
     private final Progressor<String> progressor = new Progressor<>();
     private final PropertiesLoader propertiesLoader;
@@ -72,13 +73,18 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         this.onSelectionChanged = onSelectionChanged;
     }
 
-    public void set(Collection<FileProperties> newItems) {
-        List<FileProperties> oldItems = new LinkedList<>(items);
+    public void clear() {
+        items.clear();
         propertiesLoader.clear();
+        notifyDataSetChanged();
+    }
+
+    public void set(Collection<FileProperties> newItems) {
         items.clear();
         items.addAll(newItems);
         items.sort(itemComparator);
-        dispatchDiff(oldItems);
+        notifyDataSetChanged();
+        propertiesLoader.clear();
         propertiesLoader.add(new LinkedList<>(items));
     }
 

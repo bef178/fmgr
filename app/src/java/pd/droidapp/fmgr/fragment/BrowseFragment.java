@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +22,7 @@ import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.File;
 import java.util.Collection;
@@ -38,6 +40,7 @@ import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.popup.FindDupPopup;
 import pd.droidapp.fmgr.popup.FindEmptyPopup;
+import pd.droidapp.fmgr.popup.ListDirectoryWorker;
 import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.FavoritesStore;
@@ -50,16 +53,16 @@ import pd.util.FileOps;
 import pd.util.FileStat;
 import pd.util.PathOps;
 
-import static pd.droidapp.fmgr.util.Util.toFileProperties;
-
 public class BrowseFragment extends Fragment {
 
     private FavoritesStore favoritesStore;
     private BreadcrumbsBar breadcrumbsBar;
     private ActionBar actionBar;
     private SelectionBar selectionBar;
+    private SwipeRefreshLayout swipeRefreshView;
     private RecyclerView itemsView;
     private FileItemsAdapter itemsAdapter;
+    private ListDirectoryWorker worker;
 
     private PathNavigator navigator = new PathNavigator();
 
@@ -114,6 +117,12 @@ public class BrowseFragment extends Fragment {
 
         selectionBar = new SelectionBar(view.findViewById(R.id.selection_bar));
 
+        swipeRefreshView = view.findViewById(R.id.swipe_refresh);
+        swipeRefreshView.setOnRefreshListener(this::refresh);
+        TypedValue typedValue = new TypedValue();
+        requireContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true);
+        swipeRefreshView.setColorSchemeColors(typedValue.data);
+
         itemsAdapter = new FileItemsAdapter();
         itemsAdapter.whenItemClicked(this::openItem);
         itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
@@ -134,10 +143,53 @@ public class BrowseFragment extends Fragment {
     }
 
     private void refresh() {
+        refresh(null);
+    }
+
+    private void refresh(String highlightItem) {
         renderBreadcrumbsBar();
         renderActionBar();
         itemsAdapter.clearSelection();
-        loadItems(navigator.getCurrentDirectory());
+        String directory = navigator.getCurrentDirectory();
+        if (worker != null) {
+            worker.cancel();
+            worker = null;
+        }
+        itemsAdapter.clear();
+        if (directory == null) {
+            swipeRefreshView.setRefreshing(false);
+            return;
+        }
+        swipeRefreshView.setRefreshing(true);
+
+        List<FileProperties> items = new LinkedList<>();
+        ListDirectoryWorker current = new ListDirectoryWorker(); // the guard
+        current.whenUpdated(listed -> itemsView.post(() -> {
+            if (worker != current) {
+                return;
+            }
+            items.addAll(listed);
+        }));
+        current.whenStopped(reason -> itemsView.post(() -> {
+            if (worker != current) {
+                return;
+            }
+            swipeRefreshView.setRefreshing(false);
+            itemsAdapter.set(items);
+            if (highlightItem != null) {
+                highlightItem(highlightItem);
+            }
+        }));
+        worker = current;
+        current.start(directory);
+    }
+
+    private void highlightItem(String path) {
+        int position = itemsAdapter.indexOf(path);
+        if (position >= 0) {
+            itemsView.scrollToPosition(position);
+            itemsView.postDelayed(() -> itemsAdapter.highlightItem(path), 100);
+        }
     }
 
     private void renderBreadcrumbsBar() {
@@ -199,19 +251,6 @@ public class BrowseFragment extends Fragment {
                 new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
     }
 
-    private void loadItems(String directory) {
-        List<String> paths = new LinkedList<>();
-        if (directory != null) {
-            FileOps.singleton.listDirectory(directory, 1, false, false, null,
-                    (action, src, dst, succeeded) -> {
-                        if (action == FileOps.Action.MEET) {
-                            paths.add(src);
-                        }
-                    });
-        }
-        itemsAdapter.set(toFileProperties(paths));
-    }
-
     private void restoreState(@NonNull Bundle savedInstanceState) {
         PathNavigator savedNavigator = (PathNavigator) savedInstanceState.getSerializable(STATE_NAVIGATOR);
         if (savedNavigator != null) {
@@ -244,7 +283,7 @@ public class BrowseFragment extends Fragment {
             renderBreadcrumbsBar();
             if (mightGrantedAllFilesAccess) {
                 mightGrantedAllFilesAccess = false;
-                loadItems(navigator.getCurrentDirectory());
+                refresh();
             }
         }
         askForAllFilesAccessIfNecessary();
@@ -286,6 +325,10 @@ public class BrowseFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         itemsAdapter.cancel();
+        if (worker != null) {
+            worker.cancel();
+            worker = null;
+        }
     }
 
     public void navigateToDirectory(String target) {
@@ -395,16 +438,9 @@ public class BrowseFragment extends Fragment {
 
         // navigate to parent directory
         navigator.navigateTo(parent);
-        refresh();
 
         // scroll to and highlight the item
-        itemsView.post(() -> {
-            int position = itemsAdapter.indexOf(path);
-            if (position >= 0) {
-                itemsView.scrollToPosition(position);
-                itemsView.postDelayed(() -> itemsAdapter.highlightItem(path), 100);
-            }
-        });
+        refresh(path);
     }
 
     void showCreateDirectoryPopup() {
@@ -462,7 +498,8 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        loadItems(currentDirectory);
+        itemsAdapter.add(Collections.singletonList(new FileProperties(newPath, isDirectory)));
+        highlightItem(newPath);
         return true;
     }
 
@@ -592,6 +629,7 @@ public class BrowseFragment extends Fragment {
         FileProperties oldItem = itemsAdapter.remove(path);
         if (oldItem != null) {
             itemsAdapter.add(Collections.singletonList(new FileProperties(newPath, oldItem.isDirectory)));
+            highlightItem(newPath);
         }
         return true;
     }

@@ -8,15 +8,15 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
@@ -25,18 +25,17 @@ import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
-import pd.util.FileOps;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
-import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
-public class DirectoryPickerPopup extends ProcessingPopup {
+public class PickDirectoryPopup extends ProcessingPopup {
 
     private static final String CAPPING_DIRECTORY = Environment.getExternalStorageDirectory().getPath();
 
     private String targetDirectory;
+    private ListDirectoryWorker worker;
 
     // views
     private final StatusBar statusBar;
@@ -46,7 +45,7 @@ public class DirectoryPickerPopup extends ProcessingPopup {
     // callbacks
     private Consumer<String> onDirectorySelected;
 
-    public DirectoryPickerPopup(View containerView, String startDirectory) {
+    public PickDirectoryPopup(View containerView, String startDirectory) {
         super(containerView);
         targetDirectory = startDirectory;
 
@@ -97,21 +96,42 @@ public class DirectoryPickerPopup extends ProcessingPopup {
 
     private void changeDirectory(String directory) {
         targetDirectory = directory;
-        statusBar.render(new State(StatusBar.IconStatus.IDLE,
-                getDisplayPath(directory),
+        renderStatusBar(StatusBar.IconStatus.RUNNING);
+
+        if (worker != null) {
+            worker.cancel();
+            worker = null;
+        }
+        itemsAdapter.clear();
+
+        List<FileProperties> listed = new LinkedList<>();
+        ListDirectoryWorker current = new ListDirectoryWorker(); // the guard
+        current.whenUpdated(items -> containerView.post(() -> {
+            if (worker != current) {
+                return;
+            }
+            for (FileProperties item : items) {
+                if (item.isDirectory) {
+                    listed.add(item);
+                }
+            }
+        }));
+        current.whenStopped(reason -> containerView.post(() -> {
+            if (worker != current) {
+                return;
+            }
+            renderStatusBar(StatusBar.IconStatus.IDLE);
+            itemsAdapter.set(listed);
+        }));
+        worker = current;
+        current.start(directory);
+    }
+
+    private void renderStatusBar(StatusBar.IconStatus iconStatus) {
+        statusBar.render(new State(iconStatus,
+                getDisplayPath(targetDirectory),
                 new ButtonState(R.drawable.action_up, true, !CAPPING_DIRECTORY.equals(targetDirectory)
                         && !PathOps.singleton.dirname(targetDirectory).equals(targetDirectory))));
-
-        List<String> paths = new LinkedList<>();
-        FileOps.singleton.listDirectory(directory, 1, false, false, null,
-                (action, src, dst, succeeded) -> {
-                    if (action == FileOps.Action.MEET) {
-                        paths.add(src);
-                    }
-                });
-        itemsAdapter.set(toFileProperties(paths).stream()
-                .filter(item -> item.isDirectory)
-                .collect(Collectors.toList()));
     }
 
     public void whenDirectorySelected(Consumer<String> onDirectorySelected) {
@@ -120,6 +140,10 @@ public class DirectoryPickerPopup extends ProcessingPopup {
 
     @Override
     protected void onDismissing(Runnable continueDismiss) {
+        if (worker != null) {
+            worker.cancel();
+            worker = null; // late callbacks are dropped by the guards
+        }
         continueDismiss.run();
     }
 
@@ -137,6 +161,8 @@ public class DirectoryPickerPopup extends ProcessingPopup {
 
     private static class DirectoryAdapter extends RecyclerView.Adapter<DirectoryAdapter.ItemViewHolder> {
 
+        private final Comparator<FileProperties> itemComparator = (p1, p2) -> PathOps.singleton.compare(p1.path, p2.path);
+
         private final List<FileProperties> items = new ArrayList<>();
         private Consumer<String> onItemClicked;
 
@@ -144,33 +170,16 @@ public class DirectoryPickerPopup extends ProcessingPopup {
             this.onItemClicked = onItemClicked;
         }
 
-        public void set(List<FileProperties> newItems) {
-            List<FileProperties> oldItems = new ArrayList<>(items);
+        public void clear() {
+            items.clear();
+            notifyDataSetChanged();
+        }
+
+        public void set(Collection<FileProperties> newItems) {
             items.clear();
             items.addAll(newItems);
-            items.sort((p1, p2) -> PathOps.singleton.compare(p1.path, p2.path));
-            DiffUtil.calculateDiff(new DiffUtil.Callback() {
-                @Override
-                public int getOldListSize() {
-                    return oldItems.size();
-                }
-
-                @Override
-                public int getNewListSize() {
-                    return items.size();
-                }
-
-                @Override
-                public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                    return oldItems.get(oldItemPosition).path.equals(items.get(newItemPosition).path);
-                }
-
-                @Override
-                public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
-                    // a row shows the basename, which its path determines
-                    return true;
-                }
-            }).dispatchUpdatesTo(this);
+            items.sort(itemComparator);
+            notifyDataSetChanged();
         }
 
         @NonNull

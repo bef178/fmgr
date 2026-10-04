@@ -13,7 +13,7 @@ import java.util.function.Consumer;
  * The reports are all on a timer thread.
  * One-way: once stopped, the worker cannot be restarted.
  */
-abstract class ProcessingWorker {
+public abstract class ProcessingWorker {
 
     private final int updateInterval;
     private Timer updateTimer;
