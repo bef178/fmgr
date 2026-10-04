@@ -41,6 +41,7 @@ public class FirstFragment extends Fragment {
 
     void showHomeFragment() {
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
+        transaction.setCustomAnimations(R.anim.slide_in_left, R.anim.slide_out_right);
         BrowseFragment browseFragment = findBrowseFragment();
         if (browseFragment != null) {
             transaction.hide(browseFragment);
@@ -57,6 +58,7 @@ public class FirstFragment extends Fragment {
     void showBrowseFragment(String path) {
         BrowseFragment browseFragment = findBrowseFragment();
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
+        transaction.setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left);
         if (browseFragment == null) {
             browseFragment = new BrowseFragment();
             transaction.add(R.id.browse_container, browseFragment);
