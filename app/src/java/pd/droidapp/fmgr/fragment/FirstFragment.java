@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.Lifecycle;
 
 import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
@@ -41,12 +42,14 @@ public class FirstFragment extends Fragment {
     void showHomeFragment() {
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
         BrowseFragment browseFragment = findBrowseFragment();
-        if (browseFragment != null && !browseFragment.isHidden()) {
+        if (browseFragment != null) {
             transaction.hide(browseFragment);
+            transaction.setMaxLifecycle(browseFragment, Lifecycle.State.STARTED);
         }
         Fragment homeFragment = findHomeFragment();
-        if (homeFragment != null && homeFragment.isHidden()) {
+        if (homeFragment != null) {
             transaction.show(homeFragment);
+            transaction.setMaxLifecycle(homeFragment, Lifecycle.State.RESUMED);
         }
         transaction.commitNow();
     }
@@ -60,9 +63,12 @@ public class FirstFragment extends Fragment {
         } else if (browseFragment.isHidden()) {
             transaction.show(browseFragment);
         }
+        transaction.setMaxLifecycle(browseFragment, Lifecycle.State.RESUMED);
+
         Fragment homeFragment = findHomeFragment();
-        if (homeFragment != null && !homeFragment.isHidden()) {
+        if (homeFragment != null) {
             transaction.hide(homeFragment);
+            transaction.setMaxLifecycle(homeFragment, Lifecycle.State.STARTED);
         }
         transaction.commitNow();
         if (path != null) {
