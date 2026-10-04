@@ -11,7 +11,6 @@ import androidx.fragment.app.Fragment;
 
 import java.util.Objects;
 
-import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.util.FavoritesStore;
@@ -37,8 +36,7 @@ public class HomeFragment extends Fragment {
         favoritesBar = new FavoritesBar(view.findViewById(R.id.favorites_bar));
         favoritesBar.whenFavoriteClicked(path -> {
             if (FileOps.singleton.stat(path).isDirectory(true)) {
-                MainActivity mainActivity = (MainActivity) requireActivity();
-                mainActivity.navigateToDirectory(path);
+                ((FirstFragment) requireParentFragment()).showBrowseFragment(path);
             } else {
                 Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
             }
@@ -65,10 +63,7 @@ public class HomeFragment extends Fragment {
         });
 
         LocationsBar locationsBar = new LocationsBar(view.findViewById(R.id.locations_bar));
-        locationsBar.whenLocationClicked(id -> {
-            MainActivity mainActivity = (MainActivity) requireActivity();
-            mainActivity.navigateToBrowse();
-        });
+        locationsBar.whenLocationClicked(id -> ((FirstFragment) requireParentFragment()).showBrowseFragment(null));
 
         return view;
     }

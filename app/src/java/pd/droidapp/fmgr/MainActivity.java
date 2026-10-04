@@ -11,8 +11,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import pd.droidapp.fmgr.fragment.BrowseFragment;
-import pd.droidapp.fmgr.fragment.HomeFragment;
+import pd.droidapp.fmgr.fragment.FirstFragment;
 import pd.droidapp.fmgr.fragment.ProfileFragment;
 
 public class MainActivity extends AppCompatActivity {
@@ -20,8 +19,7 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager2 viewPager;
     private BottomNavigationView bottomNavigation;
 
-    private BrowseFragment browseFragment;
-    private int indexWithinHome;
+    private FirstFragment firstFragment;
     private long lastBackPressedAt;
 
     @Override
@@ -43,21 +41,18 @@ public class MainActivity extends AppCompatActivity {
             public Fragment createFragment(int position) {
                 switch (position) {
                     case 1:
-                        return new BrowseFragment();
-                    case 2:
                         return new ProfileFragment();
                     default:
-                        return new HomeFragment();
+                        return new FirstFragment();
                 }
             }
 
             @Override
             public int getItemCount() {
-                return 3;
+                return 2;
             }
         });
 
-        // create BrowseFragment before it is ever navigated to
         viewPager.setOffscreenPageLimit(1);
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -66,14 +61,9 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageSelected(position);
                 switch (position) {
                     case 1:
-                        indexWithinHome = 1;
-                        bottomNavigation.setSelectedItemId(R.id.navigation_home);
-                        break;
-                    case 2:
                         bottomNavigation.setSelectedItemId(R.id.navigation_profile);
                         break;
                     default:
-                        indexWithinHome = 0;
                         bottomNavigation.setSelectedItemId(R.id.navigation_home);
                         break;
                 }
@@ -83,12 +73,10 @@ public class MainActivity extends AppCompatActivity {
         bottomNavigation.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.navigation_home) {
-                if (viewPager.getCurrentItem() == 2) {
-                    viewPager.setCurrentItem(indexWithinHome);
-                }
+                viewPager.setCurrentItem(0);
                 return true;
             } else if (itemId == R.id.navigation_profile) {
-                viewPager.setCurrentItem(2);
+                viewPager.setCurrentItem(1);
                 return true;
             }
             return false;
@@ -105,8 +93,7 @@ public class MainActivity extends AppCompatActivity {
     private void onSystemBackPressed() {
         int current = viewPager.getCurrentItem();
 
-        // on browse fragment: try nav back
-        if (current == 1 && browseFragment != null && browseFragment.navigateBack()) {
+        if (current == 0 && firstFragment != null && firstFragment.handleSystemBack()) {
             return;
         }
 
@@ -116,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // already on home fragment: press again to exit
+        // press again to exit
         long now = System.currentTimeMillis();
         if (now - lastBackPressedAt < 2000) {
             finish();
@@ -126,22 +113,7 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, R.string.press_back_again_to_exit, Toast.LENGTH_SHORT).show();
     }
 
-    public void navigateToHome() {
-        viewPager.setCurrentItem(0);
-    }
-
-    public void navigateToBrowse() {
-        viewPager.setCurrentItem(1);
-    }
-
-    public void navigateToDirectory(String path) {
-        if (browseFragment != null && browseFragment.getView() != null) {
-            browseFragment.navigateToDirectory(path);
-        }
-        viewPager.setCurrentItem(1, true);
-    }
-
-    public void setBrowseFragment(BrowseFragment fragment) {
-        this.browseFragment = fragment;
+    public void setFirstFragment(FirstFragment fragment) {
+        this.firstFragment = fragment;
     }
 }

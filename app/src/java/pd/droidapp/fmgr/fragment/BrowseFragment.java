@@ -2,7 +2,6 @@ package pd.droidapp.fmgr.fragment;
 
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -34,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import pd.droidapp.fmgr.MainActivity;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.EditPopup;
@@ -72,13 +70,6 @@ public class BrowseFragment extends Fragment {
     private static final String STATE_NAVIGATOR = "navigator";
     private static final String STATE_SELECTED_ITEMS = "selected_items";
 
-    @Override
-    public void onAttach(@NonNull Context context) {
-        super.onAttach(context);
-        MainActivity mainActivity = (MainActivity) requireActivity();
-        mainActivity.setBrowseFragment(this);
-    }
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -90,7 +81,7 @@ public class BrowseFragment extends Fragment {
         breadcrumbsBar.whenFavIconClicked(this::toggleFavorite);
 
         ImageButton homeButton = view.findViewById(R.id.action_home);
-        homeButton.setOnClickListener(v -> navigateToHome());
+        homeButton.setOnClickListener(v -> ((FirstFragment) requireParentFragment()).showHomeFragment());
 
         actionBar = new ActionBar(view.findViewById(R.id.action_bar));
         actionBar.whenButtonClicked(id -> {
@@ -340,11 +331,6 @@ public class BrowseFragment extends Fragment {
             return;
         }
         refresh();
-    }
-
-    private void navigateToHome() {
-        MainActivity mainActivity = (MainActivity) requireActivity();
-        mainActivity.navigateToHome();
     }
 
     public boolean navigateBack() {
