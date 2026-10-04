@@ -63,6 +63,7 @@ public class BrowseFragment extends Fragment {
     private ListDirectoryWorker worker;
 
     private PathNavigator navigator = new PathNavigator();
+    private PathNavigator.Entry displayedEntry;
 
     private boolean askedAllFilesAccess;
     private boolean mightGrantedAllFilesAccess;
@@ -141,6 +142,9 @@ public class BrowseFragment extends Fragment {
         renderBreadcrumbsBar();
         itemsAdapter.clearSelection();
         String directory = navigator.getCurrentDirectory();
+        if (displayedEntry != null && itemsAdapter.getItemCount() > 0) {
+            saveScrollState(displayedEntry);
+        }
         if (worker != null) {
             worker.cancel();
             worker = null;
@@ -169,12 +173,27 @@ public class BrowseFragment extends Fragment {
             swipeRefreshView.setRefreshing(false);
             renderActionBar();
             itemsAdapter.set(items);
+            displayedEntry = navigator.getCurrentEntry();
+            if (displayedEntry.scrollPosition >= 0 && displayedEntry.scrollPosition < itemsAdapter.getItemCount()) {
+                ((LinearLayoutManager) itemsView.getLayoutManager())
+                        .scrollToPositionWithOffset(displayedEntry.scrollPosition, displayedEntry.scrollOffset);
+            }
             if (highlightItem != null) {
                 highlightItem(highlightItem);
             }
         }));
         worker = current;
         current.start(directory);
+    }
+
+    private void saveScrollState(PathNavigator.Entry entry) {
+        LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
+        View child = layoutManager.getChildAt(0);
+        if (child == null) {
+            return;
+        }
+        entry.scrollPosition = layoutManager.getPosition(child);
+        entry.scrollOffset = layoutManager.getDecoratedTop(child) - layoutManager.getPaddingTop();
     }
 
     private void highlightItem(String path) {

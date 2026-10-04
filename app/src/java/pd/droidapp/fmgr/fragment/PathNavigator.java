@@ -12,16 +12,31 @@ public class PathNavigator implements Serializable {
 
     private static final long serialVersionUID = -1;
 
-    private String currentDirectory;
-    private final Stack<String> backStack = new Stack<>();
-    private final Stack<String> forwardStack = new Stack<>();
+    static class Entry implements Serializable {
+
+        final String path;
+        int scrollPosition = -1;
+        int scrollOffset;
+
+        Entry(String path) {
+            this.path = path;
+        }
+    }
+
+    private Entry current;
+    private final Stack<Entry> backStack = new Stack<>();
+    private final Stack<Entry> forwardStack = new Stack<>();
 
     public String getCurrentDirectory() {
-        return currentDirectory;
+        return current == null ? null : current.path;
+    }
+
+    public Entry getCurrentEntry() {
+        return current;
     }
 
     public boolean isCurrentDirectoryAccessible() {
-        return isAccessible(currentDirectory);
+        return isAccessible(getCurrentDirectory());
     }
 
     private boolean isAccessible(String path) {
@@ -32,14 +47,14 @@ public class PathNavigator implements Serializable {
         if (!isAccessible(target)) {
             return false;
         }
-        if (target.equals(currentDirectory)) {
+        if (current != null && target.equals(current.path)) {
             return true;
         }
-        if (currentDirectory != null) {
-            backStack.push(currentDirectory);
+        if (current != null) {
+            backStack.push(current);
         }
         forwardStack.clear();
-        currentDirectory = target;
+        current = new Entry(target);
         return true;
     }
 
@@ -55,8 +70,8 @@ public class PathNavigator implements Serializable {
         while (!isUsable(backStack.peek())) {
             backStack.pop();
         }
-        forwardStack.push(currentDirectory);
-        currentDirectory = backStack.pop();
+        forwardStack.push(current);
+        current = backStack.pop();
         return true;
     }
 
@@ -72,16 +87,17 @@ public class PathNavigator implements Serializable {
         while (!isUsable(forwardStack.peek())) {
             forwardStack.pop();
         }
-        backStack.push(currentDirectory);
-        currentDirectory = forwardStack.pop();
+        backStack.push(current);
+        current = forwardStack.pop();
         return true;
     }
 
-    private boolean isUsable(String path) {
-        return isAccessible(path) && !path.equals(currentDirectory);
+    private boolean isUsable(Entry entry) {
+        return isAccessible(entry.path) && !entry.path.equals(getCurrentDirectory());
     }
 
     public boolean canGoUp() {
+        String currentDirectory = getCurrentDirectory();
         if (currentDirectory == null) {
             return false;
         }
@@ -94,6 +110,6 @@ public class PathNavigator implements Serializable {
         if (!canGoUp()) {
             return false;
         }
-        return navigateTo(PathOps.singleton.dirname(currentDirectory));
+        return navigateTo(PathOps.singleton.dirname(getCurrentDirectory()));
     }
 }
