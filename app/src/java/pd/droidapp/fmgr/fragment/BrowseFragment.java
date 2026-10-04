@@ -148,7 +148,6 @@ public class BrowseFragment extends Fragment {
 
     private void refresh(String highlightItem) {
         renderBreadcrumbsBar();
-        renderActionBar();
         itemsAdapter.clearSelection();
         String directory = navigator.getCurrentDirectory();
         if (worker != null) {
@@ -158,9 +157,11 @@ public class BrowseFragment extends Fragment {
         itemsAdapter.clear();
         if (directory == null) {
             swipeRefreshView.setRefreshing(false);
+            renderActionBar();
             return;
         }
         swipeRefreshView.setRefreshing(true);
+        renderActionBar();
 
         List<FileProperties> items = new LinkedList<>();
         ListDirectoryWorker current = new ListDirectoryWorker(); // the guard
@@ -175,6 +176,7 @@ public class BrowseFragment extends Fragment {
                 return;
             }
             swipeRefreshView.setRefreshing(false);
+            renderActionBar();
             itemsAdapter.set(items);
             if (highlightItem != null) {
                 highlightItem(highlightItem);
@@ -198,6 +200,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void renderActionBar() {
+        boolean loading = swipeRefreshView.isRefreshing();
         actionBar.render(new ActionBar.State(
                 new ButtonState[] {
                         new ButtonState(R.drawable.action_back, true, navigator.canGoBack()),
@@ -205,8 +208,8 @@ public class BrowseFragment extends Fragment {
                         new ButtonState(R.drawable.action_up, true, navigator.canGoUp()),
                         new ButtonState(R.drawable.baseline_refresh_24),
                 },
-                new ButtonState(R.drawable.i_directory_add_24),
-                new ButtonState(R.drawable.i_file_add_24),
+                new ButtonState(R.drawable.i_directory_add_24, true, !loading),
+                new ButtonState(R.drawable.i_file_add_24, true, !loading),
                 new ButtonState(R.drawable.baseline_search_24),
                 new ButtonState(R.drawable.ic_find_empty_24),
                 new ButtonState(R.drawable.ic_find_dup_24)));
