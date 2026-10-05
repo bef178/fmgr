@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.fragment;
+package pd.droidapp.fmgr.util;
 
 import android.os.Environment;
 
@@ -12,13 +12,13 @@ public class PathNavigator implements Serializable {
 
     private static final long serialVersionUID = -1;
 
-    static class Entry implements Serializable {
+    public static class Entry implements Serializable {
 
-        final String path;
-        int scrollPosition = -1;
-        int scrollOffset;
+        public final String path;
+        public int scrollPosition = -1;
+        public int scrollOffset;
 
-        Entry(String path) {
+        public Entry(String path) {
             this.path = path;
         }
     }

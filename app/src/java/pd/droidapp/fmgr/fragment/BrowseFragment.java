@@ -45,6 +45,7 @@ import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.util.FavoritesStore;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.util.PathNavigator;
 import pd.droidapp.fmgr.view.ActionBar;
 import pd.droidapp.fmgr.view.BreadcrumbsBar;
 import pd.droidapp.fmgr.view.ButtonState;

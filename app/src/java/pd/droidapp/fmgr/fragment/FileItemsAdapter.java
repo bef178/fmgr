@@ -31,6 +31,7 @@ import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.util.Progressor;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;
