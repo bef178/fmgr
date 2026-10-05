@@ -10,19 +10,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class Progressor<TKey> {
+public class Progressor<TKey, TValue> {
 
     private static final float START_TIME = 0f;
     private static final float END_TIME = 1f;
 
     private final Map<TKey, ValueAnimator> animators = new HashMap<>();
     private final Map<TKey, Float> times = new HashMap<>();
+    private final Map<TKey, TValue> values = new HashMap<>();
 
-    public void start(TKey key, long duration, BiConsumer<Float, Float> onUpdated) {
-        start(key, duration, new LinearInterpolator(), onUpdated);
+    public void start(TKey key, long duration, TValue value, BiConsumer<Float, Float> onUpdated) {
+        start(key, duration, value, new LinearInterpolator(), onUpdated);
     }
 
-    public void start(TKey key, long duration, TimeInterpolator interpolator, BiConsumer<Float, Float> onUpdated) {
+    public void start(TKey key, long duration, TValue value, TimeInterpolator interpolator,
+            BiConsumer<Float, Float> onUpdated) {
         if (key == null) {
             return;
         }
@@ -57,6 +59,7 @@ public class Progressor<TKey> {
                 // atomic operation
                 if (animators.remove(key, a)) {
                     times.remove(key);
+                    values.remove(key);
                     TimeInterpolator interpolator = a.getInterpolator();
                     float distance = interpolator.getInterpolation(END_TIME);
                     float velocity = calculateVelocity(interpolator, END_TIME);
@@ -65,6 +68,7 @@ public class Progressor<TKey> {
             }
         });
         animators.put(key, animator);
+        values.put(key, value);
         animator.start();
     }
 
@@ -112,5 +116,9 @@ public class Progressor<TKey> {
             time = END_TIME;
         }
         return calculateVelocity(a.getInterpolator(), time);
+    }
+
+    public TValue getValue(TKey key) {
+        return values.get(key);
     }
 }

@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
@@ -46,7 +47,7 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
 
     private final List<FileProperties> items = new ArrayList<>();
     private final Set<String> selectedPaths = new LinkedHashSet<>();
-    private final Progressor<String> progressor = new Progressor<>();
+    private final Progressor<String, Integer> progressor = new Progressor<>();
     private final PropertiesLoader propertiesLoader;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -205,8 +206,8 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         return -1;
     }
 
-    public void highlightItem(String path) {
-        progressor.start(path, 1500, new AccelerateDecelerateInterpolator(), (distance, velocity) -> {
+    public void highlightItem(String path, @ColorInt int color) {
+        progressor.start(path, 1500, color, new AccelerateDecelerateInterpolator(), (distance, velocity) -> {
             int position = indexOf(path);
             if (position >= 0) {
                 notifyItemChanged(position);
@@ -299,7 +300,9 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
             viewHolder.selectedIconImageView.setVisibility(View.GONE);
         }
 
-        applyHighlightEffect(viewHolder.highlightView, progressor.getVelocity(item.path));
+        Integer highlightColor = progressor.getValue(item.path);
+        applyHighlightEffect(viewHolder.highlightView, progressor.getVelocity(item.path),
+                highlightColor == null ? Color.TRANSPARENT : highlightColor);
 
         viewHolder.itemView.setOnClickListener(v -> {
             if (hasSelection()) {
@@ -338,11 +341,8 @@ class FileItemsAdapter extends RecyclerView.Adapter<FileItemsAdapter.ItemViewHol
         }
     }
 
-    private void applyHighlightEffect(View view, Float velocity) {
+    private void applyHighlightEffect(View view, Float velocity, @ColorInt int peakColor) {
         TypedValue typedValue = new TypedValue();
-        view.getContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorSecondary, typedValue, true);
-        final int peakColor = typedValue.data;
-
         view.getContext().getTheme().resolveAttribute(android.R.attr.colorBackground, typedValue, true);
         final int baseColor = typedValue.data & 0x00FFFFFF;
 

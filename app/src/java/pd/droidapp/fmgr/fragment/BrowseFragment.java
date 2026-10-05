@@ -15,9 +15,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.Toast;
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
+import androidx.core.view.OneShotPreDrawListener;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -50,6 +52,8 @@ import pd.droidapp.fmgr.view.SelectionBar;
 import pd.util.FileOps;
 import pd.util.FileStat;
 import pd.util.PathOps;
+
+import static pd.droidapp.fmgr.util.Util.themeColor;
 
 public class BrowseFragment extends Fragment {
 
@@ -138,7 +142,7 @@ public class BrowseFragment extends Fragment {
         refresh(null);
     }
 
-    private void refresh(String highlightItem) {
+    private void refresh(Runnable onComplete) {
         renderBreadcrumbsBar();
         itemsAdapter.clearSelection();
         String directory = navigator.getCurrentDirectory();
@@ -178,8 +182,8 @@ public class BrowseFragment extends Fragment {
                 ((LinearLayoutManager) itemsView.getLayoutManager())
                         .scrollToPositionWithOffset(displayedEntry.scrollPosition, displayedEntry.scrollOffset);
             }
-            if (highlightItem != null) {
-                highlightItem(highlightItem);
+            if (onComplete != null) {
+                onComplete.run();
             }
         }));
         worker = current;
@@ -196,11 +200,26 @@ public class BrowseFragment extends Fragment {
         entry.scrollOffset = layoutManager.getDecoratedTop(child) - layoutManager.getPaddingTop();
     }
 
-    private void highlightItem(String path) {
+    private void anchorAndHighlight(String path) {
+        anchorAndHighlight(path, themeColor(requireContext(), com.google.android.material.R.attr.colorSecondary));
+    }
+
+    private void anchorAndHighlight(String path, @ColorInt int color) {
         int position = itemsAdapter.indexOf(path);
         if (position >= 0) {
-            itemsView.scrollToPosition(position);
-            itemsView.postDelayed(() -> itemsAdapter.highlightItem(path), 100);
+            int anchor = (int) (itemsView.getHeight() * 0.382f);
+            LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
+            if (layoutManager != null) {
+                layoutManager.scrollToPositionWithOffset(position, anchor);
+                OneShotPreDrawListener.add(itemsView, () -> {
+                    View child = layoutManager.findViewByPosition(position);
+                    if (child == null) {
+                        return;
+                    }
+                    itemsView.scrollBy(0, child.getTop() - (anchor - child.getHeight() / 2));
+                    itemsView.postDelayed(() -> itemsAdapter.highlightItem(path, color), 100);
+                });
+            }
         }
     }
 
@@ -370,11 +389,12 @@ public class BrowseFragment extends Fragment {
     }
 
     private void navigateUp() {
+        String child = navigator.getCurrentDirectory();
         if (!navigator.goUp()) {
             renderActionBar();
             return;
         }
-        refresh();
+        refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
     }
 
     private void toggleFavorite() {
@@ -448,7 +468,7 @@ public class BrowseFragment extends Fragment {
         navigator.navigateTo(parent);
 
         // scroll to and highlight the item
-        refresh(path);
+        refresh(() -> anchorAndHighlight(path));
     }
 
     void showCreateDirectoryPopup() {
@@ -507,7 +527,7 @@ public class BrowseFragment extends Fragment {
         }
 
         itemsAdapter.add(Collections.singletonList(new FileProperties(newPath, isDirectory)));
-        highlightItem(newPath);
+        anchorAndHighlight(newPath);
         return true;
     }
 
@@ -637,7 +657,7 @@ public class BrowseFragment extends Fragment {
         FileProperties oldItem = itemsAdapter.remove(path);
         if (oldItem != null) {
             itemsAdapter.add(Collections.singletonList(new FileProperties(newPath, oldItem.isDirectory)));
-            highlightItem(newPath);
+            anchorAndHighlight(newPath);
         }
         return true;
     }
