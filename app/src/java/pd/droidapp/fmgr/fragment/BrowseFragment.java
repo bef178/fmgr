@@ -19,15 +19,18 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
-import androidx.core.view.OneShotPreDrawListener;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -49,11 +52,13 @@ import pd.droidapp.fmgr.util.PathNavigator;
 import pd.droidapp.fmgr.view.ActionBar;
 import pd.droidapp.fmgr.view.BreadcrumbBar;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.FileItemAdapter;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.util.FileOps;
 import pd.util.FileStat;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.util.Util.getSizeString;
 import static pd.droidapp.fmgr.util.Util.themeColor;
 
 public class BrowseFragment extends Fragment {
@@ -64,8 +69,12 @@ public class BrowseFragment extends Fragment {
     private SelectionBar selectionBar;
     private SwipeRefreshLayout swipeRefreshView;
     private RecyclerView itemsView;
-    private FileItemsAdapter itemsAdapter;
+    private FileItemAdapter itemsAdapter;
     private ListDirectoryWorker worker;
+
+    private final List<FileProperties> items = new ArrayList<>();
+    private final Set<String> selectedPaths = new LinkedHashSet<>();
+    private PropertiesLoader propertiesLoader;
 
     private PathNavigator navigator = new PathNavigator();
     private PathNavigator.Entry displayedEntry;
@@ -76,6 +85,13 @@ public class BrowseFragment extends Fragment {
     private static final String STATE_NAVIGATOR = "navigator";
     private static final String STATE_SELECTED_ITEMS = "selected_items";
     private static final String DEFAULT_DIRECTORY = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath();
+
+    private static final Comparator<FileProperties> ITEM_COMPARATOR = (p1, p2) -> {
+        if (p1.isDirectory != p2.isDirectory) {
+            return p1.isDirectory ? -1 : 1;
+        }
+        return PathOps.singleton.compare(p1.path, p2.path);
+    };
 
     @Nullable
     @Override
@@ -121,13 +137,16 @@ public class BrowseFragment extends Fragment {
         requireContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true);
         swipeRefreshView.setColorSchemeColors(typedValue.data);
 
-        itemsAdapter = new FileItemsAdapter();
-        itemsAdapter.whenItemClicked(this::openItem);
-        itemsAdapter.whenSelectionChanged(this::renderSelectionBar);
+        itemsAdapter = new FileItemAdapter();
+        itemsAdapter.whenItemClicked(this::onItemClicked);
+        itemsAdapter.whenItemLongClicked(this::toggleSelection);
 
         itemsView = view.findViewById(R.id.items_list);
         itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
         itemsView.setAdapter(itemsAdapter);
+
+        propertiesLoader = new PropertiesLoader();
+        propertiesLoader.whenUpdated(updated -> itemsView.post(this::renderItems));
 
         initSelectionBar();
 
@@ -135,6 +154,7 @@ public class BrowseFragment extends Fragment {
             restoreState(savedInstanceState);
         }
 
+        renderItems();
         renderActionBar();
 
         return view;
@@ -146,16 +166,18 @@ public class BrowseFragment extends Fragment {
 
     private void refresh(Runnable onComplete) {
         renderBreadcrumbsBar();
-        itemsAdapter.clearSelection();
+        clearSelection();
         String directory = navigator.getCurrentDirectory();
-        if (displayedEntry != null && itemsAdapter.getItemCount() > 0) {
+        if (displayedEntry != null && !items.isEmpty()) {
             saveScrollState(displayedEntry);
         }
         if (worker != null) {
             worker.cancel();
             worker = null;
         }
-        itemsAdapter.clear();
+        items.clear();
+        propertiesLoader.clear();
+        renderItems();
         if (directory == null) {
             swipeRefreshView.setRefreshing(false);
             renderActionBar();
@@ -164,13 +186,13 @@ public class BrowseFragment extends Fragment {
         swipeRefreshView.setRefreshing(true);
         renderActionBar();
 
-        List<FileProperties> items = new LinkedList<>();
+        List<FileProperties> loadedItems = new LinkedList<>();
         ListDirectoryWorker current = new ListDirectoryWorker(); // the guard
         current.whenUpdated(listed -> itemsView.post(() -> {
             if (worker != current) {
                 return;
             }
-            items.addAll(listed);
+            loadedItems.addAll(listed);
         }));
         current.whenStopped(reason -> itemsView.post(() -> {
             if (worker != current) {
@@ -178,9 +200,9 @@ public class BrowseFragment extends Fragment {
             }
             swipeRefreshView.setRefreshing(false);
             renderActionBar();
-            itemsAdapter.set(items);
+            setItems(loadedItems);
             displayedEntry = navigator.getCurrentEntry();
-            if (displayedEntry.scrollPosition >= 0 && displayedEntry.scrollPosition < itemsAdapter.getItemCount()) {
+            if (displayedEntry.scrollPosition >= 0 && displayedEntry.scrollPosition < items.size()) {
                 ((LinearLayoutManager) itemsView.getLayoutManager())
                         .scrollToPositionWithOffset(displayedEntry.scrollPosition, displayedEntry.scrollOffset);
             }
@@ -202,27 +224,78 @@ public class BrowseFragment extends Fragment {
         entry.scrollOffset = layoutManager.getDecoratedTop(child) - layoutManager.getPaddingTop();
     }
 
+    private void setItems(Collection<FileProperties> newItems) {
+        items.clear();
+        items.addAll(newItems);
+        items.sort(ITEM_COMPARATOR);
+        renderItems();
+        propertiesLoader.clear();
+        propertiesLoader.add(new LinkedList<>(items));
+    }
+
+    private void addItems(Collection<FileProperties> toAdd) {
+        if (toAdd.isEmpty()) {
+            return;
+        }
+        Map<String, FileProperties> byPath = new HashMap<>();
+        for (FileProperties item : toAdd) {
+            byPath.put(item.path, item);
+        }
+        for (int i = 0; i < items.size(); i++) {
+            FileProperties replacement = byPath.remove(items.get(i).path);
+            if (replacement != null) {
+                items.set(i, replacement);
+            }
+        }
+        items.addAll(byPath.values());
+        items.sort(ITEM_COMPARATOR);
+        propertiesLoader.add(new LinkedList<>(toAdd));
+        renderItems();
+    }
+
+    private FileProperties removeItem(String path) {
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i).path.equals(path)) {
+                FileProperties removed = items.remove(i);
+                renderItems();
+                return removed;
+            }
+        }
+        return null;
+    }
+
+    private void removeItems(Collection<FileProperties> toRemove) {
+        Set<String> paths = new HashSet<>();
+        for (FileProperties item : toRemove) {
+            paths.add(item.path);
+        }
+        items.removeIf(item -> paths.contains(item.path));
+        renderItems();
+    }
+
+    private void loadProperties(Collection<String> paths) {
+        if (paths.isEmpty()) {
+            return;
+        }
+        Set<String> pathsSet = new HashSet<>(paths);
+        List<FileProperties> toReload = new LinkedList<>();
+        for (FileProperties item : items) {
+            if (pathsSet.contains(item.path)) {
+                item.computed = false;
+                toReload.add(item);
+            }
+        }
+        if (!toReload.isEmpty()) {
+            propertiesLoader.add(toReload);
+        }
+    }
+
     private void anchorAndHighlight(String path) {
         anchorAndHighlight(path, themeColor(requireContext(), com.google.android.material.R.attr.colorSecondary));
     }
 
     private void anchorAndHighlight(String path, @ColorInt int color) {
-        int position = itemsAdapter.indexOf(path);
-        if (position >= 0) {
-            int anchor = (int) (itemsView.getHeight() * 0.382f);
-            LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
-            if (layoutManager != null) {
-                layoutManager.scrollToPositionWithOffset(position, anchor);
-                OneShotPreDrawListener.add(itemsView, () -> {
-                    View child = layoutManager.findViewByPosition(position);
-                    if (child == null) {
-                        return;
-                    }
-                    itemsView.scrollBy(0, child.getTop() - (anchor - child.getHeight() / 2));
-                    itemsView.postDelayed(() -> itemsAdapter.highlightItem(path, color), 100);
-                });
-            }
-        }
+        itemsAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(path, color));
     }
 
     private void renderBreadcrumbsBar() {
@@ -246,36 +319,68 @@ public class BrowseFragment extends Fragment {
                 new ButtonState(R.drawable.ic_find_dup_24)));
     }
 
+    private void renderItems() {
+        List<FileItemAdapter.State> states = new ArrayList<>(items.size());
+        for (FileProperties item : items) {
+            states.add(itemState(item));
+        }
+        itemsAdapter.render(states);
+    }
+
+    private FileItemAdapter.State itemState(FileProperties item) {
+        return new FileItemAdapter.State(
+                item.path,
+                PathOps.singleton.basename(item.path),
+                getItemDetailsString(item),
+                item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                selectedPaths.contains(item.path));
+    }
+
+    private String getItemDetailsString(FileProperties item) {
+        if (!item.computed) {
+            return "...";
+        }
+        if (item.isDirectory) {
+            if (item.numChildren == null) {
+                return getString(R.string.error_directory_not_accessible);
+            }
+            if (item.numChildren == 0) {
+                return getString(R.string.empty);
+            }
+            return getString(R.string.x_items, item.numChildren);
+        } else if (item.size != null) {
+            return getSizeString(item.size);
+        } else {
+            return getString(R.string.error);
+        }
+    }
+
     private void initSelectionBar() {
         selectionBar.whenButtonClicked(id -> {
             if (id == R.drawable.ic_edit_24) {
-                if (itemsAdapter.getSelectedCount() == 1) {
-                    showRenamePopup(itemsAdapter.getSelectedItems().get(0).path);
+                if (selectedPaths.size() == 1) {
+                    showRenamePopup(getSelectedItems().get(0).path);
                 }
             } else if (id == R.drawable.ic_copy_24) {
-                List<FileProperties> items = itemsAdapter.getSelectedItems();
-                itemsAdapter.clearSelection();
-                itemsAdapter.invalidate(items);
-                showPastePopup(items, true);
+                List<FileProperties> selectedItems = getSelectedItems();
+                clearSelection();
+                showPastePopup(selectedItems, true);
             } else if (id == R.drawable.ic_cut_24) {
-                List<FileProperties> items = itemsAdapter.getSelectedItems();
-                itemsAdapter.clearSelection();
-                itemsAdapter.invalidate(items);
-                showPastePopup(items, false);
+                List<FileProperties> selectedItems = getSelectedItems();
+                clearSelection();
+                showPastePopup(selectedItems, false);
             } else if (id == R.drawable.ic_delete_24) {
                 showDeletePopup();
             } else if (id == R.drawable.ic_check_all_24) {
-                itemsAdapter.selectAll();
-                itemsAdapter.notifyDataSetChanged();
+                selectAll();
             } else if (id == R.drawable.ic_close_24) {
-                itemsAdapter.clearSelection();
-                itemsAdapter.notifyDataSetChanged();
+                clearSelection();
             }
         });
     }
 
     private void renderSelectionBar() {
-        int numSelected = itemsAdapter.getSelectedCount();
+        int numSelected = selectedPaths.size();
         selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.ic_edit_24, numSelected == 1),
                 new ButtonState(R.drawable.ic_copy_24, numSelected > 0),
@@ -283,6 +388,53 @@ public class BrowseFragment extends Fragment {
                 new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
+    }
+
+    private void select(Collection<String> paths) {
+        selectedPaths.addAll(paths);
+        onSelectionChanged();
+    }
+
+    private void deselect(Collection<FileProperties> toDeselect) {
+        for (FileProperties item : toDeselect) {
+            selectedPaths.remove(item.path);
+        }
+        onSelectionChanged();
+    }
+
+    private void toggleSelection(String path) {
+        if (!selectedPaths.remove(path)) {
+            selectedPaths.add(path);
+        }
+        onSelectionChanged();
+    }
+
+    private void selectAll() {
+        selectedPaths.clear();
+        for (FileProperties item : items) {
+            selectedPaths.add(item.path);
+        }
+        onSelectionChanged();
+    }
+
+    private void clearSelection() {
+        selectedPaths.clear();
+        onSelectionChanged();
+    }
+
+    private void onSelectionChanged() {
+        renderSelectionBar();
+        renderItems();
+    }
+
+    private List<FileProperties> getSelectedItems() {
+        List<FileProperties> selected = new LinkedList<>();
+        for (FileProperties item : items) {
+            if (selectedPaths.contains(item.path)) {
+                selected.add(item);
+            }
+        }
+        return selected;
     }
 
     private void restoreState(@NonNull Bundle savedInstanceState) {
@@ -296,8 +448,7 @@ public class BrowseFragment extends Fragment {
 
         List<String> savedSelectedItems = (List<String>) savedInstanceState.getSerializable(STATE_SELECTED_ITEMS);
         if (savedSelectedItems != null) {
-            itemsAdapter.select(savedSelectedItems);
-            itemsAdapter.invalidate(itemsAdapter.getSelectedItems());
+            select(savedSelectedItems);
         }
     }
 
@@ -305,7 +456,7 @@ public class BrowseFragment extends Fragment {
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putSerializable(STATE_NAVIGATOR, navigator);
-        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(itemsAdapter.getSelectedPaths()));
+        outState.putSerializable(STATE_SELECTED_ITEMS, new LinkedList<>(selectedPaths));
     }
 
     @Override
@@ -356,7 +507,7 @@ public class BrowseFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        itemsAdapter.cancel();
+        propertiesLoader.cancel();
         if (worker != null) {
             worker.cancel();
             worker = null;
@@ -418,6 +569,14 @@ public class BrowseFragment extends Fragment {
             favoritesStore.put(currentDirectory);
         }
         breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
+    }
+
+    private void onItemClicked(String path) {
+        if (!selectedPaths.isEmpty()) {
+            toggleSelection(path);
+            return;
+        }
+        openItem(path);
     }
 
     private void openItem(String path) {
@@ -535,7 +694,7 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        itemsAdapter.add(Collections.singletonList(new FileProperties(newPath, isDirectory)));
+        addItems(Collections.singletonList(new FileProperties(newPath, isDirectory)));
         anchorAndHighlight(newPath);
         return true;
     }
@@ -574,7 +733,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeletePopup() {
-        DeletePopup deletePopup = new DeletePopup(getView(), navigator.getCurrentDirectory(), itemsAdapter.getSelectedItems(), false);
+        DeletePopup deletePopup = new DeletePopup(getView(), navigator.getCurrentDirectory(), getSelectedItems(), false);
         deletePopup.whenPopupDismissed(this::onPopupDismissed);
         deletePopup.show();
     }
@@ -591,7 +750,7 @@ public class BrowseFragment extends Fragment {
                         return true;
                     }
                     if (renameItem(path, newName)) {
-                        itemsAdapter.clearSelection();
+                        clearSelection();
                         return true;
                     }
                     return false;
@@ -663,9 +822,9 @@ public class BrowseFragment extends Fragment {
             return false;
         }
 
-        FileProperties oldItem = itemsAdapter.remove(path);
+        FileProperties oldItem = removeItem(path);
         if (oldItem != null) {
-            itemsAdapter.add(Collections.singletonList(new FileProperties(newPath, oldItem.isDirectory)));
+            addItems(Collections.singletonList(new FileProperties(newPath, oldItem.isDirectory)));
             anchorAndHighlight(newPath);
         }
         return true;
@@ -702,16 +861,16 @@ public class BrowseFragment extends Fragment {
             Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, added, explicit, implicit);
-            itemsAdapter.add(explicit.values());
-            itemsAdapter.loadProperties(implicit);
+            addItems(explicit.values());
+            loadProperties(implicit);
         }
         if (!removed.isEmpty()) {
-            itemsAdapter.deselect(removed);
+            deselect(removed);
             Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, removed, explicit, implicit);
-            itemsAdapter.remove(explicit.values());
-            itemsAdapter.loadProperties(implicit);
+            removeItems(explicit.values());
+            loadProperties(implicit);
         }
     }
 
