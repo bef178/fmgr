@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -37,6 +39,20 @@ public class FirstFragment extends Fragment {
                     .add(R.id.home_container, new HomeFragment())
                     .commit();
         }
+        view.post(this::preloadBrowseFragment);
+    }
+
+    private void preloadBrowseFragment() {
+        if (findBrowseFragment() != null) {
+            return;
+        }
+        BrowseFragment browseFragment = new BrowseFragment();
+        getChildFragmentManager().beginTransaction()
+                .add(R.id.browse_container, browseFragment)
+                .hide(browseFragment)
+                .setMaxLifecycle(browseFragment, Lifecycle.State.STARTED)
+                .commitNow();
+        browseFragment.navigateToDirectory(null);
     }
 
     void showHomeFragment() {
@@ -58,7 +74,7 @@ public class FirstFragment extends Fragment {
     void showBrowseFragment(String path) {
         BrowseFragment browseFragment = findBrowseFragment();
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
-        transaction.setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left);
+        transaction.setCustomAnimations(0, R.anim.slide_out_left);
         if (browseFragment == null) {
             browseFragment = new BrowseFragment();
             transaction.add(R.id.browse_container, browseFragment);
@@ -73,9 +89,23 @@ public class FirstFragment extends Fragment {
             transaction.setMaxLifecycle(homeFragment, Lifecycle.State.STARTED);
         }
         transaction.commitNow();
-        if (path != null) {
-            browseFragment.navigateToDirectory(path);
-        }
+
+        Animation slideIn = AnimationUtils.loadAnimation(requireContext(), R.anim.slide_in_right);
+        slideIn.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                findBrowseFragment().navigateToDirectory(path);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+            }
+        });
+        browseFragment.getView().startAnimation(slideIn);
     }
 
     public boolean handleSystemBack() {

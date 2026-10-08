@@ -75,6 +75,7 @@ public class BrowseFragment extends Fragment {
 
     private static final String STATE_NAVIGATOR = "navigator";
     private static final String STATE_SELECTED_ITEMS = "selected_items";
+    private static final String DEFAULT_DIRECTORY = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath();
 
     @Nullable
     @Override
@@ -310,9 +311,7 @@ public class BrowseFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (navigator.getCurrentDirectory() == null) {
-            navigateToDirectory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath());
-        } else {
+        if (navigator.getCurrentDirectory() != null) {
             renderBreadcrumbsBar();
             if (mightGrantedAllFilesAccess) {
                 mightGrantedAllFilesAccess = false;
@@ -364,7 +363,16 @@ public class BrowseFragment extends Fragment {
         }
     }
 
+    /**
+     * null target for keeping the current directory (or the default if none).
+     */
     public void navigateToDirectory(String target) {
+        if (target == null) {
+            if (navigator.getCurrentDirectory() == null) {
+                navigateToDirectory(DEFAULT_DIRECTORY);
+            }
+            return;
+        }
         if (!navigator.navigateTo(target)) {
             Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
             return;
