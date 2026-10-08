@@ -2,16 +2,15 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="48dp"
     android:background="?attr/selectableItemBackground"
     android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:padding="4dp">
+    android:orientation="horizontal">
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
+        android:layout_marginStart="42dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -25,14 +24,13 @@
                 android:id="@+id/favorite_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                tools:text="fav_title" />
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
             <ImageButton
                 android:id="@+id/favorite_edit"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:scaleType="fitCenter"
@@ -45,18 +43,20 @@
             android:id="@+id/favorite_path"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="?attr/colorOnBackground"
-            android:textSize="12sp"
+            android:textColor="@color/grey_800"
+            android:textSize="11sp"
             tools:text="fav_path" />
 
     </LinearLayout>
 
     <ImageButton
         android:id="@+id/favorite_star"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
-        android:layout_marginEnd="4dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="12dp"
         android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_round_star_filled_24"
         tools:ignore="ContentDescription" />
 

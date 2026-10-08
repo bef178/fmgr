@@ -1,27 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/favorites_bar"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/favorites_title_bar"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="start|center_vertical"
-        android:orientation="horizontal">
+        android:layout_height="32dp"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp">
 
         <ImageView
             android:id="@+id/favorites_triangle"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginEnd="4dp"
             android:src="@drawable/i_rt_triangle_down_24"
+            app:tint="@color/grey_700"
             tools:ignore="ContentDescription" />
 
         <TextView
@@ -29,15 +30,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/home_favorites_title"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textColor="@color/grey_700"
+            android:textSize="12sp" />
 
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
+    <LinearLayout
         android:id="@+id/favorites_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:listitem="@layout/favorite_item" />
+        android:orientation="vertical" />
 
 </LinearLayout>

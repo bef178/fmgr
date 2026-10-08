@@ -16,12 +16,12 @@ import java.util.Objects;
 import pd.droidapp.fmgr.R;
 import pd.util.PathOps;
 
-public class BreadcrumbsBar {
+public class BreadcrumbBar {
 
     private static final String CAPPING_DIRECTORY = Environment.getExternalStorageDirectory().getPath();
 
-    private Consumer<String> onBreadcrumbClicked;
-    private Runnable onFavIconClicked;
+    private Consumer<String> onBreadcrumbItemClicked;
+    private Runnable onStarIconClicked;
 
     private final LinearLayout selfView;
     private final LinearLayout breadcrumbsView;
@@ -29,7 +29,7 @@ public class BreadcrumbsBar {
 
     private State state;
 
-    public BreadcrumbsBar(LinearLayout selfView) {
+    public BreadcrumbBar(LinearLayout selfView) {
         this.selfView = selfView;
         breadcrumbsView = selfView.findViewById(R.id.breadcrumbs_container);
         favIcon = selfView.findViewById(R.id.fav_icon);
@@ -37,18 +37,18 @@ public class BreadcrumbsBar {
         selfView.setVisibility(View.GONE);
         favIcon.setSelected(false);
         favIcon.setOnClickListener(v -> {
-            if (onFavIconClicked != null) {
-                onFavIconClicked.run();
+            if (onStarIconClicked != null) {
+                onStarIconClicked.run();
             }
         });
     }
 
-    public void whenBreadcrumbClicked(Consumer<String> onBreadcrumbClicked) {
-        this.onBreadcrumbClicked = onBreadcrumbClicked;
+    public void whenBreadcrumbItemClicked(Consumer<String> onBreadcrumbItemClicked) {
+        this.onBreadcrumbItemClicked = onBreadcrumbItemClicked;
     }
 
-    public void whenFavIconClicked(Runnable onFavIconClicked) {
-        this.onFavIconClicked = onFavIconClicked;
+    public void whenStarIconClicked(Runnable onStarIconClicked) {
+        this.onStarIconClicked = onStarIconClicked;
     }
 
     /**
@@ -106,8 +106,8 @@ public class BreadcrumbsBar {
         TextView textView = (TextView) inflater.inflate(R.layout.breadcrumb_item, breadcrumbsView, false);
         textView.setText(CAPPING_DIRECTORY.equals(path) ? "/" : PathOps.singleton.basename(path));
         textView.setOnClickListener(v -> {
-            if (onBreadcrumbClicked != null) {
-                onBreadcrumbClicked.accept(path);
+            if (onBreadcrumbItemClicked != null) {
+                onBreadcrumbItemClicked.accept(path);
             }
         });
         return textView;

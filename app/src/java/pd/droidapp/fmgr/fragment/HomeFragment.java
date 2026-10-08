@@ -14,16 +14,15 @@ import java.util.Objects;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.util.FavoritesStore;
-import pd.droidapp.fmgr.view.FavoritesBar;
-import pd.droidapp.fmgr.view.LocationsBar;
+import pd.droidapp.fmgr.view.FavoriteBar;
+import pd.droidapp.fmgr.view.LocationBar;
 import pd.util.FileOps;
 
 import static pd.droidapp.fmgr.util.FavoritesStore.FavItem;
-import static pd.droidapp.fmgr.view.FavoritesBar.FavItemState;
 
 public class HomeFragment extends Fragment {
 
-    private FavoritesBar favoritesBar;
+    private FavoriteBar favoriteBar;
     private FavoritesStore favoritesStore;
 
     @Nullable
@@ -33,19 +32,19 @@ public class HomeFragment extends Fragment {
 
         favoritesStore = new FavoritesStore(requireContext());
 
-        favoritesBar = new FavoritesBar(view.findViewById(R.id.favorites_bar));
-        favoritesBar.whenFavoriteClicked(path -> {
+        favoriteBar = new FavoriteBar(view.findViewById(R.id.favorites_bar));
+        favoriteBar.whenFavoriteItemClicked(path -> {
             if (FileOps.singleton.stat(path).isDirectory(true)) {
                 ((FirstFragment) requireParentFragment()).showBrowseFragment(path);
             } else {
                 Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
             }
         });
-        favoritesBar.whenFavoriteRemoved(path -> {
+        favoriteBar.whenFavoriteItemStarClicked(path -> {
             favoritesStore.remove(path);
             renderFavoritesBar();
         });
-        favoritesBar.whenFavoriteEditClicked(path -> {
+        favoriteBar.whenFavoriteItemEditClicked(path -> {
             FavItem favItem = Objects.requireNonNull(favoritesStore.get(path), "favItem");
             EditPopup editPopup = new EditPopup(getView(),
                     getString(R.string.edit_favorite_name),
@@ -62,8 +61,8 @@ public class HomeFragment extends Fragment {
             editPopup.show();
         });
 
-        LocationsBar locationsBar = new LocationsBar(view.findViewById(R.id.locations_bar));
-        locationsBar.whenLocationClicked(id -> ((FirstFragment) requireParentFragment()).showBrowseFragment(null));
+        new LocationBar(view.findViewById(R.id.locations_bar))
+                .whenLocationItemClicked(id -> ((FirstFragment) requireParentFragment()).showBrowseFragment(null));
 
         return view;
     }
@@ -75,8 +74,8 @@ public class HomeFragment extends Fragment {
     }
 
     private void renderFavoritesBar() {
-        favoritesBar.render(new FavoritesBar.State(favoritesStore.getAll().stream()
-                .map(favItem -> new FavItemState(favItem.path, favItem.name))
-                .toArray(FavItemState[]::new)));
+        favoriteBar.render(new FavoriteBar.State(favoritesStore.getAll().stream()
+                .map(favItem -> new FavoriteBar.ItemState(favItem.path, favItem.name))
+                .toArray(FavoriteBar.ItemState[]::new)));
     }
 }

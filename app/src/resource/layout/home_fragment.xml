@@ -35,8 +35,8 @@
 
     </LinearLayout>
 
-    <include layout="@layout/favorites_bar" />
+    <include layout="@layout/favorite_bar" />
 
-    <include layout="@layout/locations_bar" />
+    <include layout="@layout/location_bar" />
 
 </LinearLayout>

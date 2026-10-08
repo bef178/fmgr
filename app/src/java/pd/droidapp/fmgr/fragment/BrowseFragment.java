@@ -47,7 +47,7 @@ import pd.droidapp.fmgr.util.FavoritesStore;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.PathNavigator;
 import pd.droidapp.fmgr.view.ActionBar;
-import pd.droidapp.fmgr.view.BreadcrumbsBar;
+import pd.droidapp.fmgr.view.BreadcrumbBar;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.util.FileOps;
@@ -59,7 +59,7 @@ import static pd.droidapp.fmgr.util.Util.themeColor;
 public class BrowseFragment extends Fragment {
 
     private FavoritesStore favoritesStore;
-    private BreadcrumbsBar breadcrumbsBar;
+    private BreadcrumbBar breadcrumbBar;
     private ActionBar actionBar;
     private SelectionBar selectionBar;
     private SwipeRefreshLayout swipeRefreshView;
@@ -82,9 +82,9 @@ public class BrowseFragment extends Fragment {
         View view = inflater.inflate(R.layout.browse_fragment, container, false);
 
         favoritesStore = new FavoritesStore(requireContext());
-        breadcrumbsBar = new BreadcrumbsBar(view.findViewById(R.id.breadcrumbs_bar));
-        breadcrumbsBar.whenBreadcrumbClicked(this::navigateToDirectory);
-        breadcrumbsBar.whenFavIconClicked(this::toggleFavorite);
+        breadcrumbBar = new BreadcrumbBar(view.findViewById(R.id.breadcrumbs_bar));
+        breadcrumbBar.whenBreadcrumbItemClicked(this::navigateToDirectory);
+        breadcrumbBar.whenStarIconClicked(this::toggleFavorite);
 
         ImageButton homeButton = view.findViewById(R.id.action_home);
         homeButton.setOnClickListener(v -> ((FirstFragment) requireParentFragment()).showHomeFragment());
@@ -226,7 +226,7 @@ public class BrowseFragment extends Fragment {
 
     private void renderBreadcrumbsBar() {
         String currentDirectory = navigator.getCurrentDirectory();
-        breadcrumbsBar.render(new BreadcrumbsBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
+        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
     }
 
     private void renderActionBar() {
@@ -409,7 +409,7 @@ public class BrowseFragment extends Fragment {
         } else {
             favoritesStore.put(currentDirectory);
         }
-        breadcrumbsBar.render(new BreadcrumbsBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
+        breadcrumbBar.render(new BreadcrumbBar.State(currentDirectory, favoritesStore.contains(currentDirectory)));
     }
 
     private void openItem(String path) {
