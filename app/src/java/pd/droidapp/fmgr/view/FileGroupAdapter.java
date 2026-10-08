@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 
-public class FileGroupsAdapter extends RecyclerView.Adapter<FileGroupsAdapter.FileGroupViewHolder> {
+public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.FileGroupViewHolder> {
 
     private Consumer<String> onItemClicked;
     private Consumer<String> onItemLongClicked;
@@ -45,18 +45,18 @@ public class FileGroupsAdapter extends RecyclerView.Adapter<FileGroupsAdapter.Fi
 
             @Override
             public int getNewListSize() {
-                return FileGroupsAdapter.this.states.size();
+                return FileGroupAdapter.this.states.size();
             }
 
             @Override
             public boolean areItemsTheSame(int oldPos, int newPos) {
-                return oldStates.get(oldPos).id.equals(FileGroupsAdapter.this.states.get(newPos).id);
+                return oldStates.get(oldPos).id.equals(FileGroupAdapter.this.states.get(newPos).id);
             }
 
             @Override
             public boolean areContentsTheSame(int oldPos, int newPos) {
                 State oldState = oldStates.get(oldPos);
-                State newState = FileGroupsAdapter.this.states.get(newPos);
+                State newState = FileGroupAdapter.this.states.get(newPos);
                 return oldPos == newPos
                         && oldState.title.equals(newState.title)
                         && oldState.itemStates.equals(newState.itemStates);

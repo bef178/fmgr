@@ -24,7 +24,7 @@ import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.FileItemBar;
 import pd.droidapp.fmgr.view.PopupBottomBar;
-import pd.droidapp.fmgr.view.FileGroupsAdapter;
+import pd.droidapp.fmgr.view.FileGroupAdapter;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
@@ -41,7 +41,7 @@ public class FindDupPopup extends ProcessingPopup {
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private final RecyclerView groupsView;
-    private final FileGroupsAdapter groupsAdapter;
+    private final FileGroupAdapter groupsAdapter;
 
     // callbacks
     private Consumer<String> onJump;
@@ -65,7 +65,7 @@ public class FindDupPopup extends ProcessingPopup {
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_find_dup_24);
         selectionBar = new SelectionBar(contentView.findViewById(R.id.selection_bar));
         groupsView = contentView.findViewById(R.id.popup_items_list);
-        groupsAdapter = new FileGroupsAdapter();
+        groupsAdapter = new FileGroupAdapter();
 
         bottomBar.whenButtonClicked(id -> {
             if (id == R.string.abort) {
@@ -275,7 +275,7 @@ public class FindDupPopup extends ProcessingPopup {
                 }
                 dirty.put(completedItem.sha256sum, group);
             }
-            List<FileGroupsAdapter.State> states = new LinkedList<>();
+            List<FileGroupAdapter.State> states = new LinkedList<>();
             for (List<FileProperties> group : dirty.values()) {
                 states.add(buildGroupState(group));
             }
@@ -296,15 +296,15 @@ public class FindDupPopup extends ProcessingPopup {
         renderStatusBar(statusBarIconStatus);
     }
 
-    private List<FileGroupsAdapter.State> buildFileGroupStates() {
-        List<FileGroupsAdapter.State> states = new LinkedList<>();
+    private List<FileGroupAdapter.State> buildFileGroupStates() {
+        List<FileGroupAdapter.State> states = new LinkedList<>();
         for (List<FileProperties> group : getVisibleGroups()) {
             states.add(buildGroupState(group));
         }
         return states;
     }
 
-    private FileGroupsAdapter.State buildGroupState(List<FileProperties> group) {
+    private FileGroupAdapter.State buildGroupState(List<FileProperties> group) {
         FileItemBar.State[] itemStates = new FileItemBar.State[group.size()];
         for (int i = 0; i < itemStates.length; i++) {
             FileProperties item = group.get(i);
@@ -318,7 +318,7 @@ public class FindDupPopup extends ProcessingPopup {
         }
         FileProperties first = group.get(0);
         String title = context.getString(R.string.x_files_y_each, group.size(), getSizeString(first.size));
-        return new FileGroupsAdapter.State(first.sha256sum, title, itemStates);
+        return new FileGroupAdapter.State(first.sha256sum, title, itemStates);
     }
 
     private List<List<FileProperties>> getVisibleGroups() {
