@@ -1,12 +1,10 @@
 package pd.droidapp.fmgr.popup;
 
 import android.content.Context;
-import android.graphics.Rect;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -44,20 +42,22 @@ public class EditPopup extends ProcessingPopup {
         });
 
         initTextEdit();
-        trackKeyboardHeight();
     }
 
     @Override
     protected void initPopup() {
         super.initPopup();
         selfWindow.setFocusable(true);
-        selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+        selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
     }
 
     @Override
     protected void inflateContent() {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
         params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        params.gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
+        params.topMargin = context.getResources().getDimensionPixelSize(R.dimen.edit_popup_top_margin);
         areaView.setLayoutParams(params);
 
         LayoutInflater.from(context).inflate(R.layout.edit_popup_content, contentView, true);
@@ -77,26 +77,6 @@ public class EditPopup extends ProcessingPopup {
         });
     }
 
-    private void trackKeyboardHeight() {
-        selfView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            private final Rect rect = new Rect();
-            private int lastKeyboardHeight = 0;
-
-            @Override
-            public void onGlobalLayout() {
-                selfView.getWindowVisibleDisplayFrame(rect);
-                int keyboardHeight = selfView.getRootView().getHeight() - rect.bottom;
-                if (keyboardHeight != lastKeyboardHeight) {
-                    lastKeyboardHeight = keyboardHeight;
-                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-                    params.topMargin = rect.top + (rect.height() - areaView.getHeight()) / 2;
-                    params.gravity = Gravity.CENTER_HORIZONTAL;
-                    areaView.setLayoutParams(params);
-                }
-            }
-        });
-    }
-
     @Override
     protected void onDismissing(Runnable continueDismiss) {
         continueDismiss.run();
@@ -113,12 +93,6 @@ public class EditPopup extends ProcessingPopup {
 
         textEditView.requestFocus();
         textEditView.selectAll();
-        textEditView.postDelayed(() -> {
-            InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                imm.showSoftInput(textEditView, InputMethodManager.SHOW_IMPLICIT);
-            }
-        }, 300);
     }
 
     private void start() {

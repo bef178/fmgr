@@ -97,7 +97,8 @@ public class SearchPopup extends ProcessingPopup {
     @Override
     protected void initPopup() {
         super.initPopup();
-        selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
     }
 
     @Override
@@ -326,12 +327,6 @@ public class SearchPopup extends ProcessingPopup {
 
         searchEdit.requestFocus();
         searchEditClearButton.setEnabled(false);
-        searchEdit.postDelayed(() -> {
-            InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                imm.showSoftInput(searchEdit, InputMethodManager.SHOW_IMPLICIT);
-            }
-        }, 300);
     }
 
     private void renderStatusBar(StatusBar.IconStatus iconStatus) {
