@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.popup;
+package pd.droidapp.fmgr.repository;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -14,7 +14,7 @@ import pd.util.FileStat;
 
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
-class FindEmptyWorker extends ProcessingWorker {
+public class FindEmptyWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
     private int scanned = 0;

@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.fragment;
+package pd.droidapp.fmgr.repository;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.TimerTask;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 
-class PropertiesLoader {
+public class PropertiesLoader {
 
     private static final int UPDATE_INTERVAL = 200;
 

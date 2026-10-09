@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.popup;
+package pd.droidapp.fmgr.repository;
 
 import java.util.LinkedList;
 import java.util.List;

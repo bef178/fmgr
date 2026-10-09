@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.popup;
+package pd.droidapp.fmgr.repository;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,7 +16,7 @@ import pd.util.FileStat;
 
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
-class FindDupWorker extends ProcessingWorker {
+public class FindDupWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
 
@@ -27,7 +27,7 @@ class FindDupWorker extends ProcessingWorker {
     private final Map<Long, String> firstBySize = new HashMap<>();
     private final Set<String> sha256Requested = new HashSet<>();
 
-    FindDupWorker() {
+    public FindDupWorker() {
         super(200);
     }
 

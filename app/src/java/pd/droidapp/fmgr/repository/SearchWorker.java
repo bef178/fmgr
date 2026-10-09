@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.popup;
+package pd.droidapp.fmgr.repository;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +18,7 @@ import static pd.droidapp.fmgr.util.Util.encode;
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 import static pd.util.Int8ArrayExtension.indexOf;
 
-class SearchWorker extends ProcessingWorker {
+public class SearchWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
     private final Set<String> allNameMatched = new HashSet<>();

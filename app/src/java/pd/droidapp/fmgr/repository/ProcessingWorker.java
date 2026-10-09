@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.popup;
+package pd.droidapp.fmgr.repository;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -58,7 +58,7 @@ public abstract class ProcessingWorker {
             return false;
         }
 
-        Thread workerThread = new Thread(() -> {
+        WorkerPool.post(() -> {
             try {
                 work.run();
             } catch (Throwable ignored) {
@@ -68,7 +68,6 @@ public abstract class ProcessingWorker {
                 state.compareAndSet(State.CANCELLING, State.CANCELLED);
             }
         });
-        workerThread.start();
         startTimer();
         return true;
     }

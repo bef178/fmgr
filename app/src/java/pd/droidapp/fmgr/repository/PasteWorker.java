@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.popup;
+package pd.droidapp.fmgr.repository;
 
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -15,7 +15,7 @@ import pd.util.PathOps;
 import static java.util.AbstractMap.SimpleEntry;
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
-class PasteWorker extends ProcessingWorker {
+public class PasteWorker extends ProcessingWorker {
 
     private OnUpdatedListener onUpdated;
 

@@ -27,8 +27,9 @@ import java.util.List;
 import java.util.Map;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.popup.PasteWorker.ConflictResolution;
-import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.repository.PasteWorker;
+import pd.droidapp.fmgr.repository.PasteWorker.ConflictResolution;
+import pd.droidapp.fmgr.repository.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.FileItemAdapter;

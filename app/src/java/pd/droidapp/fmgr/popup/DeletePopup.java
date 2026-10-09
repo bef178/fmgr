@@ -19,7 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.repository.DeleteWorker;
+import pd.droidapp.fmgr.repository.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.FileItemAdapter;

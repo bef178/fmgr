@@ -27,7 +27,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
-import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.repository.ProcessingWorker.StopReason;
+import pd.droidapp.fmgr.repository.SearchWorker;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.FileItemAdapter;
