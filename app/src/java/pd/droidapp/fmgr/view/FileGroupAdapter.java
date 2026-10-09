@@ -3,7 +3,6 @@ package pd.droidapp.fmgr.view;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,11 +17,11 @@ import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 
-public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.FileGroupViewHolder> {
+public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.ViewHolder> {
 
     private Consumer<String> onItemClicked;
     private Consumer<String> onItemLongClicked;
-    private final Set<String> allCollapsed = new HashSet<>();
+    private final Set<String> collapsedGroups = new HashSet<>();
 
     private List<State> states = new ArrayList<>();
 
@@ -97,67 +96,37 @@ public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.File
 
     @NonNull
     @Override
-    public FileGroupViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View groupView = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.file_group, parent, false);
-        return new FileGroupViewHolder(groupView);
+        ViewHolder viewHolder = new ViewHolder(groupView);
+        viewHolder.groupBar.whenTitleClicked(state -> {
+            boolean futureCollapsed = !collapsedGroups.contains(state.groupId);
+            if (futureCollapsed) {
+                collapsedGroups.add(state.groupId);
+            } else {
+                collapsedGroups.remove(state.groupId);
+            }
+            viewHolder.groupBar.render(new FileGroupBar.CollapseEvent(futureCollapsed));
+        });
+        viewHolder.groupBar.whenItemClicked(itemState -> {
+            if (onItemClicked != null) {
+                onItemClicked.accept(itemState.itemId);
+            }
+        });
+        viewHolder.groupBar.whenItemLongClicked(itemState -> {
+            if (onItemLongClicked != null) {
+                onItemLongClicked.accept(itemState.itemId);
+            }
+        });
+        return viewHolder;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull FileGroupViewHolder viewHolder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
         State state = states.get(position);
-        String id = state.id;
-        boolean collapsed = this.allCollapsed.contains(id);
-
-        viewHolder.titleBar.whenClicked(() -> {
-            boolean futureCollapsed = !this.allCollapsed.contains(id);
-            if (futureCollapsed) {
-                this.allCollapsed.add(id);
-            } else {
-                this.allCollapsed.remove(id);
-            }
-            viewHolder.titleBar.render(new FileGroupTitleBar.CollapseEvent(futureCollapsed));
-        });
-        viewHolder.titleBar.whenAnimationEnded(nowCollapsed ->
-                viewHolder.itemsView.setVisibility(nowCollapsed ? View.GONE : View.VISIBLE));
-        viewHolder.titleBar.render(new FileGroupTitleBar.State(state.title, String.valueOf(position + 1), collapsed));
-
-        viewHolder.itemsView.setVisibility(collapsed ? View.GONE : View.VISIBLE);
-        renderItems(viewHolder, state);
-    }
-
-    private void renderItems(FileGroupViewHolder viewHolder, State state) {
-        int nowCount = viewHolder.itemsView.getChildCount();
-        int requiredCount = state.itemStates.size();
-
-        LayoutInflater layoutInflater = LayoutInflater.from(viewHolder.itemView.getContext());
-        for (int i = 0; i < requiredCount; i++) {
-            FileItemBar itemBar;
-            if (i < nowCount) {
-                itemBar = viewHolder.itemBars.get(i);
-            } else {
-                View itemView = layoutInflater.inflate(R.layout.file_item, viewHolder.itemsView, false);
-                viewHolder.itemsView.addView(itemView);
-                itemBar = new FileItemBar(itemView);
-                itemBar.whenClicked(itemState -> {
-                    if (onItemClicked != null) {
-                        onItemClicked.accept(itemState.itemId);
-                    }
-                });
-                itemBar.whenLongClicked(itemState -> {
-                    if (onItemLongClicked != null) {
-                        onItemLongClicked.accept(itemState.itemId);
-                    }
-                });
-                viewHolder.itemBars.add(itemBar);
-            }
-
-            itemBar.render(state.itemStates.get(i));
-        }
-        if (nowCount > requiredCount) {
-            viewHolder.itemsView.removeViews(requiredCount, nowCount - requiredCount);
-            viewHolder.itemBars.subList(requiredCount, viewHolder.itemBars.size()).clear();
-        }
+        viewHolder.groupBar.render(new FileGroupBar.State(state.id, state.title, String.valueOf(position + 1),
+                collapsedGroups.contains(state.id), state.itemStates));
     }
 
     @Override
@@ -165,16 +134,13 @@ public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.File
         return states.size();
     }
 
-    public static class FileGroupViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
 
-        final FileGroupTitleBar titleBar;
-        final LinearLayout itemsView;
-        final List<FileItemBar> itemBars = new ArrayList<>();
+        final FileGroupBar groupBar;
 
-        FileGroupViewHolder(View view) {
+        ViewHolder(View view) {
             super(view);
-            titleBar = new FileGroupTitleBar(view);
-            itemsView = view.findViewById(R.id.group_items);
+            groupBar = new FileGroupBar(view);
         }
     }
 
