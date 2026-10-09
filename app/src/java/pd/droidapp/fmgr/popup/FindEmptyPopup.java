@@ -6,9 +6,14 @@ import android.widget.LinearLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -16,19 +21,26 @@ import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.PopupBottomBar;
+import pd.droidapp.fmgr.view.PopupFileItemAdapter;
+import pd.droidapp.fmgr.view.PopupFileItemBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
+import pd.util.PathOps;
+
+import static pd.droidapp.fmgr.view.PopupFileItemBar.BadgeState;
 
 public class FindEmptyPopup extends ProcessingPopup {
 
     private final String startDirectory;
+    private final List<FileProperties> items = new ArrayList<>();
+    private final Set<String> selectedPaths = new LinkedHashSet<>();
 
     // views
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private final RecyclerView itemsView;
-    private final PopupFileItemsAdapter itemsAdapter;
+    private final PopupFileItemAdapter itemsAdapter;
 
     // callbacks
     private Consumer<String> onJump;
@@ -45,7 +57,7 @@ public class FindEmptyPopup extends ProcessingPopup {
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_find_empty_24);
         selectionBar = new SelectionBar(contentView.findViewById(R.id.selection_bar));
         itemsView = contentView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemsAdapter(startDirectory, true);
+        itemsAdapter = new PopupFileItemAdapter();
 
         bottomBar.whenButtonClicked(id -> {
             if (id == R.string.abort) {
@@ -74,47 +86,135 @@ public class FindEmptyPopup extends ProcessingPopup {
     private void initSelectionBar() {
         selectionBar.whenButtonClicked(id -> {
             if (id == R.drawable.baseline_arrow_forward_24) {
-                if (itemsAdapter.getSelectedCount() == 1) {
+                if (selectedPaths.size() == 1) {
                     if (onJump != null) {
-                        onJump.accept(itemsAdapter.getSelectedItems().get(0).path);
+                        onJump.accept(getSelectedItems().get(0).path);
                     }
                     selfWindow.dismiss();
                 }
             } else if (id == R.drawable.ic_delete_24) {
-                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), false);
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), false);
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
-                    itemsAdapter.remove(removed);
-                    itemsAdapter.deselect(removed);
+                    removeItems(removed);
+                    deselect(removed);
                 });
                 deletePopup.show();
             } else if (id == R.drawable.ic_delete_up_24) {
-                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, itemsAdapter.getSelectedItems(), true);
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), true);
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
-                    itemsAdapter.remove(removed);
-                    itemsAdapter.deselect(removed);
+                    removeItems(removed);
+                    deselect(removed);
                 });
                 deletePopup.show();
             } else if (id == R.drawable.ic_check_all_24) {
-                itemsAdapter.selectAll();
-                itemsAdapter.notifyDataSetChanged();
+                selectAll();
             } else if (id == R.drawable.ic_close_24) {
-                itemsAdapter.clearSelection();
-                itemsAdapter.notifyDataSetChanged();
+                clearSelection();
             }
         });
     }
 
     private void initItemsView() {
-        itemsAdapter.whenSelectionChanged(numSelected -> selectionBar.render(new SelectionBar.State(numSelected,
+        itemsAdapter.whenItemClicked(path -> {
+            if (!selectedPaths.isEmpty()) {
+                toggleSelected(path);
+            }
+        });
+        itemsAdapter.whenItemLongClicked(this::toggleSelected);
+        itemsView.setLayoutManager(new LinearLayoutManager(context));
+        itemsView.setAdapter(itemsAdapter);
+    }
+
+    private void renderItems() {
+        itemsAdapter.render(buildStates(items, 1));
+    }
+
+    private List<PopupFileItemBar.State> buildStates(Collection<FileProperties> items, int firstIndex) {
+        List<PopupFileItemBar.State> states = new ArrayList<>(items.size());
+        int index = firstIndex;
+        for (FileProperties item : items) {
+            states.add(buildState(item, index++));
+        }
+        return states;
+    }
+
+    private PopupFileItemBar.State buildState(FileProperties item, int index) {
+        return new PopupFileItemBar.State(
+                item.path,
+                PathOps.singleton.relativize(startDirectory, item.path),
+                index,
+                item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                selectedPaths.contains(item.path) ? BadgeState.SELECTED : BadgeState.NONE);
+    }
+
+    private void renderSelectionBar() {
+        int numSelected = selectedPaths.size();
+        selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
                 new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_delete_up_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_close_24, numSelected > 0))));
-        itemsView.setLayoutManager(new LinearLayoutManager(context));
-        itemsView.setAdapter(itemsAdapter);
+                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
+    }
+
+    private void onSelectionChanged() {
+        renderSelectionBar();
+        renderItems();
+    }
+
+    private void toggleSelected(String path) {
+        if (!selectedPaths.remove(path)) {
+            selectedPaths.add(path);
+        }
+        renderSelectionBar();
+        for (int i = 0; i < items.size(); i++) {
+            FileProperties item = items.get(i);
+            if (item.path.equals(path)) {
+                itemsAdapter.update(i, buildState(item, i + 1));
+                break;
+            }
+        }
+    }
+
+    private void selectAll() {
+        selectedPaths.clear();
+        for (FileProperties item : items) {
+            selectedPaths.add(item.path);
+        }
+        onSelectionChanged();
+    }
+
+    private void clearSelection() {
+        selectedPaths.clear();
+        onSelectionChanged();
+    }
+
+    private void deselect(Collection<FileProperties> toDeselect) {
+        for (FileProperties item : toDeselect) {
+            selectedPaths.remove(item.path);
+        }
+        onSelectionChanged();
+    }
+
+    private void removeItems(Collection<FileProperties> toRemove) {
+        Set<String> paths = new HashSet<>();
+        for (FileProperties item : toRemove) {
+            paths.add(item.path);
+        }
+        items.removeIf(item -> paths.contains(item.path));
+        renderItems();
+    }
+
+    private List<FileProperties> getSelectedItems() {
+        List<FileProperties> selected = new LinkedList<>();
+        for (FileProperties item : items) {
+            if (selectedPaths.contains(item.path)) {
+                selected.add(item);
+            }
+        }
+        return selected;
     }
 
     public void whenJumpClicked(Consumer<String> onJump) {
@@ -151,7 +251,7 @@ public class FindEmptyPopup extends ProcessingPopup {
 
     private void renderStatusBar(StatusBar.IconStatus iconStatus) {
         statusBar.render(new StatusBar.State(iconStatus, context.getString(R.string.x_scanned_y_found,
-                totalScanned, itemsAdapter.getItemCount())));
+                totalScanned, items.size())));
     }
 
     private void renderBottomBar() {
@@ -170,7 +270,9 @@ public class FindEmptyPopup extends ProcessingPopup {
         }));
         worker.whenUpdated((scanned, matched) -> containerView.post(() -> {
             totalScanned += scanned;
-            itemsAdapter.append(matched);
+            int firstIndex = items.size() + 1;
+            items.addAll(matched);
+            itemsAdapter.append(buildStates(matched, firstIndex));
             renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {

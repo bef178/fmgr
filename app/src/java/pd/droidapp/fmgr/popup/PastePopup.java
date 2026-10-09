@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -31,12 +32,14 @@ import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.PopupBottomBar;
+import pd.droidapp.fmgr.view.PopupFileItemAdapter;
+import pd.droidapp.fmgr.view.PopupFileItemBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.PathOps;
 
-import static pd.droidapp.fmgr.popup.PopupFileItemBar.BadgeState;
+import static pd.droidapp.fmgr.view.PopupFileItemBar.BadgeState;
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 import static pd.droidapp.fmgr.util.Util.scrollToIndex;
 
@@ -44,6 +47,8 @@ public class PastePopup extends ProcessingPopup {
 
     private final boolean isCopy;
     private final List<FileProperties> srcItems;
+    private final String startDirectory;
+    private final Map<String, BadgeState> badgeStates = new HashMap<>();
     private String dstDirectory;
 
     // views
@@ -55,7 +60,7 @@ public class PastePopup extends ProcessingPopup {
     private final RadioGroup resolutionOptionsGroup;
     private final CheckBox mergeDirectoriesCheckBox;
     private final RecyclerView itemsView;
-    private final PopupFileItemsAdapter itemsAdapter;
+    private final PopupFileItemAdapter itemsAdapter;
 
     // callbacks
     private PopupOnDismissedListener onPopupDismissed;
@@ -76,6 +81,7 @@ public class PastePopup extends ProcessingPopup {
         this.isCopy = isCopy;
         this.dstDirectory = dstDirectory;
         this.srcItems = new LinkedList<>(srcItems);
+        this.startDirectory = PathOps.singleton.dirname(this.srcItems.get(0).path);
 
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), isCopy
                 ? R.drawable.ic_copy_24
@@ -87,7 +93,7 @@ public class PastePopup extends ProcessingPopup {
         resolutionOptionsGroup = contentView.findViewById(R.id.resolution_options);
         mergeDirectoriesCheckBox = contentView.findViewById(R.id.merge_directories_checkbox);
         itemsView = contentView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemsAdapter(PathOps.singleton.dirname(this.srcItems.get(0).path), false);
+        itemsAdapter = new PopupFileItemAdapter();
 
         bottomBar.whenButtonClicked(id -> {
             if (id == R.string.paste) {
@@ -222,10 +228,28 @@ public class PastePopup extends ProcessingPopup {
         renderStatusBar(StatusBar.IconStatus.IDLE);
         renderBottomBar();
 
-        itemsAdapter.append(this.srcItems);
-        for (int i = 0; i < srcItems.size(); i++) {
-            itemsAdapter.setItemBadge(i, BadgeState.SELECTED);
+        badgeStates.clear();
+        for (FileProperties item : srcItems) {
+            badgeStates.put(item.path, BadgeState.SELECTED);
         }
+        renderItems();
+    }
+
+    private void renderItems() {
+        List<PopupFileItemBar.State> states = new ArrayList<>(srcItems.size());
+        for (int i = 0; i < srcItems.size(); i++) {
+            states.add(buildState(srcItems.get(i), i + 1));
+        }
+        itemsAdapter.render(states);
+    }
+
+    private PopupFileItemBar.State buildState(FileProperties item, int index) {
+        return new PopupFileItemBar.State(
+                item.path,
+                PathOps.singleton.relativize(startDirectory, item.path),
+                index,
+                item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                badgeStates.getOrDefault(item.path, BadgeState.NONE));
     }
 
     private void renderStatusBar(StatusBar.IconStatus iconStatus) {
@@ -276,7 +300,8 @@ public class PastePopup extends ProcessingPopup {
         worker = new PasteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
             renderStatusBar(StatusBar.IconStatus.RUNNING);
-            itemsAdapter.setItemBadge(0, BadgeState.RUNNING);
+            badgeStates.put(srcItems.get(0).path, BadgeState.RUNNING);
+            itemsAdapter.update(0, buildState(srcItems.get(0), 1));
         }));
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
             for (FileProperties item : added) {
@@ -303,8 +328,8 @@ public class PastePopup extends ProcessingPopup {
 
             if (!progressed.isEmpty()) {
                 Map<String, Integer> itemPathToIndex = new HashMap<>();
-                for (int i = 0; i < itemsAdapter.getItemCount(); i++) {
-                    itemPathToIndex.put(itemsAdapter.getItems().get(i).path, i);
+                for (int i = 0; i < srcItems.size(); i++) {
+                    itemPathToIndex.put(srcItems.get(i).path, i);
                 }
                 int currentProgress = -1;
                 for (Map.Entry<String, Boolean> entry : progressed) {
@@ -320,11 +345,13 @@ public class PastePopup extends ProcessingPopup {
                         } else {
                             badgeState = BadgeState.FAILED;
                         }
-                        itemsAdapter.setItemBadge(itemIndex, badgeState);
+                        badgeStates.put(path, badgeState);
+                        itemsAdapter.update(itemIndex, buildState(srcItems.get(itemIndex), itemIndex + 1));
                         if (succeeded != null) {
                             totalProcessed++;
-                            if (itemIndex + 1 < itemsAdapter.getItemCount()) {
-                                itemsAdapter.setItemBadge(itemIndex + 1, BadgeState.RUNNING);
+                            if (itemIndex + 1 < srcItems.size()) {
+                                badgeStates.put(srcItems.get(itemIndex + 1).path, BadgeState.RUNNING);
+                                itemsAdapter.update(itemIndex + 1, buildState(srcItems.get(itemIndex + 1), itemIndex + 2));
                                 currentProgress = itemIndex + 1;
                             }
                         }
