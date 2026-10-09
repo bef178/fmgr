@@ -2,8 +2,7 @@ package pd.droidapp.fmgr.repository;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.ScheduledFuture;
 
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
@@ -20,8 +19,7 @@ public class PropertiesLoader {
     private final List<FileProperties> completed = new LinkedList<>();
     private final Object lock = new Object();
 
-    private final Timer updateTimer = new Timer();
-    private TimerTask updateTimerTask;
+    private ScheduledFuture<?> updateTick;
 
     public void whenUpdated(OnUpdatedListener onUpdated) {
         this.onUpdated = onUpdated;
@@ -38,8 +36,8 @@ public class PropertiesLoader {
             }
             markedGeneration = generation;
             pending++;
-            if (updateTimerTask == null) {
-                startTimerTask();
+            if (updateTick == null) {
+                startTick();
             }
         }
         WorkerPool.post(() -> {
@@ -82,25 +80,21 @@ public class PropertiesLoader {
         }
     }
 
-    private void startTimerTask() {
-        updateTimerTask = new TimerTask() {
-            @Override
-            public void run() {
+    private void startTick() {
+        updateTick = ReporterPool.schedule(() -> {
+            try {
                 reportUpdated();
-                synchronized (lock) {
-                    if (completed.isEmpty() && pending == 0) {
-                        updateTimerTask.cancel();
-                        updateTimerTask = null;
-                    }
+            } catch (Throwable ignored) {
+            }
+            synchronized (lock) {
+                if (completed.isEmpty() && pending == 0) {
+                    updateTick.cancel(false);
+                    updateTick = null;
                 }
             }
-        };
-        updateTimer.schedule(updateTimerTask, UPDATE_INTERVAL, UPDATE_INTERVAL);
+        }, UPDATE_INTERVAL);
     }
 
-    /**
-     * on timer thread
-     */
     private void reportUpdated() {
         List<FileProperties> nowCompleted;
         synchronized (lock) {
@@ -126,8 +120,10 @@ public class PropertiesLoader {
         synchronized (lock) {
             cancelRequested = true;
             completed.clear();
+            if (updateTick != null) {
+                updateTick.cancel(false);
+            }
         }
-        updateTimer.cancel();
     }
 
     public interface OnUpdatedListener {

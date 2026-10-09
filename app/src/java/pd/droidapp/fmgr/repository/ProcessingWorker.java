@@ -2,23 +2,22 @@ package pd.droidapp.fmgr.repository;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
  * The actual work is delegated to a background worker thread.
- * The reports are all on a timer thread.
+ * The reports are all on a reporter thread.
  * One-way: once stopped, the worker cannot be restarted.
  */
 public abstract class ProcessingWorker {
 
     private final int updateInterval;
-    private Timer updateTimer;
+    private final AtomicReference<ScheduledFuture<?>> updateTick = new AtomicReference<>();
 
-    private final AtomicReference<State> state = new AtomicReference<>(State.IDLE);
+    private final AtomicReference<Status> status = new AtomicReference<>(Status.IDLE);
     protected final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
     private Runnable onStartedCallback;
@@ -45,7 +44,7 @@ public abstract class ProcessingWorker {
      */
     public boolean whenStopped(Consumer<StopReason> onStopped) {
         synchronized (stopLock) {
-            if (state.get() == State.STOPPED) {
+            if (status.get() == Status.STOPPED) {
                 return false;
             }
             this.onStoppedCallbacks.add(onStopped);
@@ -54,7 +53,7 @@ public abstract class ProcessingWorker {
     }
 
     protected boolean start(Runnable work) {
-        if (!state.compareAndSet(State.IDLE, State.RUNNING)) {
+        if (!status.compareAndSet(Status.IDLE, Status.RUNNING)) {
             return false;
         }
 
@@ -62,69 +61,65 @@ public abstract class ProcessingWorker {
             try {
                 work.run();
             } catch (Throwable ignored) {
-                state.compareAndSet(State.RUNNING, State.FAILED);
+                status.compareAndSet(Status.RUNNING, Status.FAILED);
             } finally {
-                state.compareAndSet(State.RUNNING, State.COMPLETED);
-                state.compareAndSet(State.CANCELLING, State.CANCELLED);
+                status.compareAndSet(Status.RUNNING, Status.COMPLETED);
+                status.compareAndSet(Status.CANCELLING, Status.CANCELLED);
             }
         });
-        startTimer();
+        startReporting();
         return true;
     }
 
-    protected void startTimer() {
-        updateTimer = new Timer();
-        updateTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    reportStarted();
-                } catch (Throwable ignored) {
-                }
+    private void startReporting() {
+        ReporterPool.post(() -> {
+            try {
+                reportStarted();
+            } catch (Throwable ignored) {
             }
-        }, 0);
-        updateTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                boolean working = isWorking();
-                try {
-                    reportUpdated();
-                } catch (Throwable ignored) {
-                }
-                if (!working) {
-                    updateTimer.cancel();
-                    StopReason reason;
-                    switch (state.get()) {
-                        case CANCELLED:
-                            reason = StopReason.CANCELLED;
-                            break;
-                        case COMPLETED:
-                            reason = StopReason.COMPLETED;
-                            break;
-                        case FAILED:
-                        default:
-                            reason = StopReason.FAILED;
-                            break;
-                    }
-                    try {
-                        reportStopped(reason);
-                    } catch (Throwable ignored) {
-                    }
-                }
-            }
-        }, updateInterval, updateInterval);
+        });
+        updateTick.set(ReporterPool.schedule(this::tick, updateInterval));
+    }
+
+    private void tick() {
+        boolean working = isWorking();
+        try {
+            reportUpdated();
+        } catch (Throwable ignored) {
+        }
+        if (working) {
+            return;
+        }
+        updateTick.get().cancel(false);
+        StopReason reason;
+        switch (status.get()) {
+            case CANCELLED:
+                reason = StopReason.CANCELLED;
+                break;
+            case COMPLETED:
+                reason = StopReason.COMPLETED;
+                break;
+            case FAILED:
+            default:
+                reason = StopReason.FAILED;
+                break;
+        }
+        try {
+            reportStopped(reason);
+        } catch (Throwable ignored) {
+        }
     }
 
     public boolean isWorking() {
-        State state = this.state.get();
-        return state == State.RUNNING || state == State.CANCELLING;
+        Status status = this.status.get();
+        return status == Status.RUNNING || status == Status.CANCELLING;
     }
 
     public void cancel() {
         while (true) {
-            State current = state.get();
-            if (current == State.RUNNING) {
-                if (state.compareAndSet(State.RUNNING, State.CANCELLING)) {
+            Status current = status.get();
+            if (current == Status.RUNNING) {
+                if (status.compareAndSet(Status.RUNNING, Status.CANCELLING)) {
                     cancelRequested.set(true);
                     return;
                 }
@@ -138,29 +133,20 @@ public abstract class ProcessingWorker {
         return cancelRequested.get();
     }
 
-    /**
-     * Runs on timer thread
-     */
     protected void reportStarted() {
         if (onStartedCallback != null) {
             onStartedCallback.run();
         }
     }
 
-    /**
-     * Runs on timer thread
-     */
     protected abstract void reportUpdated();
 
-    /**
-     * Runs on timer thread
-     */
     protected void reportStopped(StopReason reason) {
         List<Consumer<StopReason>> callbacks;
         synchronized (stopLock) {
             callbacks = new LinkedList<>(onStoppedCallbacks);
             onStoppedCallbacks.clear();
-            state.set(State.STOPPED);
+            status.set(Status.STOPPED);
         }
         for (Consumer<StopReason> callback : callbacks) {
             try {
@@ -170,7 +156,7 @@ public abstract class ProcessingWorker {
         }
     }
 
-    private enum State {
+    private enum Status {
         IDLE, RUNNING, CANCELLING, CANCELLED, COMPLETED, FAILED, STOPPED
     }
 
