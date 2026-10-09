@@ -1,5 +1,6 @@
 package pd.droidapp.fmgr.view;
 
+import android.graphics.Color;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -16,6 +17,7 @@ import static pd.droidapp.fmgr.util.Util.renderText;
 
 public class FileItemBar {
 
+    private final View highlightView;
     private final ImageView iconImageView;
     private final ImageView badgeImageView;
     private final ProgressBar badgeProgressView;
@@ -29,6 +31,7 @@ public class FileItemBar {
     private State state;
 
     public FileItemBar(View selfView) {
+        highlightView = selfView.findViewById(R.id.item_highlight);
         iconImageView = selfView.findViewById(R.id.item_icon);
         badgeImageView = selfView.findViewById(R.id.item_badge_image);
         badgeProgressView = selfView.findViewById(R.id.item_badge_progress);
@@ -63,7 +66,7 @@ public class FileItemBar {
      * null state for no change
      */
     public void render(State state) {
-        if (state == null) {
+        if (state == null || state == this.state) {
             return;
         }
 
@@ -90,6 +93,10 @@ public class FileItemBar {
 
         if (oldState == null || !Objects.equals(oldState.index, state.index)) {
             renderText(indexTextView, state.index);
+        }
+
+        if (oldState == null || oldState.highlightColor != state.highlightColor) {
+            highlightView.setBackgroundColor(state.highlightColor);
         }
     }
 
@@ -136,22 +143,35 @@ public class FileItemBar {
 
     public static class State {
 
-        public final String path;
+        public final String itemId;
         public final String name;
         public final String summary;
         public final String index;
         public final int drawableId;
         public final boolean selected;
         public final ProcessingStatus processingStatus;
+        public final int highlightColor;
 
-        public State(String path, String name, String summary, String index, @DrawableRes int drawableId, boolean selected, ProcessingStatus processingStatus) {
-            this.path = path;
+        private State(String itemId, String name, String summary, String index, @DrawableRes int drawableId, boolean selected, ProcessingStatus processingStatus, int highlightColor) {
+            this.itemId = itemId;
             this.name = name;
             this.summary = summary;
             this.index = index;
             this.drawableId = drawableId;
             this.selected = selected;
             this.processingStatus = processingStatus;
+            this.highlightColor = highlightColor;
+        }
+
+        public State(String itemId, String name, String summary, String index, @DrawableRes int drawableId, boolean selected) {
+            this(itemId, name, summary, index, drawableId, selected, null, Color.TRANSPARENT);
+        }
+
+        public State copyOfHighlightColor(int highlightColor) {
+            if (highlightColor == this.highlightColor) {
+                return this;
+            }
+            return new State(itemId, name, summary, index, drawableId, selected, processingStatus, highlightColor);
         }
 
         @Override
@@ -164,17 +184,18 @@ public class FileItemBar {
             }
             State another = (State) o;
             return drawableId == another.drawableId
-                    && Objects.equals(path, another.path)
+                    && Objects.equals(itemId, another.itemId)
                     && Objects.equals(name, another.name)
                     && Objects.equals(summary, another.summary)
                     && Objects.equals(index, another.index)
                     && selected == another.selected
-                    && processingStatus == another.processingStatus;
+                    && processingStatus == another.processingStatus
+                    && highlightColor == another.highlightColor;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(path, name, summary, index, drawableId, selected, processingStatus);
+            return Objects.hash(itemId, name, summary, index, drawableId, selected, processingStatus, highlightColor);
         }
     }
 

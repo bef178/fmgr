@@ -53,6 +53,7 @@ import pd.droidapp.fmgr.view.ActionBar;
 import pd.droidapp.fmgr.view.BreadcrumbBar;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.FileItemAdapter;
+import pd.droidapp.fmgr.view.FileItemBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.util.FileOps;
 import pd.util.FileStat;
@@ -294,8 +295,8 @@ public class BrowseFragment extends Fragment {
         anchorAndHighlight(path, themeColor(requireContext(), com.google.android.material.R.attr.colorSecondary));
     }
 
-    private void anchorAndHighlight(String path, @ColorInt int color) {
-        itemsAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(path, color));
+    private void anchorAndHighlight(String path, @ColorInt int peakColor) {
+        itemsAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(path, peakColor));
     }
 
     private void renderBreadcrumbsBar() {
@@ -320,20 +321,17 @@ public class BrowseFragment extends Fragment {
     }
 
     private void renderItems() {
-        List<FileItemAdapter.State> states = new ArrayList<>(items.size());
+        List<FileItemBar.State> itemStates = new ArrayList<>(items.size());
         for (FileProperties item : items) {
-            states.add(itemState(item));
+            itemStates.add(new FileItemBar.State(
+                    item.path,
+                    PathOps.singleton.basename(item.path),
+                    getItemDetailsString(item),
+                    null,
+                    item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                    selectedPaths.contains(item.path)));
         }
-        itemsAdapter.render(states);
-    }
-
-    private FileItemAdapter.State itemState(FileProperties item) {
-        return new FileItemAdapter.State(
-                item.path,
-                PathOps.singleton.basename(item.path),
-                getItemDetailsString(item),
-                item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
-                selectedPaths.contains(item.path));
+        itemsAdapter.render(itemStates);
     }
 
     private String getItemDetailsString(FileProperties item) {

@@ -141,12 +141,12 @@ public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.File
                 itemBar = new FileItemBar(itemView);
                 itemBar.whenClicked(itemState -> {
                     if (onItemClicked != null) {
-                        onItemClicked.accept(itemState.path);
+                        onItemClicked.accept(itemState.itemId);
                     }
                 });
                 itemBar.whenLongClicked(itemState -> {
                     if (onItemLongClicked != null) {
-                        onItemLongClicked.accept(itemState.path);
+                        onItemLongClicked.accept(itemState.itemId);
                     }
                 });
                 viewHolder.itemBars.add(itemBar);

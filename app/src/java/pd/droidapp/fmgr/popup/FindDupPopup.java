@@ -313,8 +313,7 @@ public class FindDupPopup extends ProcessingPopup {
                     null,
                     null,
                     R.drawable.i_file_24,
-                    selectedPaths.contains(item.path),
-                    null);
+                    selectedPaths.contains(item.path));
         }
         FileProperties first = group.get(0);
         String title = context.getString(R.string.x_files_y_each, group.size(), getSizeString(first.size));
