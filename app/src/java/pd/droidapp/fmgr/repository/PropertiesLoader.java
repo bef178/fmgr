@@ -14,84 +14,71 @@ public class PropertiesLoader {
 
     private volatile OnUpdatedListener onUpdated;
 
-    private boolean isIdle = true;
     private volatile boolean cancelRequested;
     private long generation; // generation-based invalidation
-    private final List<FileProperties> queued = new LinkedList<>();
+    private int pending;
     private final List<FileProperties> completed = new LinkedList<>();
     private final Object lock = new Object();
 
     private final Timer updateTimer = new Timer();
     private TimerTask updateTimerTask;
 
-    public PropertiesLoader() {
-        start();
-    }
-
     public void whenUpdated(OnUpdatedListener onUpdated) {
         this.onUpdated = onUpdated;
     }
 
-    private void start() {
-        new Thread(() -> {
-            while (true) {
-                FileProperties item;
-                long itemGeneration;
-                synchronized (lock) {
-                    while (queued.isEmpty() && !cancelRequested) {
-                        isIdle = true;
-                        try {
-                            lock.wait();
-                        } catch (InterruptedException ignored) {
-                        }
-                    }
-                    if (cancelRequested) {
-                        isIdle = true;
-                        return;
-                    }
-                    isIdle = false;
-                    itemGeneration = generation;
-                    item = queued.remove(0);
-                }
-
-                boolean loaded;
-                try {
-                    doLoad(item);
-                    loaded = true;
-                } catch (Throwable ignored) {
-                    loaded = false;
-                }
-                synchronized (lock) {
-                    if (!cancelRequested && loaded && itemGeneration == generation) {
-                        completed.add(item);
-                    }
-                }
-            }
-        }).start();
-    }
-
-    /**
-     * on worker thread
-     */
-    private void doLoad(FileProperties item) {
-        if (item.isDirectory) {
-            item.numChildren = FileOps.singleton.getNumDirectoryEntries(item.path);
-        } else {
-            item.size = FileOps.singleton.stat(item.path).size;
-        }
-        item.computed = true;
-    }
-
     public void add(List<FileProperties> items) {
+        if (items.isEmpty()) {
+            return;
+        }
+        long markedGeneration;
         synchronized (lock) {
             if (cancelRequested) {
                 return;
             }
-            queued.addAll(items);
-            if (updateTimerTask == null && !queued.isEmpty()) {
+            markedGeneration = generation;
+            pending++;
+            if (updateTimerTask == null) {
                 startTimerTask();
             }
-            lock.notifyAll();
+        }
+        WorkerPool.post(() -> {
+            try {
+                load(items, markedGeneration);
+            } finally {
+                synchronized (lock) {
+                    pending--;
+                }
+            }
+        });
+    }
+
+    private void load(List<FileProperties> items, long markedGeneration) {
+        for (FileProperties item : items) {
+            synchronized (lock) {
+                if (cancelRequested || markedGeneration != generation) {
+                    return;
+                }
+            }
+
+            boolean loaded;
+            try {
+                item.computed = false;
+                if (item.isDirectory) {
+                    item.numChildren = FileOps.singleton.getNumDirectoryEntries(item.path);
+                } else {
+                    item.size = FileOps.singleton.stat(item.path).size;
+                }
+                item.computed = true;
+                loaded = true;
+            } catch (Throwable ignored) {
+                loaded = false;
+            }
+            synchronized (lock) {
+                if (!cancelRequested && loaded && markedGeneration == generation) {
+                    completed.add(item);
+                }
+            }
         }
     }
 
@@ -101,7 +88,7 @@ public class PropertiesLoader {
             public void run() {
                 reportUpdated();
                 synchronized (lock) {
-                    if (completed.isEmpty() && queued.isEmpty() && isIdle) {
+                    if (completed.isEmpty() && pending == 0) {
                         updateTimerTask.cancel();
                         updateTimerTask = null;
                     }
@@ -131,7 +118,6 @@ public class PropertiesLoader {
     public void clear() {
         synchronized (lock) {
             generation++;
-            queued.clear();
             completed.clear();
         }
     }
@@ -139,9 +125,7 @@ public class PropertiesLoader {
     public void cancel() {
         synchronized (lock) {
             cancelRequested = true;
-            queued.clear();
             completed.clear();
-            lock.notifyAll();
         }
         updateTimer.cancel();
     }
