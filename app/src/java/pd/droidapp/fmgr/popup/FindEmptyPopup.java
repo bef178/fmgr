@@ -20,15 +20,13 @@ import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.popup.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.FileItemAdapter;
+import pd.droidapp.fmgr.view.FileItemBar;
 import pd.droidapp.fmgr.view.PopupBottomBar;
-import pd.droidapp.fmgr.view.PopupFileItemAdapter;
-import pd.droidapp.fmgr.view.PopupFileItemBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.util.PathOps;
-
-import static pd.droidapp.fmgr.view.PopupFileItemBar.BadgeState;
 
 public class FindEmptyPopup extends ProcessingPopup {
 
@@ -40,7 +38,7 @@ public class FindEmptyPopup extends ProcessingPopup {
     private final StatusBar statusBar;
     private final SelectionBar selectionBar;
     private final RecyclerView itemsView;
-    private final PopupFileItemAdapter itemsAdapter;
+    private final FileItemAdapter itemAdapter;
 
     // callbacks
     private Consumer<String> onJump;
@@ -57,7 +55,7 @@ public class FindEmptyPopup extends ProcessingPopup {
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_find_empty_24);
         selectionBar = new SelectionBar(contentView.findViewById(R.id.selection_bar));
         itemsView = contentView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new PopupFileItemAdapter();
+        itemAdapter = new FileItemAdapter();
 
         bottomBar.whenButtonClicked(id -> {
             if (id == R.string.abort) {
@@ -117,22 +115,22 @@ public class FindEmptyPopup extends ProcessingPopup {
     }
 
     private void initItemsView() {
-        itemsAdapter.whenItemClicked(path -> {
+        itemAdapter.whenItemClicked(path -> {
             if (!selectedPaths.isEmpty()) {
                 toggleSelected(path);
             }
         });
-        itemsAdapter.whenItemLongClicked(this::toggleSelected);
+        itemAdapter.whenItemLongClicked(this::toggleSelected);
         itemsView.setLayoutManager(new LinearLayoutManager(context));
-        itemsView.setAdapter(itemsAdapter);
+        itemsView.setAdapter(itemAdapter);
     }
 
     private void renderItems() {
-        itemsAdapter.render(buildStates(items, 1));
+        itemAdapter.render(buildStates(items, 1));
     }
 
-    private List<PopupFileItemBar.State> buildStates(Collection<FileProperties> items, int firstIndex) {
-        List<PopupFileItemBar.State> states = new ArrayList<>(items.size());
+    private List<FileItemBar.State> buildStates(Collection<FileProperties> items, int firstIndex) {
+        List<FileItemBar.State> states = new ArrayList<>(items.size());
         int index = firstIndex;
         for (FileProperties item : items) {
             states.add(buildState(item, index++));
@@ -140,13 +138,14 @@ public class FindEmptyPopup extends ProcessingPopup {
         return states;
     }
 
-    private PopupFileItemBar.State buildState(FileProperties item, int index) {
-        return new PopupFileItemBar.State(
+    private FileItemBar.State buildState(FileProperties item, int index) {
+        return new FileItemBar.State(
                 item.path,
                 PathOps.singleton.relativize(startDirectory, item.path),
-                index,
+                null,
+                String.valueOf(index),
                 item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
-                selectedPaths.contains(item.path) ? BadgeState.SELECTED : BadgeState.NONE);
+                selectedPaths.contains(item.path));
     }
 
     private void renderSelectionBar() {
@@ -172,7 +171,7 @@ public class FindEmptyPopup extends ProcessingPopup {
         for (int i = 0; i < items.size(); i++) {
             FileProperties item = items.get(i);
             if (item.path.equals(path)) {
-                itemsAdapter.update(i, buildState(item, i + 1));
+                itemAdapter.update(i, buildState(item, i + 1));
                 break;
             }
         }
@@ -272,7 +271,7 @@ public class FindEmptyPopup extends ProcessingPopup {
             totalScanned += scanned;
             int firstIndex = items.size() + 1;
             items.addAll(matched);
-            itemsAdapter.append(buildStates(matched, firstIndex));
+            itemAdapter.append(buildStates(matched, firstIndex));
             renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {

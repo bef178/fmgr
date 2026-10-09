@@ -17,6 +17,7 @@ import static pd.droidapp.fmgr.util.Util.renderText;
 
 public class FileItemBar {
 
+    private final View selfView;
     private final View highlightView;
     private final ImageView iconImageView;
     private final ImageView badgeImageView;
@@ -25,12 +26,10 @@ public class FileItemBar {
     private final TextView summaryTextView;
     private final TextView indexTextView;
 
-    private Consumer<State> onClicked;
-    private Consumer<State> onLongClicked;
-
     private State state;
 
     public FileItemBar(View selfView) {
+        this.selfView = selfView;
         highlightView = selfView.findViewById(R.id.item_highlight);
         iconImageView = selfView.findViewById(R.id.item_icon);
         badgeImageView = selfView.findViewById(R.id.item_badge_image);
@@ -38,28 +37,18 @@ public class FileItemBar {
         nameTextView = selfView.findViewById(R.id.item_name);
         summaryTextView = selfView.findViewById(R.id.item_summary);
         indexTextView = selfView.findViewById(R.id.item_index);
-
-        selfView.setOnClickListener(v -> {
-            if (onClicked != null) {
-                onClicked.accept(state);
-            }
-        });
-        selfView.setOnLongClickListener(v -> {
-            if (onLongClicked == null) {
-                return false;
-            }
-            onLongClicked.accept(state);
-            return true;
-        });
-        forwardViewActionsTo(nameTextView, selfView);
     }
 
     public void whenClicked(Consumer<State> onClicked) {
-        this.onClicked = onClicked;
+        selfView.setOnClickListener(v -> onClicked.accept(state));
+        forwardViewActionsTo(nameTextView, selfView);
     }
 
     public void whenLongClicked(Consumer<State> onLongClicked) {
-        this.onLongClicked = onLongClicked;
+        selfView.setOnLongClickListener(v -> {
+            onLongClicked.accept(state);
+            return true;
+        });
     }
 
     /**
@@ -165,6 +154,10 @@ public class FileItemBar {
 
         public State(String itemId, String name, String summary, String index, @DrawableRes int drawableId, boolean selected) {
             this(itemId, name, summary, index, drawableId, selected, null, Color.TRANSPARENT);
+        }
+
+        public State(String itemId, String name, String summary, String index, @DrawableRes int drawableId, boolean selected, ProcessingStatus processingStatus) {
+            this(itemId, name, summary, index, drawableId, selected, processingStatus, Color.TRANSPARENT);
         }
 
         public State copyOfHighlightColor(int highlightColor) {

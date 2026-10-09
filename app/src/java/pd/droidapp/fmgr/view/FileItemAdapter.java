@@ -65,6 +65,23 @@ public class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.ItemVi
         }).dispatchUpdatesTo(this);
     }
 
+    public void append(List<FileItemBar.State> states) {
+        if (states.isEmpty()) {
+            return;
+        }
+        int start = this.states.size();
+        this.states.addAll(states);
+        notifyItemRangeInserted(start, states.size());
+    }
+
+    public void update(int position, FileItemBar.State state) {
+        if (this.states.get(position).equals(state)) {
+            return;
+        }
+        this.states.set(position, state);
+        notifyItemChanged(position);
+    }
+
     public void render(ScrollToAndHighlightEvent event) {
         if (event == null) {
             return;
@@ -167,16 +184,12 @@ public class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.ItemVi
     public ItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.file_item, parent, false);
         ItemViewHolder viewHolder = new ItemViewHolder(view);
-        viewHolder.itemBar.whenClicked(state -> {
-            if (onItemClicked != null) {
-                onItemClicked.accept(state.itemId);
-            }
-        });
-        viewHolder.itemBar.whenLongClicked(state -> {
-            if (onItemLongClicked != null) {
-                onItemLongClicked.accept(state.itemId);
-            }
-        });
+        if (onItemClicked != null) {
+            viewHolder.itemBar.whenClicked(state -> onItemClicked.accept(state.itemId));
+        }
+        if (onItemLongClicked != null) {
+            viewHolder.itemBar.whenLongClicked(state -> onItemLongClicked.accept(state.itemId));
+        }
         return viewHolder;
     }
 

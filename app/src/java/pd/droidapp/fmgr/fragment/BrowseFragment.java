@@ -70,7 +70,7 @@ public class BrowseFragment extends Fragment {
     private SelectionBar selectionBar;
     private SwipeRefreshLayout swipeRefreshView;
     private RecyclerView itemsView;
-    private FileItemAdapter itemsAdapter;
+    private FileItemAdapter itemAdapter;
     private ListDirectoryWorker worker;
 
     private final List<FileProperties> items = new ArrayList<>();
@@ -138,13 +138,13 @@ public class BrowseFragment extends Fragment {
         requireContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true);
         swipeRefreshView.setColorSchemeColors(typedValue.data);
 
-        itemsAdapter = new FileItemAdapter();
-        itemsAdapter.whenItemClicked(this::onItemClicked);
-        itemsAdapter.whenItemLongClicked(this::toggleSelection);
+        itemAdapter = new FileItemAdapter();
+        itemAdapter.whenItemClicked(this::onItemClicked);
+        itemAdapter.whenItemLongClicked(this::toggleSelection);
 
         itemsView = view.findViewById(R.id.items_list);
         itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        itemsView.setAdapter(itemsAdapter);
+        itemsView.setAdapter(itemAdapter);
 
         propertiesLoader = new PropertiesLoader();
         propertiesLoader.whenUpdated(updated -> itemsView.post(this::renderItems));
@@ -296,7 +296,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void anchorAndHighlight(String path, @ColorInt int peakColor) {
-        itemsAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(path, peakColor));
+        itemAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(path, peakColor));
     }
 
     private void renderBreadcrumbsBar() {
@@ -331,7 +331,7 @@ public class BrowseFragment extends Fragment {
                     item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
                     selectedPaths.contains(item.path)));
         }
-        itemsAdapter.render(itemStates);
+        itemAdapter.render(itemStates);
     }
 
     private String getItemDetailsString(FileProperties item) {
