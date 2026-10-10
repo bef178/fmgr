@@ -350,15 +350,11 @@ public class BrowseFragment extends Fragment {
                     showRenamePopup(getSelectedItems().get(0));
                 }
             } else if (id == R.drawable.ic_copy_24) {
-                List<FileProperties> selectedItems = getSelectedItems();
-                clearSelection();
-                showPastePopup(selectedItems, true);
+                showPastePopup(getSelectedItems(), true);
             } else if (id == R.drawable.ic_cut_24) {
-                List<FileProperties> selectedItems = getSelectedItems();
-                clearSelection();
-                showPastePopup(selectedItems, false);
+                showPastePopup(getSelectedItems(), false);
             } else if (id == R.drawable.ic_delete_24) {
-                showDeletePopup();
+                showDeletePopup(getSelectedItems());
             } else if (id == R.drawable.ic_check_all_24) {
                 selectAll();
             } else if (id == R.drawable.ic_close_24) {
@@ -629,13 +625,23 @@ public class BrowseFragment extends Fragment {
 
     private void showPastePopup(Collection<FileProperties> srcItems, boolean isCopy) {
         PastePopup pastePopup = new PastePopup(getView(), isCopy, srcItems, navigator.getCurrentDirectory());
-        pastePopup.whenPopupDismissed(this::onPopupDismissed);
+        pastePopup.whenPopupDismissed((added, removed) -> {
+            onPopupDismissed(added, removed);
+            if (!added.isEmpty() || !removed.isEmpty()) {
+                clearSelection();
+            }
+        });
         pastePopup.show();
     }
 
-    private void showDeletePopup() {
-        DeletePopup deletePopup = new DeletePopup(getView(), navigator.getCurrentDirectory(), getSelectedItems(), false);
-        deletePopup.whenPopupDismissed(this::onPopupDismissed);
+    private void showDeletePopup(Collection<FileProperties> srcItems) {
+        DeletePopup deletePopup = new DeletePopup(getView(), navigator.getCurrentDirectory(), srcItems, false);
+        deletePopup.whenPopupDismissed((added, removed) -> {
+            onPopupDismissed(added, removed);
+            if (!added.isEmpty() || !removed.isEmpty()) {
+                clearSelection();
+            }
+        });
         deletePopup.show();
     }
 
@@ -643,6 +649,9 @@ public class BrowseFragment extends Fragment {
         RenamePopup renamePopup = new RenamePopup(getView(), srcItem);
         renamePopup.whenPopupDismissed((added, removed) -> {
             onPopupDismissed(added, removed);
+            if (!added.isEmpty() || !removed.isEmpty()) {
+                clearSelection();
+            }
             if (!added.isEmpty()) {
                 anchorAndHighlight(added.iterator().next().path);
             }
