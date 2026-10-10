@@ -34,7 +34,7 @@
     <string name="file_created">File created</string>
 
     <string name="error_empty_name">Name cannot be empty</string>
-    <string name="error_unchanged_name">Name unchanged</string>
+    <string name="error_same_as_old_name">Same as the old name</string>
     <string name="error_invalid_name">Invalid name</string>
     <string name="error_already_exists">Already exists</string>
     <string name="error_create_failed">Failed to create</string>
@@ -46,6 +46,7 @@
 
     <string name="rename">Rename</string>
     <string name="renamed">Renamed</string>
+    <string name="renaming">Renaming</string>
 
     <string name="error_rename_failed">Failed to rename</string>
 
@@ -68,6 +69,7 @@
     <string name="cut">Cut</string>
     <string name="paste">Paste</string>
     <string name="target_directory">Target directory</string>
+    <string name="target_name">Target name</string>
     <string name="on_conflict">On conflict</string>
     <string name="resolution_short_overwrite">overwrite</string>
     <string name="resolution_short_skip">skip incoming</string>

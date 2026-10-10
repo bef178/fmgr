@@ -347,7 +347,7 @@ public class BrowseFragment extends Fragment {
         selectionBar.whenButtonClicked(id -> {
             if (id == R.drawable.ic_edit_24) {
                 if (selectedPaths.size() == 1) {
-                    showRenamePopup(getSelectedItems().get(0).path);
+                    showRenamePopup(getSelectedItems().get(0));
                 }
             } else if (id == R.drawable.ic_copy_24) {
                 List<FileProperties> selectedItems = getSelectedItems();
@@ -639,8 +639,8 @@ public class BrowseFragment extends Fragment {
         deletePopup.show();
     }
 
-    private void showRenamePopup(String path) {
-        RenamePopup renamePopup = new RenamePopup(getView(), path);
+    private void showRenamePopup(FileProperties srcItem) {
+        RenamePopup renamePopup = new RenamePopup(getView(), srcItem);
         renamePopup.whenPopupDismissed((added, removed) -> {
             onPopupDismissed(added, removed);
             if (!added.isEmpty()) {

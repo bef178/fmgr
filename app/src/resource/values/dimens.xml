@@ -4,4 +4,6 @@
     <dimen name="edit_popup_top_margin">240dp</dimen>
     <dimen name="directory_picker_popup_height">450dp</dimen>
     <dimen name="paste_popup_height">560dp</dimen>
+    <dimen name="rename_popup_height">320dp</dimen>
+    <dimen name="rename_popup_top_margin">100dp</dimen>
 </resources>

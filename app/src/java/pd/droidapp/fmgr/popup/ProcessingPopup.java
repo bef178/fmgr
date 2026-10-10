@@ -45,7 +45,7 @@ public abstract class ProcessingPopup {
         selfWindow = new PopupWindow(selfView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, true) {
             @Override
             public void dismiss() {
-                if (dismissing) {
+                if (!canDismiss() || dismissing) {
                     return;
                 }
                 dismissing = true;
@@ -79,6 +79,10 @@ public abstract class ProcessingPopup {
     }
 
     protected abstract void inflateContent();
+
+    protected boolean canDismiss() {
+        return true;
+    }
 
     protected abstract void onDismissing(Runnable continueDismiss);
 

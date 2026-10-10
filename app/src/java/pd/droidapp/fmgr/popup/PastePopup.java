@@ -229,10 +229,6 @@ public class PastePopup extends ProcessingPopup {
         renderStatusBar(StatusBar.IconStatus.IDLE);
         renderBottomBar();
 
-        renderItems();
-    }
-
-    private void renderItems() {
         List<FileItemBar.State> states = new ArrayList<>(srcItems.size());
         for (int i = 0; i < srcItems.size(); i++) {
             states.add(buildState(srcItems.get(i), i + 1));

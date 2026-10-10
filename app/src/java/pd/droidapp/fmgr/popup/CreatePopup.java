@@ -65,7 +65,7 @@ public class CreatePopup extends EditPopup {
         }
 
         String newPath = PathOps.singleton.join(directory, name);
-        if (FileOps.singleton.stat(newPath).exists(true)) {
+        if (FileOps.singleton.stat(newPath).exists(false)) {
             Toast.makeText(context, R.string.error_already_exists, Toast.LENGTH_SHORT).show();
             return false;
         }
