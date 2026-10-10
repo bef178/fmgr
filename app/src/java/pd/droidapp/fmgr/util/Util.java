@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 
+import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.util.PathOps;
 
@@ -150,6 +151,33 @@ public class Util {
             items.add(toFileProperties(path));
         }
         return items;
+    }
+
+    /**
+     * return `null` or error string resource id
+     */
+    public static Integer checkBasename(String name) {
+        if (name == null || name.isEmpty()) {
+            return R.string.error_empty_name;
+        }
+
+        if (name.equals(".") || name.equals("..")) {
+            return R.string.error_invalid_name;
+        }
+
+        if (name.contains("/") || name.contains("\\")) {
+            return R.string.error_invalid_name;
+        }
+
+        // check for control characters (ASCII 0-31)
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c < 32) {
+                return R.string.error_invalid_name;
+            }
+        }
+
+        return null;
     }
 
     public static int bitCeil(int n) {

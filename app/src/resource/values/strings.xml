@@ -10,6 +10,7 @@
     <string name="edit_favorite_name">Edit favorite name</string>
 
     <string name="ok">OK</string>
+    <string name="create">Create</string>
     <string name="abort">Abort</string>
     <string name="close">Close</string>
 
@@ -33,6 +34,7 @@
     <string name="file_created">File created</string>
 
     <string name="error_empty_name">Name cannot be empty</string>
+    <string name="error_unchanged_name">Name unchanged</string>
     <string name="error_invalid_name">Invalid name</string>
     <string name="error_already_exists">Already exists</string>
     <string name="error_create_failed">Failed to create</string>

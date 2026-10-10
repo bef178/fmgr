@@ -27,7 +27,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,11 +38,12 @@ import java.util.Map;
 import java.util.Set;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.popup.CreatePopup;
 import pd.droidapp.fmgr.popup.DeletePopup;
-import pd.droidapp.fmgr.popup.EditPopup;
 import pd.droidapp.fmgr.popup.FindDupPopup;
 import pd.droidapp.fmgr.popup.FindEmptyPopup;
 import pd.droidapp.fmgr.popup.PastePopup;
+import pd.droidapp.fmgr.popup.RenamePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.repository.ListDirectoryWorker;
 import pd.droidapp.fmgr.repository.PropertiesLoader;
@@ -119,9 +119,9 @@ public class BrowseFragment extends Fragment {
             } else if (id == R.drawable.baseline_refresh_24) {
                 refresh();
             } else if (id == R.drawable.i_directory_add_24) {
-                showCreateDirectoryPopup();
+                showCreatePopup(true);
             } else if (id == R.drawable.i_file_add_24) {
-                showCreateFilePopup();
+                showCreatePopup(false);
             } else if (id == R.drawable.baseline_search_24) {
                 showSearchPopup();
             } else if (id == R.drawable.ic_find_empty_24) {
@@ -253,17 +253,6 @@ public class BrowseFragment extends Fragment {
         items.sort(ITEM_COMPARATOR);
         propertiesLoader.add(new LinkedList<>(toAdd));
         renderItems();
-    }
-
-    private FileProperties removeItem(String path) {
-        for (int i = 0; i < items.size(); i++) {
-            if (items.get(i).path.equals(path)) {
-                FileProperties removed = items.remove(i);
-                renderItems();
-                return removed;
-            }
-        }
-        return null;
     }
 
     private void removeItems(Collection<FileProperties> toRemove) {
@@ -638,93 +627,6 @@ public class BrowseFragment extends Fragment {
         refresh(() -> anchorAndHighlight(path));
     }
 
-    void showCreateDirectoryPopup() {
-        EditPopup editPopup = new EditPopup(getView(),
-                getString(R.string.new_directory),
-                "",
-                getString(R.string.directory_name),
-                name -> createItem(name.trim(), true));
-        editPopup.show();
-    }
-
-    private void showCreateFilePopup() {
-        EditPopup editPopup = new EditPopup(getView(),
-                getString(R.string.new_file),
-                "",
-                getString(R.string.file_name),
-                name -> createItem(name.trim(), false));
-        editPopup.show();
-    }
-
-    private boolean createItem(String name, boolean isDirectory) {
-        Integer errResId = checkBasename(name);
-        if (errResId != null) {
-            Toast.makeText(requireContext(), errResId, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        String currentDirectory = navigator.getCurrentDirectory();
-        if (currentDirectory == null) {
-            Toast.makeText(requireContext(), R.string.error_create_failed, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        String newPath = PathOps.singleton.join(currentDirectory, name);
-        if (FileOps.singleton.stat(newPath).exists(true)) {
-            Toast.makeText(requireContext(), R.string.error_already_exists, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        boolean success;
-        if (isDirectory) {
-            success = FileOps.singleton.createEmptyDirectory(newPath);
-            if (success) {
-                Toast.makeText(requireContext(), R.string.directory_created, Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            success = FileOps.singleton.save(newPath, new byte[0], false);
-            if (success) {
-                Toast.makeText(requireContext(), R.string.file_created, Toast.LENGTH_SHORT).show();
-            }
-        }
-
-        if (!success) {
-            Toast.makeText(requireContext(), R.string.error_create_failed, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        addItems(Collections.singletonList(new FileProperties(newPath, isDirectory)));
-        anchorAndHighlight(newPath);
-        return true;
-    }
-
-    /**
-     * return `null` or error string resource id
-     */
-    private Integer checkBasename(String name) {
-        if (name == null || name.isEmpty()) {
-            return R.string.error_empty_name;
-        }
-
-        if (name.equals(".") || name.equals("..")) {
-            return R.string.error_invalid_name;
-        }
-
-        if (name.contains("/") || name.contains("\\")) {
-            return R.string.error_invalid_name;
-        }
-
-        // check for control characters (ASCII 0-31)
-        for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
-            if (c < 32) {
-                return R.string.error_invalid_name;
-            }
-        }
-
-        return null;
-    }
-
     private void showPastePopup(Collection<FileProperties> srcItems, boolean isCopy) {
         PastePopup pastePopup = new PastePopup(getView(), isCopy, srcItems, navigator.getCurrentDirectory());
         pastePopup.whenPopupDismissed(this::onPopupDismissed);
@@ -738,95 +640,25 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showRenamePopup(String path) {
-        String currentName = PathOps.singleton.basename(path);
-        EditPopup editPopup = new EditPopup(getView(),
-                getString(R.string.rename),
-                suggestNewName(currentName),
-                currentName,
-                newName -> {
-                    newName = newName.trim();
-                    if (newName.isEmpty() || newName.equals(currentName)) {
-                        return true;
-                    }
-                    if (renameItem(path, newName)) {
-                        clearSelection();
-                        return true;
-                    }
-                    return false;
-                });
-        editPopup.show();
+        RenamePopup renamePopup = new RenamePopup(getView(), path);
+        renamePopup.whenPopupDismissed((added, removed) -> {
+            onPopupDismissed(added, removed);
+            if (!added.isEmpty()) {
+                anchorAndHighlight(added.iterator().next().path);
+            }
+        });
+        renamePopup.show();
     }
 
-    private static String suggestNewName(String name) {
-        {
-            String name1 = name.trim();
-            if (name1.isEmpty()) {
-                return name;
+    private void showCreatePopup(boolean isDirectory) {
+        CreatePopup createPopup = new CreatePopup(getView(), navigator.getCurrentDirectory(), isDirectory);
+        createPopup.whenPopupDismissed((added, removed) -> {
+            onPopupDismissed(added, removed);
+            if (!added.isEmpty()) {
+                anchorAndHighlight(added.iterator().next().path);
             }
-            name = name1;
-        }
-
-        String extension = PathOps.singleton.extname(name);
-        String core = PathOps.singleton.basename(name, extension);
-
-        {
-            String core1 = core.replaceAll("(.+?)(\\s*\\(\\d+\\))*\\s*$", "$1");
-            if (!core1.isEmpty()) {
-                core = core1;
-            }
-        }
-        {
-            String core1 = core;
-            String prefix = "";
-            if (core1.charAt(0) == '.') {
-                prefix = ".";
-                core1 = core1.substring(1);
-            }
-            String core2 = core1.replaceAll("^[A-Za-z0-9.]*@", "");
-            if (!core2.isEmpty()) {
-                core1 = core2;
-            }
-            core = prefix + core1;
-        }
-
-        if (!extension.isEmpty()) {
-            String ext1 = extension
-                    .substring(1)
-                    .replaceAll("(.+?)(\\s*\\(\\d+\\))*\\s*$", "$1")
-                    .trim();
-            if (!ext1.isEmpty()) {
-                extension = "." + ext1;
-            }
-        }
-        return core + extension;
-    }
-
-    private boolean renameItem(String path, String newName) {
-        Integer errResId = checkBasename(newName);
-        if (errResId != null) {
-            Toast.makeText(requireContext(), errResId, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        String newPath = PathOps.singleton.resolve(PathOps.singleton.dirname(path), newName);
-        if (FileOps.singleton.stat(newPath).exists(true)) {
-            Toast.makeText(requireContext(), R.string.error_already_exists, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        if (FileOps.singleton.move(path, newPath, null)) {
-            Toast.makeText(requireContext(), R.string.renamed, Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(requireContext(), R.string.error_rename_failed, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        FileProperties oldItem = removeItem(path);
-        if (oldItem != null) {
-            addItems(Collections.singletonList(new FileProperties(newPath, oldItem.isDirectory)));
-            anchorAndHighlight(newPath);
-        }
-        return true;
+        });
+        createPopup.show();
     }
 
     private void showSearchPopup() {

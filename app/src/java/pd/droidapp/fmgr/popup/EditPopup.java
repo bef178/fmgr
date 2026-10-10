@@ -1,6 +1,8 @@
 package pd.droidapp.fmgr.popup;
 
 import android.content.Context;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,34 +12,36 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-
-import java.util.function.Predicate;
+import androidx.annotation.StringRes;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 
-public class EditPopup extends ProcessingPopup {
+public abstract class EditPopup extends ProcessingPopup {
 
     private final String title;
-    private final Predicate<String> onConfirm;
+    private final String buttonCaption;
 
     // views
     private final EditText textEditView;
 
-    public EditPopup(View containerView, String title, String text, String hintText, Predicate<String> onConfirm) {
+    protected EditPopup(View containerView, @StringRes int titleTextId, @StringRes int buttonTextId,
+            String initText, String hintText) {
         super(containerView);
-        this.title = title;
-        this.onConfirm = onConfirm;
+        this.title = context.getString(titleTextId);
+        this.buttonCaption = context.getString(buttonTextId);
 
         textEditView = contentView.findViewById(R.id.popup_edit);
-        textEditView.setText(text);
+        textEditView.setText(initText);
         textEditView.setHint(hintText);
 
         bottomBar.whenButtonClicked(id -> {
             if (id == R.string.ok) {
-                start();
+                if (onStart(getInputText())) {
+                    selfWindow.dismiss();
+                }
             }
         });
 
@@ -64,13 +68,32 @@ public class EditPopup extends ProcessingPopup {
     }
 
     private void initTextEdit() {
+        textEditView.addTextChangedListener(new TextWatcher() {
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                renderBottomBar();
+            }
+        });
+
         textEditView.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null) {
-                    imm.hideSoftInputFromWindow(textEditView.getWindowToken(), 0);
+                String text = getInputText();
+                if (canStart(text) && onStart(text)) {
+                    selfWindow.dismiss();
+                    InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) {
+                        imm.hideSoftInputFromWindow(textEditView.getWindowToken(), 0);
+                    }
                 }
-                start();
                 return true;
             }
             return false;
@@ -89,15 +112,24 @@ public class EditPopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(title));
-        bottomBar.render(new PopupBottomBar.State(ButtonState.ofText(R.string.ok, context.getString(R.string.ok))));
+        renderBottomBar();
 
         textEditView.requestFocus();
         textEditView.selectAll();
     }
 
-    private void start() {
-        if (onConfirm.test(textEditView.getText().toString())) {
-            selfWindow.dismiss();
-        }
+    private void renderBottomBar() {
+        bottomBar.render(new PopupBottomBar.State(
+                ButtonState.ofText(R.string.ok, buttonCaption, true, canStart(getInputText()))));
+    }
+
+    protected boolean canStart(String text) {
+        return true;
+    }
+
+    protected abstract boolean onStart(String text);
+
+    private String getInputText() {
+        return textEditView.getText().toString();
     }
 }

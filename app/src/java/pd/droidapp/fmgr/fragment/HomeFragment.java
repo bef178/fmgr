@@ -47,17 +47,20 @@ public class HomeFragment extends Fragment {
         favoriteBar.whenFavoriteItemEditClicked(path -> {
             FavItem favItem = Objects.requireNonNull(favoritesStore.get(path), "favItem");
             EditPopup editPopup = new EditPopup(getView(),
-                    getString(R.string.edit_favorite_name),
+                    R.string.edit_favorite_name,
+                    R.string.rename,
                     favItem.name,
-                    FavoritesStore.getDefaultName(favItem.path),
-                    newName -> {
-                        newName = newName.trim();
-                        if (!newName.equals(favItem.name)) {
-                            favoritesStore.put(favItem.path, newName);
-                            renderFavoritesBar();
-                        }
-                        return true;
-                    });
+                    FavoritesStore.getDefaultName(favItem.path)) {
+                @Override
+                protected boolean onStart(String newName) {
+                    newName = newName.trim();
+                    if (!newName.equals(favItem.name)) {
+                        favoritesStore.put(favItem.path, newName);
+                        renderFavoritesBar();
+                    }
+                    return true;
+                }
+            };
             editPopup.show();
         });
 
