@@ -582,10 +582,11 @@ public class BrowseFragment extends Fragment {
             return;
         }
 
+        File file = new File(path);
         Uri uri = FileProvider.getUriForFile(
                 requireContext(),
                 requireContext().getPackageName() + ".file_provider",
-                new File(path));
+                file);
 
         String mimeType = requireContext().getContentResolver().getType(uri);
         if (mimeType == null) {
@@ -595,9 +596,10 @@ public class BrowseFragment extends Fragment {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(uri, mimeType);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
-        intent.addFlags(Intent.FLAG_ACTIVITY_RETAIN_IN_RECENTS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (file.canWrite()) {
+            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        }
 
         try {
             startActivity(intent);
