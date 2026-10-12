@@ -71,7 +71,7 @@ public class StatusBar {
         iconView.clearAnimation();
         switch (iconStatus) {
             case RUNNING:
-                iconView.setImageResource(R.drawable.baseline_refresh_24);
+                iconView.setImageResource(R.drawable.ic_arrow_clockwise_24);
                 RotateAnimation rotateAnim = new RotateAnimation(0, 360,
                         Animation.RELATIVE_TO_SELF, 0.5f,
                         Animation.RELATIVE_TO_SELF, 0.5f);
@@ -80,10 +80,10 @@ public class StatusBar {
                 iconView.startAnimation(rotateAnim);
                 break;
             case COMPLETED:
-                iconView.setImageResource(R.drawable.baseline_done_24);
+                iconView.setImageResource(R.drawable.ic_checkmark_24);
                 break;
             case STOPPED:
-                iconView.setImageResource(R.drawable.ic_close_24);
+                iconView.setImageResource(R.drawable.ic_xmark_24);
                 break;
             default:
                 iconView.setImageResource(initDrawableId);

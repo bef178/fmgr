@@ -24,7 +24,7 @@
             android:id="@+id/group_triangle"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/i_rt_triangle_down_24"
+            android:src="@drawable/ic_rt_triangle_down_24"
             app:tint="@color/grey_700"
             tools:ignore="ContentDescription" />
 

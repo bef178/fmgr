@@ -68,7 +68,7 @@ public class RenamePopup extends ProcessingPopup {
         srcItem = item.path;
         isDirectory = item.isDirectory;
 
-        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_edit_24);
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ia_rename_24);
         targetNameScrollView = contentView.findViewById(R.id.target_name_scroll);
         targetNameTextView = contentView.findViewById(R.id.target_name);
         targetNameEditView = contentView.findViewById(R.id.target_name_edit);
@@ -218,7 +218,7 @@ public class RenamePopup extends ProcessingPopup {
                 PathOps.singleton.basename(srcItem),
                 null,
                 "1",
-                isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
                 true,
                 badgeState)));
     }

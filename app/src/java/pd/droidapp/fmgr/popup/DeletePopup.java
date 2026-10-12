@@ -63,7 +63,7 @@ public class DeletePopup extends ProcessingPopup {
         this.srcItems = new LinkedList<>(srcItems);
         this.prune = prune;
 
-        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_delete_24);
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ia_delete_24);
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemAdapter = new FileItemAdapter();
 
@@ -176,7 +176,7 @@ public class DeletePopup extends ProcessingPopup {
                 PathOps.singleton.relativize(startDirectory, item.path),
                 null,
                 String.valueOf(index),
-                item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                item.isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
                 true,
                 badgeStates.getOrDefault(item.path, ProcessingStatus.NONE));
     }

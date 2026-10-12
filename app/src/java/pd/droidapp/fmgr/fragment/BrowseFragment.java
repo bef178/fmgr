@@ -110,23 +110,23 @@ public class BrowseFragment extends Fragment {
 
         actionBar = new ActionBar(view.findViewById(R.id.action_bar));
         actionBar.whenButtonClicked(id -> {
-            if (id == R.drawable.action_back) {
+            if (id == R.drawable.ic_arrow_left_24) {
                 navigateBack();
-            } else if (id == R.drawable.action_forward) {
+            } else if (id == R.drawable.ic_arrow_right_24) {
                 navigateForward();
-            } else if (id == R.drawable.action_up) {
+            } else if (id == R.drawable.ic_arrow_up_24) {
                 navigateUp();
-            } else if (id == R.drawable.baseline_refresh_24) {
+            } else if (id == R.drawable.ic_arrow_clockwise_24) {
                 refresh();
-            } else if (id == R.drawable.i_directory_add_24) {
+            } else if (id == R.drawable.ia_new_directory_24) {
                 showCreatePopup(true);
-            } else if (id == R.drawable.i_file_add_24) {
+            } else if (id == R.drawable.ia_new_file_24) {
                 showCreatePopup(false);
-            } else if (id == R.drawable.baseline_search_24) {
+            } else if (id == R.drawable.ia_find_24) {
                 showSearchPopup();
-            } else if (id == R.drawable.ic_find_empty_24) {
+            } else if (id == R.string.find_empty) {
                 showFindEmptyPopup();
-            } else if (id == R.drawable.ic_find_dup_24) {
+            } else if (id == R.string.find_duplicate) {
                 showFindDupPopup();
             }
         });
@@ -298,16 +298,16 @@ public class BrowseFragment extends Fragment {
         boolean loading = swipeRefreshView.isRefreshing();
         actionBar.render(new ActionBar.State(
                 new ButtonState[] {
-                        new ButtonState(R.drawable.action_back, true, navigator.canGoBack()),
-                        new ButtonState(R.drawable.action_forward, true, navigator.canGoForward()),
-                        new ButtonState(R.drawable.action_up, true, navigator.canGoUp()),
-                        new ButtonState(R.drawable.baseline_refresh_24),
+                        new ButtonState(R.drawable.ic_arrow_left_24, true, navigator.canGoBack()),
+                        new ButtonState(R.drawable.ic_arrow_right_24, true, navigator.canGoForward()),
+                        new ButtonState(R.drawable.ic_arrow_up_24, true, navigator.canGoUp()),
+                        new ButtonState(R.drawable.ic_arrow_clockwise_24),
                 },
-                new ButtonState(R.drawable.i_directory_add_24, true, !loading),
-                new ButtonState(R.drawable.i_file_add_24, true, !loading),
-                new ButtonState(R.drawable.baseline_search_24),
-                new ButtonState(R.drawable.ic_find_empty_24),
-                new ButtonState(R.drawable.ic_find_dup_24)));
+                new ButtonState(R.drawable.ia_new_directory_24, true, !loading),
+                new ButtonState(R.drawable.ia_new_file_24, true, !loading),
+                new ButtonState(R.drawable.ia_find_24),
+                new ButtonState(R.string.find_empty, R.drawable.ia_find_empty_24, null, true, true),
+                new ButtonState(R.string.find_duplicate, R.drawable.ia_find_dup_24, null, true, true)));
     }
 
     private void renderItems() {
@@ -318,7 +318,7 @@ public class BrowseFragment extends Fragment {
                     PathOps.singleton.basename(item.path),
                     getItemDetailsString(item),
                     null,
-                    item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                    item.isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
                     selectedPaths.contains(item.path)));
         }
         itemAdapter.render(itemStates);
@@ -345,19 +345,19 @@ public class BrowseFragment extends Fragment {
 
     private void initSelectionBar() {
         selectionBar.whenButtonClicked(id -> {
-            if (id == R.drawable.ic_edit_24) {
+            if (id == R.drawable.ia_rename_24) {
                 if (selectedPaths.size() == 1) {
                     showRenamePopup(getSelectedItems().get(0));
                 }
-            } else if (id == R.drawable.ic_copy_24) {
+            } else if (id == R.drawable.ia_copy_24) {
                 showPastePopup(getSelectedItems(), true);
-            } else if (id == R.drawable.ic_cut_24) {
+            } else if (id == R.drawable.ia_move_24) {
                 showPastePopup(getSelectedItems(), false);
-            } else if (id == R.drawable.ic_delete_24) {
+            } else if (id == R.drawable.ia_delete_24) {
                 showDeletePopup(getSelectedItems());
-            } else if (id == R.drawable.ic_check_all_24) {
+            } else if (id == R.drawable.ia_select_all_24) {
                 selectAll();
-            } else if (id == R.drawable.ic_close_24) {
+            } else if (id == R.drawable.ic_xmark_24) {
                 clearSelection();
             }
         });
@@ -366,12 +366,12 @@ public class BrowseFragment extends Fragment {
     private void renderSelectionBar() {
         int numSelected = selectedPaths.size();
         selectionBar.render(new SelectionBar.State(numSelected,
-                new ButtonState(R.drawable.ic_edit_24, numSelected == 1),
-                new ButtonState(R.drawable.ic_copy_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_cut_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
+                new ButtonState(R.drawable.ia_rename_24, numSelected == 1),
+                new ButtonState(R.drawable.ia_copy_24, numSelected > 0),
+                new ButtonState(R.drawable.ia_move_24, numSelected > 0),
+                new ButtonState(R.drawable.ia_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.ia_select_all_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_xmark_24, numSelected > 0)));
     }
 
     private void select(Collection<String> paths) {

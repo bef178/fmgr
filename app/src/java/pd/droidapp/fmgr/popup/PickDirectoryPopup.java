@@ -51,7 +51,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
         targetDirectory = startDirectory;
 
         // find views
-        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.i_directory_24);
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_directory_24);
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemsAdapter = new DirectoryAdapter();
 
@@ -83,7 +83,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
 
     private void initStatusBar() {
         statusBar.whenButtonClicked(id -> {
-            if (id == R.drawable.action_up) {
+            if (id == R.drawable.ic_arrow_up_24) {
                 changeDirectory(PathOps.singleton.dirname(targetDirectory));
             }
         });
@@ -131,7 +131,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
     private void renderStatusBar(StatusBar.IconStatus iconStatus) {
         statusBar.render(new State(iconStatus,
                 getDisplayPath(targetDirectory),
-                new ButtonState(R.drawable.action_up, true, !CAPPING_DIRECTORY.equals(targetDirectory)
+                new ButtonState(R.drawable.ic_arrow_up_24, true, !CAPPING_DIRECTORY.equals(targetDirectory)
                         && !PathOps.singleton.dirname(targetDirectory).equals(targetDirectory))));
     }
 

@@ -34,7 +34,7 @@
                 android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_edit_24"
+                android:src="@drawable/ic_pencil_24"
                 tools:ignore="ContentDescription" />
 
         </LinearLayout>
@@ -57,7 +57,7 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="4dp"
         android:scaleType="fitCenter"
-        android:src="@drawable/ic_round_star_filled_24"
+        android:src="@drawable/ic_star_24"
         tools:ignore="ContentDescription" />
 
 </LinearLayout>

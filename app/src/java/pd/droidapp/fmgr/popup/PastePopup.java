@@ -85,8 +85,8 @@ public class PastePopup extends ProcessingPopup {
         this.startDirectory = PathOps.singleton.dirname(this.srcItems.get(0).path);
 
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), isCopy
-                ? R.drawable.ic_copy_24
-                : R.drawable.ic_cut_24);
+                ? R.drawable.ia_copy_24
+                : R.drawable.ia_move_24);
         targetDirectoryTextView = contentView.findViewById(R.id.target_directory);
         targetDirectoryScrollView = contentView.findViewById(R.id.target_directory_scroll);
         changeDirectoryButton = contentView.findViewById(R.id.change_directory);
@@ -242,7 +242,7 @@ public class PastePopup extends ProcessingPopup {
                 PathOps.singleton.relativize(startDirectory, item.path),
                 null,
                 String.valueOf(index),
-                item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                item.isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
                 true,
                 badgeStates.getOrDefault(item.path, ProcessingStatus.NONE));
     }

@@ -53,7 +53,7 @@ public class FindEmptyPopup extends ProcessingPopup {
         super(containerView);
         this.startDirectory = startDirectory;
 
-        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_find_empty_24);
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ia_find_24);
         selectionBar = new SelectionBar(contentView.findViewById(R.id.selection_bar));
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemAdapter = new FileItemAdapter();
@@ -84,14 +84,14 @@ public class FindEmptyPopup extends ProcessingPopup {
 
     private void initSelectionBar() {
         selectionBar.whenButtonClicked(id -> {
-            if (id == R.drawable.baseline_arrow_forward_24) {
+            if (id == R.drawable.ic_arrow_right_24) {
                 if (selectedPaths.size() == 1) {
                     if (onJump != null) {
                         onJump.accept(getSelectedItems().get(0).path);
                     }
                     selfWindow.dismiss();
                 }
-            } else if (id == R.drawable.ic_delete_24) {
+            } else if (id == R.drawable.ia_delete_24) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), false);
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
@@ -99,7 +99,7 @@ public class FindEmptyPopup extends ProcessingPopup {
                     deselect(removed);
                 });
                 deletePopup.show();
-            } else if (id == R.drawable.ic_delete_up_24) {
+            } else if (id == R.id.button_delete_up) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), true);
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
@@ -107,9 +107,9 @@ public class FindEmptyPopup extends ProcessingPopup {
                     deselect(removed);
                 });
                 deletePopup.show();
-            } else if (id == R.drawable.ic_check_all_24) {
+            } else if (id == R.drawable.ia_select_all_24) {
                 selectAll();
-            } else if (id == R.drawable.ic_close_24) {
+            } else if (id == R.drawable.ic_xmark_24) {
                 clearSelection();
             }
         });
@@ -145,18 +145,18 @@ public class FindEmptyPopup extends ProcessingPopup {
                 PathOps.singleton.relativize(startDirectory, item.path),
                 null,
                 String.valueOf(index),
-                item.isDirectory ? R.drawable.i_directory_24 : R.drawable.i_file_24,
+                item.isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
                 selectedPaths.contains(item.path));
     }
 
     private void renderSelectionBar() {
         int numSelected = selectedPaths.size();
         selectionBar.render(new SelectionBar.State(numSelected,
-                new ButtonState(R.drawable.baseline_arrow_forward_24, numSelected == 1),
-                new ButtonState(R.drawable.ic_delete_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_delete_up_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_check_all_24, numSelected > 0),
-                new ButtonState(R.drawable.ic_close_24, numSelected > 0)));
+                new ButtonState(R.drawable.ic_arrow_right_24, numSelected == 1),
+                new ButtonState(R.drawable.ia_delete_24, numSelected > 0),
+                new ButtonState(R.id.button_delete_up, R.drawable.ia_delete_up_24, null, numSelected > 0, true),
+                new ButtonState(R.drawable.ia_select_all_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_xmark_24, numSelected > 0)));
     }
 
     private void onSelectionChanged() {

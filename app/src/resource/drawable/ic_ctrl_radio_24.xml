@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- ring (from system btn_radio_mtrl, centered at 12,12, radius 6.75) -->
+    <path
+        android:strokeWidth="1.5"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M 12,5.25 c 3.7279220612,0 6.75,3.0220779388 6.75,6.75 c 0,3.7279220612 -3.0220779388,6.75 -6.75,6.75 c -3.7279220612,0 -6.75,-3.0220779388 -6.75,-6.75 c 0,-3.7279220612 3.0220779388,-6.75 6.75,-6.75 Z">
+        <aapt:attr name="android:strokeColor">
+            <selector>
+                <item android:state_enabled="false" android:alpha="0.38" android:color="?attr/colorOnSurface" />
+                <item android:state_checked="true" android:state_enabled="true" android:color="?attr/colorPrimary" />
+                <item android:color="?attr/colorOnSurfaceVariant" />
+            </selector>
+        </aapt:attr>
+    </path>
+
+    <!-- inner dot, visible only when checked (from system, radius 3.75) -->
+    <path
+        android:pathData="M 12,8.25 c -2.0714950561,0 -3.75,1.6785049439 -3.75,3.75 c 0,2.0714950561 1.6785049439,3.75 3.75,3.75 c 2.0714950561,0 3.75,-1.6785049439 3.75,-3.75 c 0,-2.0714950561 -1.6785049439,-3.75 -3.75,-3.75 Z">
+        <aapt:attr name="android:fillColor">
+            <selector>
+                <item android:state_checked="true" android:state_enabled="false" android:alpha="0.38" android:color="?attr/colorOnSurface" />
+                <item android:state_checked="true" android:state_enabled="true" android:color="?attr/colorPrimary" />
+                <item android:state_checked="true" android:color="?attr/colorOnSurfaceVariant" />
+                <item android:color="@android:color/transparent" />
+            </selector>
+        </aapt:attr>
+    </path>
+
+</vector>

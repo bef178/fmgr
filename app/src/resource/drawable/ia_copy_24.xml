@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="@android:color/black"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:fillColor="#000"
+        android:pathData="M22 22H17.08249Q17.167 21.27163 17.59557 20.62978Q18.02414 19.98793 19.20322 19.11469Q19.92354 18.57948 20.12475 18.30181Q20.32596 18.02414 20.32596 17.77465Q20.32596 17.50503 20.12676 17.31388Q19.92757 17.12274 19.62575 17.12274Q19.31187 17.12274 19.11268 17.31992Q18.91348 17.5171 18.84507 18.0161L17.20322 17.8833Q17.2998 17.19115 17.55734 16.80282Q17.81489 16.41449 18.2837 16.20724Q18.75252 16 19.58149 16Q20.44668 16 20.92757 16.19718Q21.40845 16.39437 21.6841 16.80282Q21.95976 17.21127 21.95976 17.71831Q21.95976 18.25755 21.64386 18.74849Q21.32797 19.23944 20.49497 19.82696Q20 20.16901 19.833 20.30584Q19.666 20.44266 19.44064 20.66398H22Z" />
+    <clip-path android:pathData="M0,0 h24 v14 h-8 v10 h-16 z" />
+    <path
+        android:pathData="M 18,13 v -7.2 c 0,-0.5 -0.5,-1 -1,-1 h -10 c -0.5,0 -1,0.5 -1,1 v 12.4 c 0,0.5 0.5,1 1,1 h 10 c 0.5,0 1,-0.5 1,-1 z"
+        android:strokeWidth="2"
+        android:strokeColor="#F00" />
+    <path
+        android:pathData="M 8,8.9 H 16 M 8,12 H 16 M 8,15.1 H 16"
+        android:strokeWidth="1"
+        android:strokeColor="#F00" />
+
+</vector>

@@ -30,6 +30,8 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.home_fragment, container, false);
 
+        view.findViewById(R.id.home_header_icon).setSelected(true);
+
         favoritesStore = new FavoritesStore(requireContext());
 
         favoriteBar = new FavoriteBar(view.findViewById(R.id.favorites_bar));

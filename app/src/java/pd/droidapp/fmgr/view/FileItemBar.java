@@ -95,7 +95,7 @@ public class FileItemBar {
         }
 
         if (status == ProcessingStatus.RUNNING) {
-            badgeProgressView.setBackgroundResource(R.drawable.ic_none_orange_16);
+            badgeProgressView.setBackgroundResource(R.drawable.ic_badge_none_orange_16);
             badgeProgressView.setVisibility(View.VISIBLE);
             badgeImageView.setVisibility(View.GONE);
             return;
@@ -106,22 +106,22 @@ public class FileItemBar {
         switch (status) {
             case NONE:
                 if (selected) {
-                    badgeImageView.setImageResource(R.drawable.i_check_16);
+                    badgeImageView.setImageResource(R.drawable.ic_badge_checkmark_primary_16);
                     badgeImageView.setVisibility(View.VISIBLE);
                 } else {
                     badgeImageView.setVisibility(View.GONE);
                 }
                 break;
             case ABORTED:
-                badgeImageView.setImageResource(R.drawable.ic_prohibition_orange_16);
+                badgeImageView.setImageResource(R.drawable.ic_badge_blockmark_orange_16);
                 badgeImageView.setVisibility(View.VISIBLE);
                 break;
             case COMPLETED:
-                badgeImageView.setImageResource(R.drawable.ic_check_green_16);
+                badgeImageView.setImageResource(R.drawable.ic_badge_checkmark_green_16);
                 badgeImageView.setVisibility(View.VISIBLE);
                 break;
             case FAILED:
-                badgeImageView.setImageResource(R.drawable.ic_cross_red_16);
+                badgeImageView.setImageResource(R.drawable.ic_badge_xmark_red_16);
                 badgeImageView.setVisibility(View.VISIBLE);
                 break;
             default:

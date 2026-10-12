@@ -37,13 +37,9 @@ public class ActionBar {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 true);
 
-        moreButton.setOnClickListener(v -> {
-            moreButton.setSelected(true);
-            popupWindow.showAsDropDown(moreButton, 0, 0, Gravity.END);
-        });
+        moreButton.setOnClickListener(v -> popupWindow.showAsDropDown(moreButton, 0, 0, Gravity.END));
         popupWindow.setOutsideTouchable(true);
         popupWindow.setElevation(16);
-        popupWindow.setOnDismissListener(() -> moreButton.setSelected(false));
     }
 
     public void whenButtonClicked(IntConsumer onButtonClicked) {

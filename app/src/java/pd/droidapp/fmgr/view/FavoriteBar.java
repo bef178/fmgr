@@ -94,6 +94,7 @@ public class FavoriteBar {
         ImageButton editButton = itemView.findViewById(R.id.favorite_edit);
         TextView pathText = itemView.findViewById(R.id.favorite_path);
         ImageButton starIcon = itemView.findViewById(R.id.favorite_star);
+        starIcon.setSelected(true);
 
         itemView.setOnClickListener(v -> {
             if (onFavoriteItemClicked != null) {

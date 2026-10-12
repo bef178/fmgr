@@ -65,7 +65,7 @@ public class PopupTitleBar {
         public final ButtonState buttonState;
 
         public State(String text) {
-            this(text, new ButtonState(R.drawable.action_close));
+            this(text, new ButtonState(R.drawable.ic_xmark_24));
         }
 
         private State(String text, @NonNull ButtonState buttonState) {

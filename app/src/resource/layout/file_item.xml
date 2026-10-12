@@ -29,7 +29,7 @@
                 android:id="@+id/item_icon"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:src="@drawable/i_directory_24"
+                android:src="@drawable/ic_directory_24"
                 tools:ignore="ContentDescription" />
 
             <ImageView
@@ -38,7 +38,7 @@
                 android:layout_height="16dp"
                 android:layout_gravity="top|end"
                 android:contentDescription="@null"
-                android:src="@drawable/i_check_16"
+                android:src="@drawable/ic_badge_checkmark_primary_16"
                 android:visibility="gone" />
 
             <ProgressBar
@@ -47,7 +47,7 @@
                 android:layout_width="16dp"
                 android:layout_height="16dp"
                 android:layout_gravity="top|end"
-                android:background="@drawable/ic_none_orange_16"
+                android:background="@drawable/ic_badge_none_orange_16"
                 android:indeterminateTint="@color/white"
                 android:padding="1.5dp"
                 android:visibility="gone" />

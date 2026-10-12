@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="#000000"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:fillType="evenOdd"
+        android:fillColor="#000000"
+        android:pathData="M19.15,9.47 l-4.52,-0.39 -1.77,-4.16 c-0.32,-0.76 -1.4,-0.76 -1.72,0 L9.37,9.09 l-4.51,0.38 c-0.82,0.07 -1.16,1.09 -0.53,1.64 l3.43,2.97 -1.03,4.41 c-0.19,0.8 0.68,1.44 1.39,1.01 l3.88,-2.34 3.88,2.35 c0.71,0.43 1.58,-0.21 1.39,-1.01 l-1.03,-4.42 3.43,-2.97 c0.63,-0.54 0.3,-1.57 -0.52,-1.64 z M12,15.41 l-3.51,2.12 0.93,-4 -3.1,-2.69 4.09,-0.36 L12,6.72 l1.6,3.78 4.09,0.36 -3.1,2.69 0.93,4 L12,15.41 z" />
+    <path
+        android:pathData="M19.15,9.47 l-4.52,-0.39 -1.77,-4.16 c-0.32,-0.76 -1.4,-0.76 -1.72,0 L9.37,9.09 l-4.51,0.38 c-0.82,0.07 -1.16,1.09 -0.53,1.64 l3.43,2.97 -1.03,4.41 c-0.19,0.8 0.68,1.44 1.39,1.01 l3.88,-2.34 3.88,2.35 c0.71,0.43 1.58,-0.21 1.39,-1.01 l-1.03,-4.42 3.43,-2.97 c0.63,-0.54 0.3,-1.57 -0.52,-1.64 z">
+        <aapt:attr name="android:fillColor">
+            <selector>
+                <item android:state_selected="true" android:color="#000000" />
+                <item android:color="@android:color/transparent" />
+            </selector>
+        </aapt:attr>
+    </path>
+
+</vector>
