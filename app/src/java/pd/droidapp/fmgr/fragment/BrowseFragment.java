@@ -516,20 +516,22 @@ public class BrowseFragment extends Fragment {
     }
 
     public boolean navigateBack() {
+        String child = navigator.getCurrentDirectory();
         if (!navigator.goBack()) {
             renderActionBar();
             return false;
         }
-        refresh();
+        refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
         return true;
     }
 
     private void navigateForward() {
+        String child = navigator.getCurrentDirectory();
         if (!navigator.goForward()) {
             renderActionBar();
             return;
         }
-        refresh();
+        refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
     }
 
     private void navigateUp() {

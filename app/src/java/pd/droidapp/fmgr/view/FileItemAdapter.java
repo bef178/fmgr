@@ -94,13 +94,15 @@ public class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.ItemVi
         if (layoutManager == null) {
             return;
         }
-        View child = layoutManager.findViewByPosition(position);
-        if (child != null && isFullyVisible(child)) {
-            startHighlightAnimation(event.itemId, event.peakColor);
-            return;
-        }
-        layoutManager.scrollToPosition(position);
-        OneShotPreDrawListener.add(recyclerView, () -> startHighlightAnimation(event.itemId, event.peakColor));
+        OneShotPreDrawListener.add(recyclerView, () -> {
+            View child = layoutManager.findViewByPosition(position);
+            if (child != null && isFullyVisible(child)) {
+                startHighlightAnimation(event.itemId, event.peakColor);
+                return;
+            }
+            layoutManager.scrollToPosition(position);
+            OneShotPreDrawListener.add(recyclerView, () -> startHighlightAnimation(event.itemId, event.peakColor));
+        });
     }
 
     private int indexOf(String itemId) {
