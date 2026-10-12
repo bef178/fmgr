@@ -110,6 +110,25 @@ public class PathNavigator implements Serializable {
         if (!canGoUp()) {
             return false;
         }
-        return navigateTo(PathOps.singleton.dirname(getCurrentDirectory()));
+        String parent = PathOps.singleton.dirname(getCurrentDirectory());
+        Entry recent = findRecentMatchedBackEntry(parent);
+        if (navigateTo(parent)) {
+            if (recent != null) {
+                current.scrollPosition = recent.scrollPosition;
+                current.scrollOffset = recent.scrollOffset;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private Entry findRecentMatchedBackEntry(String path) {
+        for (int i = 0; i < backStack.size(); i++) {
+            Entry entry = backStack.get(backStack.size() - 1 - i);
+            if (entry.path.equals(path)) {
+                return entry;
+            }
+        }
+        return null;
     }
 }
