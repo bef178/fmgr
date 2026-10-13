@@ -116,7 +116,7 @@ public class PastePopup extends ProcessingPopup {
     @Override
     protected void inflateContent() {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = context.getResources().getDimensionPixelSize(R.dimen.paste_popup_height);
+        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
         areaView.setLayoutParams(params);
 
         LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
@@ -225,7 +225,7 @@ public class PastePopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
-        titleBar.render(new PopupTitleBar.State(context.getString(isCopy ? R.string.copy : R.string.cut)));
+        titleBar.render(new PopupTitleBar.State(context.getString(isCopy ? R.string.copy : R.string.move)));
         renderStatusBar(StatusBar.IconStatus.IDLE);
         renderBottomBar();
 

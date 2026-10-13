@@ -4,7 +4,6 @@ import android.animation.LayoutTransition;
 import android.content.Context;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -99,7 +98,6 @@ public class RenamePopup extends ProcessingPopup {
     protected void inflateContent() {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
         params.height = context.getResources().getDimensionPixelSize(R.dimen.rename_popup_height);
-        params.gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
         params.topMargin = context.getResources().getDimensionPixelSize(R.dimen.rename_popup_top_margin);
         areaView.setLayoutParams(params);
 
@@ -107,7 +105,6 @@ public class RenamePopup extends ProcessingPopup {
         contentParams.height = 0;
         contentParams.weight = 1;
         contentView.setLayoutParams(contentParams);
-
         LayoutInflater.from(context).inflate(R.layout.rename_popup_content, contentView, true);
     }
 

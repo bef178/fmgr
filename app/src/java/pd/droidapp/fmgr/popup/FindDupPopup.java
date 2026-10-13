@@ -2,6 +2,8 @@ package pd.droidapp.fmgr.popup;
 
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -85,6 +87,10 @@ public class FindDupPopup extends ProcessingPopup {
 
     @Override
     protected void inflateContent() {
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
+        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        areaView.setLayoutParams(params);
+
         LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
         contentParams.height = 0;
         contentParams.weight = 1;

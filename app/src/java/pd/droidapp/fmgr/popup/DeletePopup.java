@@ -3,6 +3,7 @@ package pd.droidapp.fmgr.popup;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
@@ -86,7 +87,7 @@ public class DeletePopup extends ProcessingPopup {
     @Override
     protected void inflateContent() {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = context.getResources().getDimensionPixelSize(R.dimen.delete_popup_height);
+        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
         areaView.setLayoutParams(params);
 
         LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();

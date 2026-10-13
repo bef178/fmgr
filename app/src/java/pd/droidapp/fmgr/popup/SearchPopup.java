@@ -7,10 +7,12 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -103,6 +105,10 @@ public class SearchPopup extends ProcessingPopup {
 
     @Override
     protected void inflateContent() {
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
+        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        areaView.setLayoutParams(params);
+
         LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
         contentParams.height = 0;
         contentParams.weight = 1;

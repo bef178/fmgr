@@ -12,6 +12,7 @@
     <color name="yellow_100">#FFF9C4</color>
     <color name="grey_50">#FFFAFAFA</color>
     <color name="grey_100">#FFF5F5F5</color>
+    <color name="grey_200">#FFEEEEEE</color>
     <color name="grey_500">#FF9E9E9E</color>
     <color name="grey_600">#FF757575</color>
     <color name="grey_700">#FF616161</color>

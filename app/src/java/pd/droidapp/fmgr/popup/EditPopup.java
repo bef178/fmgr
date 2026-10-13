@@ -3,10 +3,8 @@ package pd.droidapp.fmgr.popup;
 import android.content.Context;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -59,8 +57,6 @@ public abstract class EditPopup extends ProcessingPopup {
     @Override
     protected void inflateContent() {
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        params.gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
         params.topMargin = context.getResources().getDimensionPixelSize(R.dimen.edit_popup_top_margin);
         areaView.setLayoutParams(params);
 
