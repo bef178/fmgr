@@ -94,9 +94,6 @@ public class SearchWorker extends ProcessingWorker {
 
     private boolean isTextFile(String path) {
         String lowerBasename = PathOps.singleton.basename(path).toLowerCase();
-        if (lowerBasename.startsWith(".")) {
-            return false;
-        }
         return lowerBasename.endsWith(".txt") || lowerBasename.endsWith(".md") || lowerBasename.endsWith(".json") ||
                 lowerBasename.endsWith(".xml") || lowerBasename.endsWith(".html") || lowerBasename.endsWith(".css") ||
                 lowerBasename.endsWith(".js") || lowerBasename.endsWith(".java") || lowerBasename.endsWith(".kt") ||
