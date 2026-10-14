@@ -65,6 +65,8 @@ public class Util {
     // ClickableViewAccessibility: the listener never consumes events (returns false);
     @SuppressLint("ClickableViewAccessibility")
     public static void forwardViewActionsTo(View view, View itemView) {
+        view.setHapticFeedbackEnabled(false);
+        view.setSoundEffectsEnabled(false);
         view.setOnClickListener(v -> itemView.performClick());
         view.setOnLongClickListener(v -> itemView.performLongClick());
         view.setOnTouchListener((v, event) -> {
