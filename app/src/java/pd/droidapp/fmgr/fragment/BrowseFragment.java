@@ -516,14 +516,13 @@ public class BrowseFragment extends Fragment {
         refresh();
     }
 
-    public boolean navigateBack() {
+    public void navigateBack() {
         String child = navigator.getCurrentDirectory();
         if (!navigator.goBack()) {
             renderActionBar();
-            return false;
+            return;
         }
         refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
-        return true;
     }
 
     private void navigateForward() {
@@ -535,13 +534,14 @@ public class BrowseFragment extends Fragment {
         refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
     }
 
-    private void navigateUp() {
+    public boolean navigateUp() {
         String child = navigator.getCurrentDirectory();
         if (!navigator.goUp()) {
             renderActionBar();
-            return;
+            return false;
         }
         refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
+        return true;
     }
 
     private void toggleFavorite() {

@@ -113,7 +113,7 @@ public class FirstFragment extends Fragment {
         if (browseFragment == null || browseFragment.isHidden()) {
             return false;
         }
-        if (!browseFragment.navigateBack()) {
+        if (!browseFragment.navigateUp()) {
             showHomeFragment();
         }
         return true;
