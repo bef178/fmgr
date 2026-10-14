@@ -47,6 +47,7 @@ import pd.droidapp.fmgr.popup.RenamePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
 import pd.droidapp.fmgr.repository.ListDirectoryWorker;
 import pd.droidapp.fmgr.repository.PropertiesLoader;
+import pd.droidapp.fmgr.util.DirectoryScrollState;
 import pd.droidapp.fmgr.util.FavoritesStore;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.util.PathNavigator;
@@ -79,7 +80,7 @@ public class BrowseFragment extends Fragment {
     private PropertiesLoader propertiesLoader;
 
     private PathNavigator navigator = new PathNavigator();
-    private PathNavigator.Entry displayedEntry;
+    private DirectoryScrollState currentScrollState;
 
     private boolean askedAllFilesAccess;
     private boolean mightGrantedAllFilesAccess;
@@ -170,8 +171,8 @@ public class BrowseFragment extends Fragment {
         renderBreadcrumbsBar();
         clearSelection();
         String directory = navigator.getCurrentDirectory();
-        if (displayedEntry != null && !items.isEmpty()) {
-            saveScrollState(displayedEntry);
+        if (currentScrollState != null && !items.isEmpty()) {
+            saveScrollState(currentScrollState);
         }
         if (worker != null) {
             worker.cancel();
@@ -203,10 +204,10 @@ public class BrowseFragment extends Fragment {
             swipeRefreshView.setRefreshing(false);
             renderActionBar();
             setItems(loadedItems);
-            displayedEntry = navigator.getCurrentEntry();
-            if (displayedEntry.scrollPosition >= 0 && displayedEntry.scrollPosition < items.size()) {
+            currentScrollState = navigator.getCurrentScrollState();
+            if (currentScrollState.scrollPosition >= 0 && currentScrollState.scrollPosition < items.size()) {
                 ((LinearLayoutManager) itemsView.getLayoutManager())
-                        .scrollToPositionWithOffset(displayedEntry.scrollPosition, displayedEntry.scrollOffset);
+                        .scrollToPositionWithOffset(currentScrollState.scrollPosition, currentScrollState.scrollOffset);
             }
             if (onComplete != null) {
                 onComplete.run();
@@ -216,14 +217,14 @@ public class BrowseFragment extends Fragment {
         current.start(directory);
     }
 
-    private void saveScrollState(PathNavigator.Entry entry) {
+    private void saveScrollState(DirectoryScrollState directoryScrollState) {
         LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
         View child = layoutManager.getChildAt(0);
         if (child == null) {
             return;
         }
-        entry.scrollPosition = layoutManager.getPosition(child);
-        entry.scrollOffset = layoutManager.getDecoratedTop(child) - layoutManager.getPaddingTop();
+        directoryScrollState.scrollPosition = layoutManager.getPosition(child);
+        directoryScrollState.scrollOffset = layoutManager.getDecoratedTop(child) - layoutManager.getPaddingTop();
     }
 
     private void setItems(Collection<FileProperties> newItems) {

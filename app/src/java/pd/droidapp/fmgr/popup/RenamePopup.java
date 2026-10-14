@@ -193,9 +193,9 @@ public class RenamePopup extends ProcessingPopup {
 
     private void renderBottomBar() {
         bottomBar.render(new PopupBottomBar.State(
-                new ButtonState(R.id.action_start, worker == null && netAdded == null, canStart()),
-                new ButtonState(R.id.action_abort, worker != null, false),
-                new ButtonState(R.id.action_close, netAdded != null)));
+                new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, worker == null && netAdded == null, canStart()),
+                new ButtonState(R.id.action_abort, R.drawable.ic_blockmark_24, worker != null, false),
+                new ButtonState(R.id.action_close, R.drawable.ic_xmark_24, netAdded != null, true)));
     }
 
     private void renderItems() {

@@ -113,7 +113,7 @@ public abstract class EditPopup extends ProcessingPopup {
 
     private void renderBottomBar() {
         bottomBar.render(new PopupBottomBar.State(
-                new ButtonState(R.id.action_start, true, canStart(getInputText()))));
+                new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, true, canStart(getInputText()))));
     }
 
     protected boolean canStart(String text) {

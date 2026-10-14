@@ -12,26 +12,15 @@ public class PathNavigator implements Serializable {
 
     private static final long serialVersionUID = -1;
 
-    public static class Entry implements Serializable {
-
-        public final String path;
-        public int scrollPosition = -1;
-        public int scrollOffset;
-
-        public Entry(String path) {
-            this.path = path;
-        }
-    }
-
-    private Entry current;
-    private final Stack<Entry> backStack = new Stack<>();
-    private final Stack<Entry> forwardStack = new Stack<>();
+    private DirectoryScrollState current;
+    private final Stack<DirectoryScrollState> backStack = new Stack<>();
+    private final Stack<DirectoryScrollState> forwardStack = new Stack<>();
 
     public String getCurrentDirectory() {
-        return current == null ? null : current.path;
+        return current == null ? null : current.directory;
     }
 
-    public Entry getCurrentEntry() {
+    public DirectoryScrollState getCurrentScrollState() {
         return current;
     }
 
@@ -47,14 +36,14 @@ public class PathNavigator implements Serializable {
         if (!isAccessible(target)) {
             return false;
         }
-        if (current != null && target.equals(current.path)) {
+        if (current != null && target.equals(current.directory)) {
             return true;
         }
         if (current != null) {
             backStack.push(current);
         }
         forwardStack.clear();
-        current = new Entry(target);
+        current = new DirectoryScrollState(target);
         return true;
     }
 
@@ -92,8 +81,8 @@ public class PathNavigator implements Serializable {
         return true;
     }
 
-    private boolean isUsable(Entry entry) {
-        return isAccessible(entry.path) && !entry.path.equals(getCurrentDirectory());
+    private boolean isUsable(DirectoryScrollState directoryScrollState) {
+        return isAccessible(directoryScrollState.directory) && !directoryScrollState.directory.equals(getCurrentDirectory());
     }
 
     public boolean canGoUp() {
@@ -111,7 +100,7 @@ public class PathNavigator implements Serializable {
             return false;
         }
         String parent = PathOps.singleton.dirname(getCurrentDirectory());
-        Entry recent = findRecentMatchedBackEntry(parent);
+        DirectoryScrollState recent = findRecentMatchedBackScrollState(parent);
         if (navigateTo(parent)) {
             if (recent != null) {
                 current.scrollPosition = recent.scrollPosition;
@@ -122,11 +111,11 @@ public class PathNavigator implements Serializable {
         return false;
     }
 
-    private Entry findRecentMatchedBackEntry(String path) {
+    private DirectoryScrollState findRecentMatchedBackScrollState(String path) {
         for (int i = 0; i < backStack.size(); i++) {
-            Entry entry = backStack.get(backStack.size() - 1 - i);
-            if (entry.path.equals(path)) {
-                return entry;
+            DirectoryScrollState directoryScrollState = backStack.get(backStack.size() - 1 - i);
+            if (directoryScrollState.directory.equals(path)) {
+                return directoryScrollState;
             }
         }
         return null;

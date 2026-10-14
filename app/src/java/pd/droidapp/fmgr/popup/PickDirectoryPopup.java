@@ -3,32 +3,30 @@ package pd.droidapp.fmgr.popup;
 import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.TextView;
-import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.repository.ListDirectoryWorker;
+import pd.droidapp.fmgr.util.DirectoryScrollState;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.FileItemAdapter;
+import pd.droidapp.fmgr.view.FileItemBar;
 import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.PathOps;
 
-import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
 public class PickDirectoryPopup extends ProcessingPopup {
@@ -37,11 +35,12 @@ public class PickDirectoryPopup extends ProcessingPopup {
 
     private String targetDirectory;
     private ListDirectoryWorker worker;
+    private final Map<String, DirectoryScrollState> scrollStates = new HashMap<>();
 
     // views
     private final StatusBar statusBar;
     private final RecyclerView itemsView;
-    private final DirectoryAdapter itemsAdapter;
+    private final FileItemAdapter itemAdapter;
 
     // callbacks
     private Consumer<String> onDirectorySelected;
@@ -53,7 +52,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
         // find views
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_directory_24);
         itemsView = contentView.findViewById(R.id.popup_items_list);
-        itemsAdapter = new DirectoryAdapter();
+        itemAdapter = new FileItemAdapter();
 
         // init views
         bottomBar.whenButtonClicked(id -> {
@@ -84,18 +83,22 @@ public class PickDirectoryPopup extends ProcessingPopup {
     private void initStatusBar() {
         statusBar.whenButtonClicked(id -> {
             if (id == R.drawable.ic_arrow_up_24) {
-                changeDirectory(PathOps.singleton.dirname(targetDirectory));
+                String child = targetDirectory;
+                changeDirectory(PathOps.singleton.dirname(child),
+                        () -> itemAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(
+                                child, context.getColor(R.color.purple_50))));
             }
         });
     }
 
     private void initItemsView() {
-        itemsAdapter.setOnItemClicked(this::changeDirectory);
+        itemAdapter.whenItemClicked(directory -> changeDirectory(directory, null));
         itemsView.setLayoutManager(new LinearLayoutManager(context));
-        itemsView.setAdapter(itemsAdapter);
+        itemsView.setAdapter(itemAdapter);
     }
 
-    private void changeDirectory(String directory) {
+    private void changeDirectory(String directory, Runnable onCompleted) {
+        saveScrollState(targetDirectory);
         targetDirectory = directory;
         renderStatusBar(StatusBar.IconStatus.RUNNING);
 
@@ -103,7 +106,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
             worker.cancel();
             worker = null;
         }
-        itemsAdapter.clear();
+        itemAdapter.render(List.of());
 
         List<FileProperties> listed = new LinkedList<>();
         ListDirectoryWorker current = new ListDirectoryWorker(); // the guard
@@ -122,10 +125,49 @@ public class PickDirectoryPopup extends ProcessingPopup {
                 return;
             }
             renderStatusBar(StatusBar.IconStatus.IDLE);
-            itemsAdapter.set(listed);
+            listed.sort((p1, p2) -> PathOps.singleton.compare(p1.path, p2.path));
+            itemAdapter.render(buildStates(listed));
+            restoreScrollState(directory);
+            if (onCompleted != null) {
+                onCompleted.run();
+            }
         }));
         worker = current;
         current.start(directory);
+    }
+
+    private List<FileItemBar.State> buildStates(List<FileProperties> items) {
+        List<FileItemBar.State> states = new LinkedList<>();
+        for (FileProperties item : items) {
+            states.add(new FileItemBar.State(item.path, PathOps.singleton.basename(item.path), null, null,
+                    R.drawable.ic_directory_24, false));
+        }
+        return states;
+    }
+
+    private void saveScrollState(String directory) {
+        if (directory == null || itemAdapter.getItemCount() == 0) {
+            return;
+        }
+        LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
+        View child = layoutManager == null ? null : layoutManager.getChildAt(0);
+        if (child == null) {
+            return;
+        }
+        DirectoryScrollState scrollState = scrollStates.computeIfAbsent(directory, DirectoryScrollState::new);
+        scrollState.scrollPosition = layoutManager.getPosition(child);
+        scrollState.scrollOffset = layoutManager.getDecoratedTop(child) - layoutManager.getPaddingTop();
+    }
+
+    private void restoreScrollState(String directory) {
+        DirectoryScrollState scrollState = scrollStates.get(directory);
+        if (scrollState == null || scrollState.scrollPosition < 0 || scrollState.scrollPosition >= itemAdapter.getItemCount()) {
+            return;
+        }
+        LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
+        if (layoutManager != null) {
+            layoutManager.scrollToPositionWithOffset(scrollState.scrollPosition, scrollState.scrollOffset);
+        }
     }
 
     private void renderStatusBar(StatusBar.IconStatus iconStatus) {
@@ -155,63 +197,8 @@ public class PickDirectoryPopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.select_directory)));
-        bottomBar.render(new PopupBottomBar.State(new ButtonState(R.id.action_start)));
+        bottomBar.render(new PopupBottomBar.State(new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, true, true)));
 
-        changeDirectory(targetDirectory);
-    }
-
-    private static class DirectoryAdapter extends RecyclerView.Adapter<DirectoryAdapter.ItemViewHolder> {
-
-        private final Comparator<FileProperties> itemComparator = (p1, p2) -> PathOps.singleton.compare(p1.path, p2.path);
-
-        private final List<FileProperties> items = new ArrayList<>();
-        private Consumer<String> onItemClicked;
-
-        public void setOnItemClicked(Consumer<String> onItemClicked) {
-            this.onItemClicked = onItemClicked;
-        }
-
-        public void clear() {
-            items.clear();
-            notifyDataSetChanged();
-        }
-
-        public void set(Collection<FileProperties> newItems) {
-            items.clear();
-            items.addAll(newItems);
-            items.sort(itemComparator);
-            notifyDataSetChanged();
-        }
-
-        @NonNull
-        @Override
-        public ItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.file_item, parent, false);
-            return new ItemViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ItemViewHolder viewHolder, int position) {
-            FileProperties item = items.get(position);
-            viewHolder.itemPathTextView.setText(PathOps.singleton.basename(item.path));
-            viewHolder.itemView.setOnClickListener(v -> onItemClicked.accept(item.path));
-            forwardViewActionsTo(viewHolder.itemPathTextView, viewHolder.itemView);
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        static class ItemViewHolder extends RecyclerView.ViewHolder {
-
-            final TextView itemPathTextView;
-
-            ItemViewHolder(View view) {
-                super(view);
-                itemPathTextView = view.findViewById(R.id.item_name);
-            }
-        }
+        changeDirectory(targetDirectory, null);
     }
 }
