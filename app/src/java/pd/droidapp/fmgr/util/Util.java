@@ -281,11 +281,7 @@ public class Util {
                 button = LayoutInflater.from(containerView.getContext())
                         .inflate(layoutId, containerView, false);
                 button.setId(buttonState.id);
-                if (button instanceof TextView) {
-                    ((TextView) button).setText(buttonState.text);
-                } else {
-                    ((ImageButton) button).setImageResource(buttonState.drawableId);
-                }
+                ((ImageButton) button).setImageResource(buttonState.drawableId);
                 if (onButtonClicked != null) {
                     button.setOnClickListener(v -> onButtonClicked.accept(buttonState.id));
                 }

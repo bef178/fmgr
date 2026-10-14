@@ -56,6 +56,11 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/grey_100" />
+
         <LinearLayout
             android:id="@+id/popup_bottom_bar"
             android:layout_width="match_parent"

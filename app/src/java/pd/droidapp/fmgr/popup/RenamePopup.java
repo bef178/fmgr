@@ -75,9 +75,9 @@ public class RenamePopup extends ProcessingPopup {
         itemAdapter = new FileItemAdapter();
 
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.string.rename) {
+            if (id == R.id.action_start) {
                 start();
-            } else if (id == R.string.close) {
+            } else if (id == R.id.action_close) {
                 selfWindow.dismiss();
             }
         });
@@ -193,12 +193,9 @@ public class RenamePopup extends ProcessingPopup {
 
     private void renderBottomBar() {
         bottomBar.render(new PopupBottomBar.State(
-                ButtonState.ofText(R.string.rename, context.getString(R.string.rename),
-                        worker == null && netAdded == null, canStart()),
-                ButtonState.ofText(R.string.abort, context.getString(R.string.abort),
-                        worker != null, false),
-                ButtonState.ofText(R.string.close, context.getString(R.string.close),
-                        netAdded != null)));
+                new ButtonState(R.id.action_start, worker == null && netAdded == null, canStart()),
+                new ButtonState(R.id.action_abort, worker != null, false),
+                new ButtonState(R.id.action_close, netAdded != null)));
     }
 
     private void renderItems() {

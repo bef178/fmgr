@@ -306,8 +306,8 @@ public class BrowseFragment extends Fragment {
                 new ButtonState(R.drawable.ia_new_directory_24, true, !loading),
                 new ButtonState(R.drawable.ia_new_file_24, true, !loading),
                 new ButtonState(R.drawable.ia_find_24),
-                new ButtonState(R.string.find_empty, R.drawable.ia_find_empty_24, null, true, true),
-                new ButtonState(R.string.find_duplicate, R.drawable.ia_find_dup_24, null, true, true)));
+                new ButtonState(R.string.find_empty, R.drawable.ia_find_empty_24, true, true),
+                new ButtonState(R.string.find_duplicate, R.drawable.ia_find_dup_24, true, true)));
     }
 
     private void renderItems() {

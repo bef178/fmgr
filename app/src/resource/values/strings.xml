@@ -9,11 +9,6 @@
 
     <string name="edit_favorite_name">Edit favorite name</string>
 
-    <string name="ok">OK</string>
-    <string name="create">Create</string>
-    <string name="abort">Abort</string>
-    <string name="close">Close</string>
-
     <string name="all_files_access_title">Allow access to all files</string>
     <string name="all_files_access_message">Grant \"All files access\" so the file manager can manage files created by other apps.</string>
     <string name="go_to_settings">Go to settings</string>
@@ -83,7 +78,6 @@
 
     <!-- directory picker popup -->
     <string name="select_directory">Select directory</string>
-    <string name="select">Select</string>
 
     <!-- delete popup -->
     <string name="delete">Delete</string>

@@ -20,23 +20,20 @@ import pd.droidapp.fmgr.view.PopupTitleBar;
 public abstract class EditPopup extends ProcessingPopup {
 
     private final String title;
-    private final String buttonCaption;
 
     // views
     private final EditText textEditView;
 
-    protected EditPopup(View containerView, @StringRes int titleTextId, @StringRes int buttonTextId,
-            String initText, String hintText) {
+    protected EditPopup(View containerView, @StringRes int titleTextId, String initText, String hintText) {
         super(containerView);
         this.title = context.getString(titleTextId);
-        this.buttonCaption = context.getString(buttonTextId);
 
         textEditView = contentView.findViewById(R.id.popup_edit);
         textEditView.setText(initText);
         textEditView.setHint(hintText);
 
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.string.ok) {
+            if (id == R.id.action_start) {
                 if (onStart(getInputText())) {
                     selfWindow.dismiss();
                 }
@@ -116,7 +113,7 @@ public abstract class EditPopup extends ProcessingPopup {
 
     private void renderBottomBar() {
         bottomBar.render(new PopupBottomBar.State(
-                ButtonState.ofText(R.string.ok, buttonCaption, true, canStart(getInputText()))));
+                new ButtonState(R.id.action_start, true, canStart(getInputText()))));
     }
 
     protected boolean canStart(String text) {

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <item name="button_delete_up" type="id" />
+    <item name="action_start" type="id" />
+    <item name="action_abort" type="id" />
+    <item name="action_close" type="id" />
 </resources>

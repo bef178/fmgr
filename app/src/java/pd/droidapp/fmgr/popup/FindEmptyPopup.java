@@ -61,12 +61,12 @@ public class FindEmptyPopup extends ProcessingPopup {
         itemAdapter = new FileItemAdapter();
 
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.string.abort) {
+            if (id == R.id.action_abort) {
                 if (worker != null) {
                     worker.cancel();
                 }
                 renderBottomBar();
-            } else if (id == R.string.close) {
+            } else if (id == R.id.action_close) {
                 selfWindow.dismiss();
             }
         });
@@ -105,7 +105,7 @@ public class FindEmptyPopup extends ProcessingPopup {
                     deselect(removed);
                 });
                 deletePopup.show();
-            } else if (id == R.id.button_delete_up) {
+            } else if (id == R.drawable.ia_delete_up_24) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), true);
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
@@ -160,7 +160,7 @@ public class FindEmptyPopup extends ProcessingPopup {
         selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.ic_arrow_right_24, numSelected == 1),
                 new ButtonState(R.drawable.ia_delete_24, numSelected > 0),
-                new ButtonState(R.id.button_delete_up, R.drawable.ia_delete_up_24, null, numSelected > 0, true),
+                new ButtonState(R.drawable.ia_delete_up_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_select_all_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_xmark_24, numSelected > 0)));
     }
@@ -263,10 +263,8 @@ public class FindEmptyPopup extends ProcessingPopup {
     private void renderBottomBar() {
         boolean isProcessing = worker != null && worker.isWorking();
         bottomBar.render(new PopupBottomBar.State(
-                ButtonState.ofText(R.string.abort, context.getString(R.string.abort),
-                        isProcessing, isProcessing && !worker.isCancelled()),
-                ButtonState.ofText(R.string.close, context.getString(R.string.close),
-                        worker != null && !worker.isWorking())));
+                new ButtonState(R.id.action_abort, isProcessing, isProcessing && !worker.isCancelled()),
+                new ButtonState(R.id.action_close, worker != null && !worker.isWorking())));
     }
 
     private void start() {

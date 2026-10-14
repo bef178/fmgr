@@ -71,12 +71,12 @@ public class FindDupPopup extends ProcessingPopup {
         groupsAdapter = new FileGroupAdapter();
 
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.string.abort) {
+            if (id == R.id.action_abort) {
                 if (worker != null) {
                     worker.cancel();
                 }
                 renderBottomBar();
-            } else if (id == R.string.close) {
+            } else if (id == R.id.action_close) {
                 selfWindow.dismiss();
             }
         });
@@ -248,10 +248,8 @@ public class FindDupPopup extends ProcessingPopup {
     private void renderBottomBar() {
         boolean isProcessing = worker != null && worker.isWorking();
         bottomBar.render(new PopupBottomBar.State(
-                ButtonState.ofText(R.string.abort, context.getString(R.string.abort),
-                        isProcessing, isProcessing && !worker.isCancelled()),
-                ButtonState.ofText(R.string.close, context.getString(R.string.close),
-                        worker != null && !worker.isWorking())));
+                new ButtonState(R.id.action_abort, isProcessing, isProcessing && !worker.isCancelled()),
+                new ButtonState(R.id.action_close, worker != null && !worker.isWorking())));
     }
 
     private void start() {

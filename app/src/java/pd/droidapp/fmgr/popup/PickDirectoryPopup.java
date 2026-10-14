@@ -57,7 +57,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
 
         // init views
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.string.select) {
+            if (id == R.id.action_start) {
                 if (onDirectorySelected != null) {
                     onDirectorySelected.accept(targetDirectory);
                 }
@@ -155,7 +155,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
     @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.select_directory)));
-        bottomBar.render(new PopupBottomBar.State(ButtonState.ofText(R.string.select, context.getString(R.string.select))));
+        bottomBar.render(new PopupBottomBar.State(new ButtonState(R.id.action_start)));
 
         changeDirectory(targetDirectory);
     }

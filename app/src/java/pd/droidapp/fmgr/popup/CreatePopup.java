@@ -24,7 +24,6 @@ public class CreatePopup extends EditPopup {
     public CreatePopup(View containerView, String directory, boolean isDirectory) {
         super(containerView,
                 isDirectory ? R.string.new_directory : R.string.new_file,
-                R.string.create,
                 "",
                 containerView.getContext().getString(isDirectory ? R.string.directory_name : R.string.file_name));
         this.directory = directory;

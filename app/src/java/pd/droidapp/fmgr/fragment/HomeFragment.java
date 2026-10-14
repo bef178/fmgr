@@ -50,7 +50,6 @@ public class HomeFragment extends Fragment {
             FavItem favItem = Objects.requireNonNull(favoritesStore.get(path), "favItem");
             EditPopup editPopup = new EditPopup(getView(),
                     R.string.edit_favorite_name,
-                    R.string.rename,
                     favItem.name,
                     FavoritesStore.getDefaultName(favItem.path)) {
                 @Override
