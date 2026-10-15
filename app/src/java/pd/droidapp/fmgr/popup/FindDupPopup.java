@@ -101,12 +101,10 @@ public class FindDupPopup extends ProcessingPopup {
                 if (onCopy != null) {
                     onCopy.accept(getSelectedItems());
                 }
-                selfDialog.dismiss();
             } else if (id == R.drawable.ia_move_24) {
                 if (onCut != null) {
                     onCut.accept(getSelectedItems());
                 }
-                selfDialog.dismiss();
             } else if (id == R.drawable.ia_delete_24) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), false);
                 deletePopup.whenPopupDismissed((added, removed) -> {
