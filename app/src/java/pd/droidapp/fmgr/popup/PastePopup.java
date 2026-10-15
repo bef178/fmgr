@@ -7,10 +7,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.CheckBox;
-import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -105,7 +103,7 @@ public class PastePopup extends ProcessingPopup {
                 }
                 renderBottomBar();
             } else if (id == R.id.action_close) {
-                selfWindow.dismiss();
+                selfDialog.dismiss();
             }
         });
 
@@ -114,15 +112,8 @@ public class PastePopup extends ProcessingPopup {
     }
 
     @Override
-    protected void inflateContent() {
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        areaView.setLayoutParams(params);
-
-        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
-        contentParams.height = 0;
-        contentParams.weight = 1;
-        contentView.setLayoutParams(contentParams);
+    protected void inflateContentView() {
+        super.inflateContentView();
         LayoutInflater.from(context).inflate(R.layout.paste_popup_content, contentView, true);
     }
 

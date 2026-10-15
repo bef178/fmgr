@@ -2,9 +2,6 @@ package pd.droidapp.fmgr.popup;
 
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -67,7 +64,7 @@ public class FindEmptyPopup extends ProcessingPopup {
                 }
                 renderBottomBar();
             } else if (id == R.id.action_close) {
-                selfWindow.dismiss();
+                selfDialog.dismiss();
             }
         });
 
@@ -76,15 +73,8 @@ public class FindEmptyPopup extends ProcessingPopup {
     }
 
     @Override
-    protected void inflateContent() {
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        areaView.setLayoutParams(params);
-
-        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
-        contentParams.height = 0;
-        contentParams.weight = 1;
-        contentView.setLayoutParams(contentParams);
+    protected void inflateContentView() {
+        super.inflateContentView();
         LayoutInflater.from(context).inflate(R.layout.find_empty_popup_content, contentView, true);
     }
 
@@ -95,7 +85,7 @@ public class FindEmptyPopup extends ProcessingPopup {
                     if (onJump != null) {
                         onJump.accept(getSelectedItems().get(0).path);
                     }
-                    selfWindow.dismiss();
+                    selfDialog.dismiss();
                 }
             } else if (id == R.drawable.ia_delete_24) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), false);

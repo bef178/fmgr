@@ -2,9 +2,6 @@ package pd.droidapp.fmgr.popup;
 
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,9 +22,9 @@ import pd.droidapp.fmgr.repository.FindDupWorker;
 import pd.droidapp.fmgr.repository.ProcessingWorker.StopReason;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.droidapp.fmgr.view.FileGroupAdapter;
 import pd.droidapp.fmgr.view.FileItemBar;
 import pd.droidapp.fmgr.view.PopupBottomBar;
-import pd.droidapp.fmgr.view.FileGroupAdapter;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
@@ -77,7 +74,7 @@ public class FindDupPopup extends ProcessingPopup {
                 }
                 renderBottomBar();
             } else if (id == R.id.action_close) {
-                selfWindow.dismiss();
+                selfDialog.dismiss();
             }
         });
 
@@ -86,15 +83,8 @@ public class FindDupPopup extends ProcessingPopup {
     }
 
     @Override
-    protected void inflateContent() {
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        areaView.setLayoutParams(params);
-
-        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
-        contentParams.height = 0;
-        contentParams.weight = 1;
-        contentView.setLayoutParams(contentParams);
+    protected void inflateContentView() {
+        super.inflateContentView();
         LayoutInflater.from(context).inflate(R.layout.find_dup_popup_content, contentView, true);
     }
 
@@ -105,18 +95,18 @@ public class FindDupPopup extends ProcessingPopup {
                     if (onJump != null) {
                         onJump.accept(selectedPaths.iterator().next());
                     }
-                    selfWindow.dismiss();
+                    selfDialog.dismiss();
                 }
             } else if (id == R.drawable.ia_copy_24) {
                 if (onCopy != null) {
                     onCopy.accept(getSelectedItems());
                 }
-                selfWindow.dismiss();
+                selfDialog.dismiss();
             } else if (id == R.drawable.ia_move_24) {
                 if (onCut != null) {
                     onCut.accept(getSelectedItems());
                 }
-                selfWindow.dismiss();
+                selfDialog.dismiss();
             } else if (id == R.drawable.ia_delete_24) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), false);
                 deletePopup.whenPopupDismissed((added, removed) -> {

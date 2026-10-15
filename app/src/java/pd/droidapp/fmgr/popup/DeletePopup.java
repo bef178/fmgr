@@ -3,9 +3,6 @@ package pd.droidapp.fmgr.popup;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,8 +29,8 @@ import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.PathOps;
 
-import static pd.droidapp.fmgr.view.FileItemBar.ProcessingStatus;
 import static pd.droidapp.fmgr.util.Util.scrollToIndex;
+import static pd.droidapp.fmgr.view.FileItemBar.ProcessingStatus;
 
 public class DeletePopup extends ProcessingPopup {
 
@@ -77,7 +74,7 @@ public class DeletePopup extends ProcessingPopup {
                 }
                 renderBottomBar();
             } else if (id == R.id.action_close) {
-                selfWindow.dismiss();
+                selfDialog.dismiss();
             }
         });
 
@@ -85,15 +82,8 @@ public class DeletePopup extends ProcessingPopup {
     }
 
     @Override
-    protected void inflateContent() {
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        areaView.setLayoutParams(params);
-
-        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
-        contentParams.height = 0;
-        contentParams.weight = 1;
-        contentView.setLayoutParams(contentParams);
+    protected void inflateContentView() {
+        super.inflateContentView();
         LayoutInflater.from(context).inflate(R.layout.delete_popup_content, contentView, true);
     }
 

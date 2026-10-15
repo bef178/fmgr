@@ -3,13 +3,16 @@ package pd.droidapp.fmgr.popup;
 import android.content.Context;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 
 import pd.droidapp.fmgr.R;
@@ -35,7 +38,7 @@ public abstract class EditPopup extends ProcessingPopup {
         bottomBar.whenButtonClicked(id -> {
             if (id == R.id.action_start) {
                 if (onStart(getInputText())) {
-                    selfWindow.dismiss();
+                    selfDialog.dismiss();
                 }
             }
         });
@@ -44,20 +47,20 @@ public abstract class EditPopup extends ProcessingPopup {
     }
 
     @Override
-    protected void initPopup() {
-        super.initPopup();
-        selfWindow.setFocusable(true);
-        selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+    protected void inflateContentView() {
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) contentView.getLayoutParams();
+        params.width = context.getResources().getDimensionPixelSize(R.dimen.processing_popup_width);
+        params.height = context.getResources().getDimensionPixelSize(R.dimen.edit_popup_content_height);
+        contentView.setLayoutParams(params);
+        LayoutInflater.from(context).inflate(R.layout.edit_popup_content, contentView, true);
     }
 
     @Override
-    protected void inflateContent() {
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.topMargin = context.getResources().getDimensionPixelSize(R.dimen.edit_popup_top_margin);
-        areaView.setLayoutParams(params);
-
-        LayoutInflater.from(context).inflate(R.layout.edit_popup_content, contentView, true);
+    protected void setupDialogWindow(@NonNull Window window) {
+        window.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        window.getAttributes().y = context.getResources().getDimensionPixelSize(R.dimen.edit_popup_top_margin);
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
     }
 
     private void initTextEdit() {
@@ -81,7 +84,7 @@ public abstract class EditPopup extends ProcessingPopup {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 String text = getInputText();
                 if (canStart(text) && onStart(text)) {
-                    selfWindow.dismiss();
+                    selfDialog.dismiss();
                     InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
                     if (imm != null) {
                         imm.hideSoftInputFromWindow(textEditView.getWindowToken(), 0);

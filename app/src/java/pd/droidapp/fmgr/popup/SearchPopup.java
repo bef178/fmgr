@@ -7,14 +7,13 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -87,7 +86,7 @@ public class SearchPopup extends ProcessingPopup {
                 }
                 renderBottomBar();
             } else if (id == R.id.action_close) {
-                selfWindow.dismiss();
+                selfDialog.dismiss();
             }
         });
 
@@ -97,23 +96,16 @@ public class SearchPopup extends ProcessingPopup {
     }
 
     @Override
-    protected void initPopup() {
-        super.initPopup();
-        selfWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+    protected void inflateContentView() {
+        super.inflateContentView();
+        LayoutInflater.from(context).inflate(R.layout.search_popup_content, contentView, true);
     }
 
     @Override
-    protected void inflateContent() {
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        areaView.setLayoutParams(params);
-
-        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
-        contentParams.height = 0;
-        contentParams.weight = 1;
-        contentView.setLayoutParams(contentParams);
-        LayoutInflater.from(context).inflate(R.layout.search_popup_content, contentView, true);
+    protected void setupDialogWindow(@NonNull Window window) {
+        super.setupDialogWindow(window);
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
     }
 
     private void initSearchEdit() {
@@ -163,7 +155,7 @@ public class SearchPopup extends ProcessingPopup {
                     if (onJump != null) {
                         onJump.accept(getSelectedItems().get(0).path);
                     }
-                    selfWindow.dismiss();
+                    selfDialog.dismiss();
                 }
             } else if (id == R.drawable.ia_copy_24) {
                 if (onCopy != null) {

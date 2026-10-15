@@ -1,10 +1,12 @@
 package pd.droidapp.fmgr.popup;
 
 import android.os.Environment;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.FrameLayout;
+import android.view.Window;
 import android.widget.LinearLayout;
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -60,7 +62,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
                 if (onDirectorySelected != null) {
                     onDirectorySelected.accept(targetDirectory);
                 }
-                selfWindow.dismiss();
+                selfDialog.dismiss();
             }
         });
         initStatusBar();
@@ -68,16 +70,18 @@ public class PickDirectoryPopup extends ProcessingPopup {
     }
 
     @Override
-    protected void inflateContent() {
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) areaView.getLayoutParams();
-        params.height = context.getResources().getDimensionPixelSize(R.dimen.directory_picker_popup_height);
-        areaView.setLayoutParams(params);
-
-        LinearLayout.LayoutParams contentParams = (LinearLayout.LayoutParams) contentView.getLayoutParams();
-        contentParams.height = 0;
-        contentParams.weight = 1;
-        contentView.setLayoutParams(contentParams);
+    protected void inflateContentView() {
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) contentView.getLayoutParams();
+        params.width = context.getResources().getDimensionPixelSize(R.dimen.processing_popup_width);
+        params.height = context.getResources().getDimensionPixelSize(R.dimen.directory_picker_popup_content_height);
+        contentView.setLayoutParams(params);
         LayoutInflater.from(context).inflate(R.layout.directory_picker_popup_content, contentView, true);
+    }
+
+    @Override
+    protected void setupDialogWindow(@NonNull Window window) {
+        window.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        window.getAttributes().y = context.getResources().getDimensionPixelSize(R.dimen.directory_picker_popup_top_margin);
     }
 
     private void initStatusBar() {

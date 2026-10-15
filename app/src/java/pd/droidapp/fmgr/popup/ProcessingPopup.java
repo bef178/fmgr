@@ -1,5 +1,6 @@
 package pd.droidapp.fmgr.popup;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -7,8 +8,10 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.LinearLayout;
-import android.widget.PopupWindow;
+
+import androidx.annotation.NonNull;
 
 import java.util.Objects;
 
@@ -23,11 +26,10 @@ public abstract class ProcessingPopup {
 
     // views
     protected final View selfView;
-    protected final LinearLayout areaView;
     protected final PopupTitleBar titleBar;
     protected final LinearLayout contentView;
     protected final PopupBottomBar bottomBar;
-    protected final PopupWindow selfWindow;
+    protected final Dialog selfDialog;
 
     // guard
     private boolean dismissing;
@@ -37,12 +39,12 @@ public abstract class ProcessingPopup {
         this.containerView = containerView;
 
         selfView = LayoutInflater.from(context).inflate(R.layout.popup_frame, (ViewGroup) containerView, false);
-        areaView = selfView.findViewById(R.id.popup_area);
-        titleBar = new PopupTitleBar(areaView.findViewById(R.id.popup_title_bar));
-        contentView = areaView.findViewById(R.id.popup_content);
-        bottomBar = new PopupBottomBar(areaView.findViewById(R.id.popup_bottom_bar));
+        titleBar = new PopupTitleBar(selfView.findViewById(R.id.popup_title_bar));
+        bottomBar = new PopupBottomBar(selfView.findViewById(R.id.popup_bottom_bar));
+        contentView = selfView.findViewById(R.id.popup_content);
+        inflateContentView();
 
-        selfWindow = new PopupWindow(selfView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, true) {
+        selfDialog = new Dialog(context) {
             @Override
             public void dismiss() {
                 if (!canDismiss() || dismissing) {
@@ -57,28 +59,42 @@ public abstract class ProcessingPopup {
                 }));
             }
         };
+        selfDialog.setContentView(selfView);
+        setupDialog();
 
-        initPopup();
-        inflateContent();
+        titleBar.whenCloseButtonClicked(selfDialog::dismiss);
     }
 
     private void renderTitleBar() {
-        PopupTitleBar.State currentState = titleBar.getState();
-        if (currentState != null) {
-            titleBar.render(currentState.copyWithButtonEnabled(!dismissing));
+        PopupTitleBar.State state = titleBar.getState();
+        if (state != null) {
+            titleBar.render(state.copyWithButtonEnabled(!dismissing));
         }
     }
 
-    protected void initPopup() {
-        titleBar.whenCloseButtonClicked(selfWindow::dismiss);
-
-        selfWindow.setOutsideTouchable(false);
-        selfWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        selfWindow.setElevation(24);
-        selfWindow.setOnDismissListener(this::onDismissed);
+    protected void inflateContentView() {
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) contentView.getLayoutParams();
+        params.width = context.getResources().getDimensionPixelSize(R.dimen.processing_popup_width);
+        params.height = context.getResources().getDimensionPixelSize(R.dimen.processing_popup_content_height);
+        contentView.setLayoutParams(params);
     }
 
-    protected abstract void inflateContent();
+    private void setupDialog() {
+        selfDialog.setCancelable(true);
+        selfDialog.setCanceledOnTouchOutside(false);
+        selfDialog.setOnDismissListener(dialog -> onDismissed());
+        Window window = selfDialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setDimAmount(0.5f);
+            setupDialogWindow(window);
+        }
+    }
+
+    protected void setupDialogWindow(@NonNull Window window) {
+        window.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        window.getAttributes().y = context.getResources().getDimensionPixelSize(R.dimen.processing_popup_top_margin);
+    }
 
     protected boolean canDismiss() {
         return true;
@@ -90,7 +106,7 @@ public abstract class ProcessingPopup {
 
     public final void show() {
         containerView.post(() -> {
-            selfWindow.showAtLocation(containerView, Gravity.NO_GRAVITY, 0, 0);
+            selfDialog.show();
             onShow();
         });
     }
