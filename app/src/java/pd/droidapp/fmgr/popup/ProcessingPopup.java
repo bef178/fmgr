@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
@@ -20,6 +21,9 @@ import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
 
 public abstract class ProcessingPopup {
+
+    private static final int NESTED_POPUP_OFFSET_DP = 16;
+    private static int numShowingPopups;
 
     protected final Context context;
     protected final View containerView;
@@ -82,7 +86,10 @@ public abstract class ProcessingPopup {
     private void setupDialog() {
         selfDialog.setCancelable(true);
         selfDialog.setCanceledOnTouchOutside(false);
-        selfDialog.setOnDismissListener(dialog -> onDismissed());
+        selfDialog.setOnDismissListener(dialog -> {
+            numShowingPopups--;
+            onDismissed();
+        });
         Window window = selfDialog.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -106,9 +113,25 @@ public abstract class ProcessingPopup {
 
     public final void show() {
         containerView.post(() -> {
+            if (numShowingPopups > 0) {
+                offsetWindow();
+            }
             selfDialog.show();
+            numShowingPopups++;
             onShow();
         });
+    }
+
+    private void offsetWindow() {
+        Window window = selfDialog.getWindow();
+        if (window == null) {
+            return;
+        }
+        int offset = Math.round(NESTED_POPUP_OFFSET_DP * context.getResources().getDisplayMetrics().density);
+        WindowManager.LayoutParams attrs = window.getAttributes();
+        attrs.x += offset;
+        attrs.y += offset;
+        window.setAttributes(attrs);
     }
 
     protected abstract void onShow();
