@@ -77,6 +77,7 @@ public class BrowseFragment extends Fragment {
     private ListDirectoryWorker worker;
 
     private final List<FileProperties> items = new ArrayList<>();
+    private final Map<String, Integer> itemPositions = new HashMap<>();
     private final Set<String> selectedPaths = new LinkedHashSet<>();
     private PropertiesLoader propertiesLoader;
 
@@ -150,7 +151,15 @@ public class BrowseFragment extends Fragment {
         itemsView.setAdapter(itemAdapter);
 
         propertiesLoader = new PropertiesLoader();
-        propertiesLoader.whenUpdated(updated -> itemsView.post(this::renderItems));
+        propertiesLoader.whenUpdated(updated -> itemsView.post(() -> {
+            for (FileProperties item : updated) {
+                Integer position = itemPositions.get(item.path);
+                if (position == null || items.get(position) != item) {
+                    continue;
+                }
+                itemAdapter.update(position, buildState(item));
+            }
+        }));
 
         initSelectionBar();
 
@@ -313,17 +322,24 @@ public class BrowseFragment extends Fragment {
     }
 
     private void renderItems() {
+        itemPositions.clear();
         List<FileItemBar.State> itemStates = new ArrayList<>(items.size());
-        for (FileProperties item : items) {
-            itemStates.add(new FileItemBar.State(
-                    item.path,
-                    PathOps.singleton.basename(item.path),
-                    getItemDetailsString(item),
-                    null,
-                    getDrawableId(requireContext(), item),
-                    selectedPaths.contains(item.path)));
+        for (int i = 0; i < items.size(); i++) {
+            FileProperties item = items.get(i);
+            itemPositions.put(item.path, i);
+            itemStates.add(buildState(item));
         }
         itemAdapter.render(itemStates);
+    }
+
+    private FileItemBar.State buildState(FileProperties item) {
+        return new FileItemBar.State(
+                item.path,
+                PathOps.singleton.basename(item.path),
+                getItemDetailsString(item),
+                null,
+                getDrawableId(requireContext(), item),
+                selectedPaths.contains(item.path));
     }
 
     private String getItemDetailsString(FileProperties item) {
