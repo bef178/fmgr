@@ -2,6 +2,7 @@ package pd.droidapp.fmgr.view;
 
 import android.graphics.Color;
 import android.view.View;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -22,6 +23,7 @@ public class FileItemBar {
     private final ImageView iconImageView;
     private final ImageView badgeImageView;
     private final ProgressBar badgeProgressView;
+    private final HorizontalScrollView nameScrollView;
     private final TextView nameTextView;
     private final TextView summaryTextView;
     private final TextView indexTextView;
@@ -34,6 +36,7 @@ public class FileItemBar {
         iconImageView = selfView.findViewById(R.id.item_icon);
         badgeImageView = selfView.findViewById(R.id.item_badge_image);
         badgeProgressView = selfView.findViewById(R.id.item_badge_progress);
+        nameScrollView = selfView.findViewById(R.id.item_name_scroll);
         nameTextView = selfView.findViewById(R.id.item_name);
         summaryTextView = selfView.findViewById(R.id.item_summary);
         indexTextView = selfView.findViewById(R.id.item_index);
@@ -70,6 +73,10 @@ public class FileItemBar {
                 || oldState.selected != state.selected
                 || oldState.processingStatus != state.processingStatus) {
             renderBadge(state.selected, state.processingStatus);
+        }
+
+        if (oldState != null && !oldState.itemId.equals(state.itemId)) {
+            nameScrollView.scrollTo(0, 0);
         }
 
         if (oldState == null || !Objects.equals(oldState.name, state.name)) {
