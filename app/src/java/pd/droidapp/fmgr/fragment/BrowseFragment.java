@@ -61,6 +61,7 @@ import pd.util.FileOps;
 import pd.util.FileStat;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
 import static pd.droidapp.fmgr.util.Util.getSizeString;
 import static pd.droidapp.fmgr.util.Util.themeColor;
 
@@ -319,7 +320,7 @@ public class BrowseFragment extends Fragment {
                     PathOps.singleton.basename(item.path),
                     getItemDetailsString(item),
                     null,
-                    item.isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
+                    getDrawableId(requireContext(), item),
                     selectedPaths.contains(item.path)));
         }
         itemAdapter.render(itemStates);

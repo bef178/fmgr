@@ -20,6 +20,8 @@ import androidx.annotation.LayoutRes;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -258,6 +260,27 @@ public class Util {
         return elements == null || elements.length == 0
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(Arrays.asList(elements));
+    }
+
+    public static byte[] readHeadBytes(String path, int length) {
+        byte[] head = new byte[length];
+        int nRead = 0;
+        try (FileInputStream inputStream = new FileInputStream(path)) {
+            int n;
+            while (nRead < head.length
+                    && (n = inputStream.read(head, nRead, head.length - nRead)) > 0) {
+                nRead += n;
+            }
+        } catch (IOException ignored) {
+            return null;
+        }
+        if (nRead <= 0) {
+            return null;
+        }
+        if (nRead == head.length) {
+            return head;
+        }
+        return Arrays.copyOfRange(head, 0, nRead);
     }
 
     public static void renderButtonStates(List<ButtonState> buttonStates, ViewGroup containerView, @LayoutRes int layoutId, IntConsumer onButtonClicked) {

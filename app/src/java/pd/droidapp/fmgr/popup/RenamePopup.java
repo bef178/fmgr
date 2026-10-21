@@ -38,6 +38,7 @@ import pd.util.FileOps;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.checkBasename;
+import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
 import static pd.droidapp.fmgr.view.FileItemBar.ProcessingStatus;
 
 /**
@@ -49,6 +50,7 @@ public class RenamePopup extends ProcessingPopup {
 
     private final String srcItem;
     private final boolean isDirectory;
+    private final String mimeType;
 
     // views
     private final StatusBar statusBar;
@@ -68,6 +70,7 @@ public class RenamePopup extends ProcessingPopup {
         super(containerView);
         srcItem = item.path;
         isDirectory = item.isDirectory;
+        mimeType = item.mimeType;
 
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ia_rename_24);
         targetNameScrollView = contentView.findViewById(R.id.target_name_scroll);
@@ -209,7 +212,7 @@ public class RenamePopup extends ProcessingPopup {
                 PathOps.singleton.basename(srcItem),
                 null,
                 "1",
-                isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
+                getDrawableId(context, srcItem, isDirectory, mimeType),
                 true,
                 badgeState)));
     }

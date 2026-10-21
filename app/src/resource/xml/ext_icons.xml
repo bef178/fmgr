@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ext-icons xmlns:android="http://schemas.android.com/apk/res/android">
+    <item ext=".md" android:drawable="@drawable/im_dot_md_32" />
+    <item ext=".txt" android:drawable="@drawable/im_dot_txt_32" />
+</ext-icons>

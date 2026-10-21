@@ -12,6 +12,7 @@ public class FileProperties {
 
     public Long size;
     public String sha256sum;
+    public String mimeType;
 
     public Long numChildren;
 

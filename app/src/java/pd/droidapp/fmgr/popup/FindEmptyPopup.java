@@ -28,6 +28,8 @@ import pd.droidapp.fmgr.view.SelectionBar;
 import pd.droidapp.fmgr.view.StatusBar;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
+
 public class FindEmptyPopup extends ProcessingPopup {
 
     private final String startDirectory;
@@ -141,7 +143,7 @@ public class FindEmptyPopup extends ProcessingPopup {
                 PathOps.singleton.relativize(startDirectory, item.path),
                 null,
                 String.valueOf(index),
-                item.isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
+                getDrawableId(context, item),
                 selectedPaths.contains(item.path));
     }
 

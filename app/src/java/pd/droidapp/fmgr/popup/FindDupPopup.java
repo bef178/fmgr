@@ -31,6 +31,7 @@ import pd.droidapp.fmgr.view.StatusBar;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
 import static pd.droidapp.fmgr.util.Util.getSizeString;
 
 public class FindDupPopup extends ProcessingPopup {
@@ -305,7 +306,7 @@ public class FindDupPopup extends ProcessingPopup {
                     PathOps.singleton.relativize(startDirectory, item.path),
                     null,
                     null,
-                    R.drawable.ic_file_24,
+                    getDrawableId(context, item),
                     selectedPaths.contains(item.path));
         }
         FileProperties first = group.get(0);

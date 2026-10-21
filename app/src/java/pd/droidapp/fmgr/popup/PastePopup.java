@@ -40,6 +40,7 @@ import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.view.FileItemBar.ProcessingStatus;
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
+import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
 import static pd.droidapp.fmgr.util.Util.scrollToIndex;
 
 public class PastePopup extends ProcessingPopup {
@@ -233,7 +234,7 @@ public class PastePopup extends ProcessingPopup {
                 PathOps.singleton.relativize(startDirectory, item.path),
                 null,
                 String.valueOf(index),
-                item.isDirectory ? R.drawable.ic_directory_24 : R.drawable.ic_file_24,
+                getDrawableId(context, item),
                 true,
                 badgeStates.getOrDefault(item.path, ProcessingStatus.NONE));
     }
