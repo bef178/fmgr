@@ -12,7 +12,9 @@ import androidx.core.util.Consumer;
 import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.repository.ThumbnailManager;
 
+import static pd.droidapp.fmgr.util.FileIconUtil.getMimeByDrawableId;
 import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;
 import static pd.droidapp.fmgr.util.Util.renderText;
 
@@ -65,8 +67,11 @@ public class FileItemBar {
         State oldState = this.state;
         this.state = state;
 
-        if (oldState == null || oldState.drawableId != state.drawableId) {
+        if (oldState == null
+                || !oldState.itemId.equals(state.itemId)
+                || oldState.drawableId != state.drawableId) {
             iconImageView.setImageResource(state.drawableId);
+            loadThumbnail(state);
         }
 
         if (oldState == null
@@ -94,6 +99,17 @@ public class FileItemBar {
         if (oldState == null || oldState.highlightColor != state.highlightColor) {
             highlightView.setBackgroundColor(state.highlightColor);
         }
+    }
+
+    private void loadThumbnail(State state) {
+        String mime = getMimeByDrawableId(selfView.getContext(), state.drawableId);
+        int sizePx = Math.max(1, iconImageView.getLayoutParams().width);
+        ThumbnailManager.singleton.load(state.itemId, mime, sizePx, bitmap -> iconImageView.post(() -> {
+            if (!state.itemId.equals(this.state.itemId) || bitmap == null) {
+                return;
+            }
+            iconImageView.setImageBitmap(bitmap);
+        }));
     }
 
     private void renderBadge(boolean selected, ProcessingStatus status) {
