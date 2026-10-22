@@ -19,7 +19,7 @@ public class ListDirectoryWorker extends ProcessingWorker {
     }
 
     public boolean start(String directory) {
-        return start(() -> FileOps.singleton.listDirectory(directory, 1, false, false, cancelRequested,
+        return start(() -> FileOps.singleton.listDirectory(directory, 1, false, true, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         FileProperties item = toFileProperties(src);

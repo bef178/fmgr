@@ -199,13 +199,12 @@ public class BrowseFragment extends Fragment {
         swipeRefreshView.setRefreshing(true);
         renderActionBar();
 
-        List<FileProperties> loadedItems = new LinkedList<>();
         ListDirectoryWorker current = new ListDirectoryWorker(); // the guard
         current.whenUpdated(listed -> itemsView.post(() -> {
             if (worker != current) {
                 return;
             }
-            loadedItems.addAll(listed);
+            items.addAll(listed);
         }));
         current.whenStopped(reason -> itemsView.post(() -> {
             if (worker != current) {
@@ -213,7 +212,9 @@ public class BrowseFragment extends Fragment {
             }
             swipeRefreshView.setRefreshing(false);
             renderActionBar();
-            setItems(loadedItems);
+            renderItems();
+            propertiesLoader.clear();
+            propertiesLoader.add(new LinkedList<>(items));
             currentScrollState = navigator.getCurrentScrollState();
             if (currentScrollState.scrollPosition >= 0 && currentScrollState.scrollPosition < items.size()) {
                 ((LinearLayoutManager) itemsView.getLayoutManager())
@@ -235,15 +236,6 @@ public class BrowseFragment extends Fragment {
         }
         directoryScrollState.scrollPosition = layoutManager.getPosition(child);
         directoryScrollState.scrollOffset = layoutManager.getDecoratedTop(child) - layoutManager.getPaddingTop();
-    }
-
-    private void setItems(Collection<FileProperties> newItems) {
-        items.clear();
-        items.addAll(newItems);
-        items.sort(ITEM_COMPARATOR);
-        renderItems();
-        propertiesLoader.clear();
-        propertiesLoader.add(new LinkedList<>(items));
     }
 
     private void addItems(Collection<FileProperties> toAdd) {
