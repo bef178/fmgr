@@ -285,11 +285,11 @@ public class BrowseFragment extends Fragment {
         }
     }
 
-    private void anchorAndHighlight(String path) {
-        anchorAndHighlight(path, themeColor(requireContext(), com.google.android.material.R.attr.colorSecondary));
+    private void scrollToAndHighlight(String path) {
+        scrollToAndHighlight(path, themeColor(requireContext(), com.google.android.material.R.attr.colorSecondary));
     }
 
-    private void anchorAndHighlight(String path, @ColorInt int peakColor) {
+    private void scrollToAndHighlight(String path, @ColorInt int peakColor) {
         itemAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(path, peakColor));
     }
 
@@ -519,10 +519,10 @@ public class BrowseFragment extends Fragment {
      */
     public void navigateToDirectory(String target) {
         if (target == null) {
-            if (navigator.getCurrentDirectory() == null) {
-                navigateToDirectory(DEFAULT_DIRECTORY);
+            if (navigator.getCurrentDirectory() != null) {
+                return;
             }
-            return;
+            target = DEFAULT_DIRECTORY;
         }
         if (!navigator.navigateTo(target)) {
             Toast.makeText(requireContext(), R.string.error_directory_not_accessible, Toast.LENGTH_SHORT).show();
@@ -537,7 +537,7 @@ public class BrowseFragment extends Fragment {
             renderActionBar();
             return;
         }
-        refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
+        refresh(() -> scrollToAndHighlight(child, requireContext().getColor(R.color.purple_50)));
     }
 
     private void navigateForward() {
@@ -546,7 +546,7 @@ public class BrowseFragment extends Fragment {
             renderActionBar();
             return;
         }
-        refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
+        refresh(() -> scrollToAndHighlight(child, requireContext().getColor(R.color.purple_50)));
     }
 
     public boolean navigateUp() {
@@ -555,7 +555,7 @@ public class BrowseFragment extends Fragment {
             renderActionBar();
             return false;
         }
-        refresh(() -> anchorAndHighlight(child, requireContext().getColor(R.color.purple_50)));
+        refresh(() -> scrollToAndHighlight(child, requireContext().getColor(R.color.purple_50)));
         return true;
     }
 
@@ -639,8 +639,7 @@ public class BrowseFragment extends Fragment {
         // navigate to parent directory
         navigator.navigateTo(parent);
 
-        // scroll to and highlight the item
-        refresh(() -> anchorAndHighlight(path));
+        refresh(() -> scrollToAndHighlight(path));
     }
 
     private void showPastePopup(Collection<FileProperties> srcItems, boolean isCopy) {
@@ -673,7 +672,7 @@ public class BrowseFragment extends Fragment {
                 deselectAll();
             }
             if (!added.isEmpty()) {
-                anchorAndHighlight(added.iterator().next().path);
+                scrollToAndHighlight(added.iterator().next().path);
             }
         });
         renamePopup.show();
@@ -684,7 +683,7 @@ public class BrowseFragment extends Fragment {
         createPopup.whenPopupDismissed((added, removed) -> {
             onPopupDismissed(added, removed);
             if (!added.isEmpty()) {
-                anchorAndHighlight(added.iterator().next().path);
+                scrollToAndHighlight(added.iterator().next().path);
             }
         });
         createPopup.show();
