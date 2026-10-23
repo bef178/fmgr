@@ -128,9 +128,9 @@ public class FindEmptyPopup extends ProcessingPopup {
         itemAdapter.render(buildStates(items, 1));
     }
 
-    private List<FileItemBar.State> buildStates(Collection<FileProperties> items, int firstIndex) {
+    private List<FileItemBar.State> buildStates(Collection<FileProperties> items, int startIndex) {
         List<FileItemBar.State> states = new ArrayList<>(items.size());
-        int index = firstIndex;
+        int index = startIndex;
         for (FileProperties item : items) {
             states.add(buildState(item, index++));
         }
@@ -266,9 +266,9 @@ public class FindEmptyPopup extends ProcessingPopup {
         }));
         worker.whenUpdated((scanned, matched) -> containerView.post(() -> {
             totalScanned += scanned;
-            int firstIndex = items.size() + 1;
+            int startIndex = items.size() + 1;
             items.addAll(matched);
-            itemAdapter.append(buildStates(matched, firstIndex));
+            itemAdapter.append(buildStates(matched, startIndex));
             renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {

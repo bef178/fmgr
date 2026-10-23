@@ -39,6 +39,17 @@ public class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.ItemVi
     }
 
     public void render(List<FileItemBar.State> states) {
+        render(states, false);
+    }
+
+    public void render(List<FileItemBar.State> states, boolean replaceAll) {
+        if (replaceAll) {
+            // whole-table replacement: the next layout drops queued adapter updates and
+            // rebinds everything, so a pending insert is not scanned once per item update
+            this.states = new ArrayList<>(states);
+            notifyDataSetChanged();
+            return;
+        }
         List<FileItemBar.State> oldStates = this.states;
         this.states = new ArrayList<>(states);
 

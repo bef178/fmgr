@@ -110,7 +110,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
             worker.cancel();
             worker = null;
         }
-        itemAdapter.render(List.of());
+        itemAdapter.clear();
 
         List<FileProperties> listed = new LinkedList<>();
         ListDirectoryWorker current = new ListDirectoryWorker(); // the guard
@@ -130,7 +130,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
             }
             renderStatusBar(StatusBar.IconStatus.IDLE);
             listed.sort((p1, p2) -> PathOps.singleton.compare(p1.path, p2.path));
-            itemAdapter.render(buildStates(listed));
+            itemAdapter.render(buildStates(listed), true);
             restoreScrollState(directory);
             if (onCompleted != null) {
                 onCompleted.run();

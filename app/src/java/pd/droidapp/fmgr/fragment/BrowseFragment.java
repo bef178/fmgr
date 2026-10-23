@@ -211,7 +211,7 @@ public class BrowseFragment extends Fragment {
             if (worker != current) {
                 return;
             }
-            renderItems();
+            itemAdapter.render(buildItemStates(), true);
             swipeRefreshView.setRefreshing(false);
             renderActionBar();
             propertiesLoader.clear();
@@ -315,6 +315,10 @@ public class BrowseFragment extends Fragment {
     }
 
     private void renderItems() {
+        itemAdapter.render(buildItemStates());
+    }
+
+    private List<FileItemBar.State> buildItemStates() {
         itemPositions.clear();
         List<FileItemBar.State> itemStates = new ArrayList<>(items.size());
         for (int i = 0; i < items.size(); i++) {
@@ -322,7 +326,7 @@ public class BrowseFragment extends Fragment {
             itemPositions.put(item.path, i);
             itemStates.add(buildState(item));
         }
-        itemAdapter.render(itemStates);
+        return itemStates;
     }
 
     private FileItemBar.State buildState(FileProperties item) {
