@@ -179,7 +179,6 @@ public class BrowseFragment extends Fragment {
 
     private void refresh(Runnable onComplete) {
         renderBreadcrumbsBar();
-        clearSelection();
         String directory = navigator.getCurrentDirectory();
         if (currentScrollState != null && !items.isEmpty()) {
             saveScrollState(currentScrollState);
@@ -189,8 +188,10 @@ public class BrowseFragment extends Fragment {
             worker = null;
         }
         items.clear();
+        itemPositions.clear();
         propertiesLoader.clear();
-        renderItems();
+        itemAdapter.clear();
+        deselectAll();
         if (directory == null) {
             swipeRefreshView.setRefreshing(false);
             renderActionBar();
@@ -210,9 +211,9 @@ public class BrowseFragment extends Fragment {
             if (worker != current) {
                 return;
             }
+            renderItems();
             swipeRefreshView.setRefreshing(false);
             renderActionBar();
-            renderItems();
             propertiesLoader.clear();
             propertiesLoader.add(new LinkedList<>(items));
             currentScrollState = navigator.getCurrentScrollState();
@@ -368,7 +369,7 @@ public class BrowseFragment extends Fragment {
             } else if (id == R.drawable.ia_select_all_24) {
                 selectAll();
             } else if (id == R.drawable.ic_xmark_24) {
-                clearSelection();
+                deselectAll();
             }
         });
     }
@@ -386,21 +387,18 @@ public class BrowseFragment extends Fragment {
 
     private void select(Collection<String> paths) {
         selectedPaths.addAll(paths);
-        onSelectionChanged();
-    }
-
-    private void deselect(Collection<FileProperties> toDeselect) {
-        for (FileProperties item : toDeselect) {
-            selectedPaths.remove(item.path);
+        for (String path : paths) {
+            updateItemSelection(path);
         }
-        onSelectionChanged();
+        renderSelectionBar();
     }
 
     private void toggleSelection(String path) {
         if (!selectedPaths.remove(path)) {
             selectedPaths.add(path);
         }
-        onSelectionChanged();
+        updateItemSelection(path);
+        renderSelectionBar();
     }
 
     private void selectAll() {
@@ -408,17 +406,25 @@ public class BrowseFragment extends Fragment {
         for (FileProperties item : items) {
             selectedPaths.add(item.path);
         }
-        onSelectionChanged();
-    }
-
-    private void clearSelection() {
-        selectedPaths.clear();
-        onSelectionChanged();
-    }
-
-    private void onSelectionChanged() {
-        renderSelectionBar();
         renderItems();
+        renderSelectionBar();
+    }
+
+    private void deselectAll() {
+        if (selectedPaths.isEmpty()) {
+            return;
+        }
+        selectedPaths.clear();
+        renderItems();
+        renderSelectionBar();
+    }
+
+    private void updateItemSelection(String path) {
+        Integer position = itemPositions.get(path);
+        if (position == null) {
+            return;
+        }
+        itemAdapter.update(position, buildState(items.get(position)));
     }
 
     private List<FileProperties> getSelectedItems() {
@@ -642,7 +648,7 @@ public class BrowseFragment extends Fragment {
         pastePopup.whenPopupDismissed((added, removed) -> {
             onPopupDismissed(added, removed);
             if (!added.isEmpty() || !removed.isEmpty()) {
-                clearSelection();
+                deselectAll();
             }
         });
         pastePopup.show();
@@ -653,7 +659,7 @@ public class BrowseFragment extends Fragment {
         deletePopup.whenPopupDismissed((added, removed) -> {
             onPopupDismissed(added, removed);
             if (!added.isEmpty() || !removed.isEmpty()) {
-                clearSelection();
+                deselectAll();
             }
         });
         deletePopup.show();
@@ -664,7 +670,7 @@ public class BrowseFragment extends Fragment {
         renamePopup.whenPopupDismissed((added, removed) -> {
             onPopupDismissed(added, removed);
             if (!added.isEmpty() || !removed.isEmpty()) {
-                clearSelection();
+                deselectAll();
             }
             if (!added.isEmpty()) {
                 anchorAndHighlight(added.iterator().next().path);
@@ -719,7 +725,10 @@ public class BrowseFragment extends Fragment {
             loadProperties(implicit);
         }
         if (!removed.isEmpty()) {
-            deselect(removed);
+            for (FileProperties item : removed) {
+                selectedPaths.remove(item.path);
+            }
+            renderSelectionBar();
             Map<String, FileProperties> explicit = new LinkedHashMap<>();
             Set<String> implicit = new LinkedHashSet<>();
             getDirectChildren(currentDirectory, removed, explicit, implicit);

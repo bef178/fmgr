@@ -82,6 +82,15 @@ public class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.ItemVi
         notifyItemChanged(position);
     }
 
+    public void clear() {
+        int size = states.size();
+        if (size == 0) {
+            return;
+        }
+        states.clear();
+        notifyItemRangeRemoved(0, size);
+    }
+
     public void render(ScrollToAndHighlightEvent event) {
         if (event == null) {
             return;
