@@ -14,13 +14,14 @@ import pd.droidapp.fmgr.fileheader.palm.PalmDatabaseReader;
 import pd.droidapp.fmgr.fileheader.png.PngReader;
 import pd.droidapp.fmgr.fileheader.riff.RiffReader;
 import pd.droidapp.fmgr.fileheader.tar.TarReader;
+import pd.droidapp.fmgr.fileheader.xml.XmlReader;
 import pd.droidapp.fmgr.fileheader.zip.ZipReader;
 
 import static pd.droidapp.fmgr.fileheader.BytesReadUtil.bytesStartsWith;
 import static pd.droidapp.fmgr.fileheader.BytesReadUtil.readUnsignedInt16LittleEndian;
 import static pd.droidapp.fmgr.util.Util.readHeadBytes;
 
-public final class FileMimeDetector {
+public final class FileMimeUtil {
 
     private static final int HEAD_LENGTH = 1024;
     private static final int PDF_OBJECT_LENGTH = 65536;
@@ -57,6 +58,11 @@ public final class FileMimeDetector {
         }
 
         String mime = detectSignature(head);
+        if (mime != null) {
+            return mime;
+        }
+
+        mime = new XmlReader(head).getMimeType();
         if (mime != null) {
             return mime;
         }

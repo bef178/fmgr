@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
-import pd.droidapp.fmgr.fileheader.FileMimeDetector;
+import pd.droidapp.fmgr.fileheader.FileMimeUtil;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 
@@ -67,7 +67,7 @@ public class PropertiesLoader {
                     item.numChildren = FileOps.singleton.getNumDirectoryEntries(item.path);
                 } else {
                     item.size = FileOps.singleton.stat(item.path).size;
-                    item.mimeType = FileMimeDetector.mimeByContent(item.path);
+                    item.mimeType = FileMimeUtil.mimeByContent(item.path);
                 }
                 item.computed = true;
                 loaded = true;

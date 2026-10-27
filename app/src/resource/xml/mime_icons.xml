@@ -37,6 +37,7 @@
     <item mime="image/heif" android:drawable="@drawable/im_image_heif_32" />
     <item mime="image/jpeg" android:drawable="@drawable/im_image_jpg_32" />
     <item mime="image/png" android:drawable="@drawable/im_image_png_32" />
+    <item mime="image/svg+xml" android:drawable="@drawable/im_image_svg_32" />
     <item mime="image/tiff" android:drawable="@drawable/im_image_tiff_32" />
     <item mime="image/webp" android:drawable="@drawable/im_image_webp_32" />
     <item mime="video/3gpp" android:drawable="@drawable/im_video_3gp_32" />

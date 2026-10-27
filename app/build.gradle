@@ -47,6 +47,7 @@ dependencies {
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'androidx.viewpager2:viewpager2:1.0.0'
     implementation 'com.google.android.material:material:1.10.0'
+    implementation 'com.caverock:androidsvg-aar:1.4'
     implementation 'pd:pd:1.0-SNAPSHOT'
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit
