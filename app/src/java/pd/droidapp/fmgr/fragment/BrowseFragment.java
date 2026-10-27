@@ -574,6 +574,14 @@ public class BrowseFragment extends Fragment {
         return true;
     }
 
+    public boolean handleSystemBack() {
+        if (!selectedPaths.isEmpty()) {
+            deselectAll();
+            return true;
+        }
+        return navigateUp();
+    }
+
     private void toggleFavorite() {
         String currentDirectory = navigator.getCurrentDirectory();
         if (currentDirectory == null) {

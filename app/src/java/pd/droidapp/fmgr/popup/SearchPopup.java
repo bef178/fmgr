@@ -320,6 +320,15 @@ public class SearchPopup extends ProcessingPopup {
     }
 
     @Override
+    protected boolean onBackPressed() {
+        if (selectedPaths.isEmpty()) {
+            return false;
+        }
+        clearSelection();
+        return true;
+    }
+
+    @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.search)));
         renderStatusBar(StatusBar.IconStatus.IDLE);

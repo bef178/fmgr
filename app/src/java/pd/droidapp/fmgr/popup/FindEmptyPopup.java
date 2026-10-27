@@ -239,6 +239,15 @@ public class FindEmptyPopup extends ProcessingPopup {
     }
 
     @Override
+    protected boolean onBackPressed() {
+        if (selectedPaths.isEmpty()) {
+            return false;
+        }
+        clearSelection();
+        return true;
+    }
+
+    @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_empty)));
         renderStatusBar(StatusBar.IconStatus.IDLE);

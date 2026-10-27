@@ -212,6 +212,17 @@ public class FindDupPopup extends ProcessingPopup {
     }
 
     @Override
+    protected boolean onBackPressed() {
+        if (selectedPaths.isEmpty()) {
+            return false;
+        }
+        selectedPaths.clear();
+        refreshGroups();
+        renderSelectionBar();
+        return true;
+    }
+
+    @Override
     protected void onShow() {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.find_duplicate)));
         renderStatusBar(statusBarIconStatus);

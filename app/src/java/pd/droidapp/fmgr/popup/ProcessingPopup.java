@@ -50,6 +50,14 @@ public abstract class ProcessingPopup {
 
         selfDialog = new Dialog(context) {
             @Override
+            public void onBackPressed() {
+                if (ProcessingPopup.this.onBackPressed()) {
+                    return;
+                }
+                super.onBackPressed();
+            }
+
+            @Override
             public void dismiss() {
                 if (!canDismiss() || dismissing) {
                     return;
@@ -132,6 +140,10 @@ public abstract class ProcessingPopup {
         attrs.x += offset;
         attrs.y += offset;
         window.setAttributes(attrs);
+    }
+
+    protected boolean onBackPressed() {
+        return false;
     }
 
     protected abstract void onShow();
