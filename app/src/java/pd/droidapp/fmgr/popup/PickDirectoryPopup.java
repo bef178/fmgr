@@ -38,6 +38,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
     private String targetDirectory;
     private ListDirectoryWorker worker;
     private final Map<String, DirectoryScrollState> scrollStates = new HashMap<>();
+    private final String firstSource;
 
     // views
     private final StatusBar statusBar;
@@ -47,9 +48,10 @@ public class PickDirectoryPopup extends ProcessingPopup {
     // callbacks
     private Consumer<String> onDirectorySelected;
 
-    public PickDirectoryPopup(View containerView, String startDirectory) {
+    public PickDirectoryPopup(View containerView, String startDirectory, String firstSource) {
         super(containerView);
         targetDirectory = startDirectory;
+        this.firstSource = firstSource;
 
         // find views
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ic_directory_24);
@@ -203,6 +205,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
         titleBar.render(new PopupTitleBar.State(context.getString(R.string.select_directory)));
         bottomBar.render(new PopupBottomBar.State(new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, true, true)));
 
-        changeDirectory(targetDirectory, null);
+        changeDirectory(targetDirectory, () -> itemAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(
+                firstSource, context.getColor(R.color.purple_50))));
     }
 }

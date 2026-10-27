@@ -103,7 +103,7 @@ public class FileItemAdapter extends RecyclerView.Adapter<FileItemAdapter.ItemVi
     }
 
     public void render(ScrollToAndHighlightEvent event) {
-        if (event == null) {
+        if (event == null || event.itemId == null) {
             return;
         }
         int position = indexOf(event.itemId);

@@ -83,6 +83,7 @@ public class BrowseFragment extends Fragment {
 
     private PathNavigator navigator = new PathNavigator();
     private DirectoryScrollState currentScrollState;
+    private String outingPath;
 
     private boolean askedAllFilesAccess;
     private boolean mightGrantedAllFilesAccess;
@@ -473,6 +474,11 @@ public class BrowseFragment extends Fragment {
                 refresh();
             }
         }
+        if (outingPath != null) {
+            String path = outingPath;
+            outingPath = null;
+            scrollToAndHighlight(path, requireContext().getColor(R.color.purple_50));
+        }
         askForAllFilesAccessIfNecessary();
     }
 
@@ -623,6 +629,7 @@ public class BrowseFragment extends Fragment {
 
         try {
             startActivity(intent);
+            outingPath = path;
         } catch (ActivityNotFoundException e) {
             Toast.makeText(requireContext(), R.string.error_no_app_to_open, Toast.LENGTH_SHORT).show();
         }

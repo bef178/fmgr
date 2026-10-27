@@ -124,7 +124,7 @@ public class PastePopup extends ProcessingPopup {
     }
 
     private void showDirectoryPicker() {
-        PickDirectoryPopup popup = new PickDirectoryPopup(containerView, dstDirectory);
+        PickDirectoryPopup popup = new PickDirectoryPopup(containerView, dstDirectory, srcItems.get(0).path);
         popup.whenDirectorySelected(d -> {
             dstDirectory = d;
             invalidatePasteOptions();
