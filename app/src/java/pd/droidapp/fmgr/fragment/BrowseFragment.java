@@ -22,6 +22,7 @@ import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.File;
@@ -150,6 +151,10 @@ public class BrowseFragment extends Fragment {
         itemsView = view.findViewById(R.id.items_list);
         itemsView.setLayoutManager(new LinearLayoutManager(requireContext()));
         itemsView.setAdapter(itemAdapter);
+        RecyclerView.ItemAnimator itemAnimator = itemsView.getItemAnimator();
+        if (itemAnimator instanceof SimpleItemAnimator) {
+            ((SimpleItemAnimator) itemAnimator).setSupportsChangeAnimations(false);
+        }
 
         propertiesLoader = new PropertiesLoader();
         propertiesLoader.whenUpdated(updated -> itemsView.post(() -> {

@@ -2,7 +2,6 @@ package pd.droidapp.fmgr.view;
 
 import android.graphics.Color;
 import android.view.View;
-import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -25,7 +24,7 @@ public class FileItemBar {
     private final ImageView iconImageView;
     private final ImageView badgeImageView;
     private final ProgressBar badgeProgressView;
-    private final HorizontalScrollView nameScrollView;
+    private final ButtonScrollView nameScrollView;
     private final TextView nameTextView;
     private final TextView summaryTextView;
     private final TextView indexTextView;

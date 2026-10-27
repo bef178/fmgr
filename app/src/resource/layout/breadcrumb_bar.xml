@@ -13,10 +13,11 @@
     android:paddingBottom="0dp"
     android:visibility="gone">
 
-    <HorizontalScrollView
+    <pd.droidapp.fmgr.view.ButtonScrollView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:buttonTint="@color/purple_200"
         android:paddingTop="2dp"
         android:paddingBottom="2dp"
         android:scrollbars="horizontal">
@@ -27,7 +28,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal" />
 
-    </HorizontalScrollView>
+    </pd.droidapp.fmgr.view.ButtonScrollView>
 
     <ImageButton
         android:id="@+id/fav_icon"

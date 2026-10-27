@@ -61,10 +61,11 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <HorizontalScrollView
+            <pd.droidapp.fmgr.view.ButtonScrollView
                 android:id="@+id/item_name_scroll"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/purple_200"
                 android:scrollbars="horizontal">
 
                 <TextView
@@ -77,7 +78,7 @@
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="16sp" />
 
-            </HorizontalScrollView>
+            </pd.droidapp.fmgr.view.ButtonScrollView>
 
             <TextView
                 android:id="@+id/item_summary"
