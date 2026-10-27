@@ -11,12 +11,12 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.FileManagerForAndroid">
+        android:theme="@style/Theme.Fmgr">
         <activity
-            android:name=".MainActivity"
+            android:name=".FmgrActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.FileManagerForAndroid">
+            android:theme="@style/Theme.Fmgr">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -1,4 +1,6 @@
-# File Manager for Android
+# fmgr
+
+It is a fast, solid, clean, and intuitive file manager for Android.
 
 ## 特色功能
 
@@ -14,5 +16,5 @@
 ```shell
 ./gradlew installDebug
 # adb install -r app/target/outputs/apk/debug/app-debug.apk
-adb shell am start -n pd.droidapp.fmgr/.MainActivity
+adb shell am start -n pd.droidapp.fmgr/.FmgrActivity
 ```

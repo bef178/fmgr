@@ -23,5 +23,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "File Manager for Android"
+rootProject.name = "fmgr"
 include ':app'

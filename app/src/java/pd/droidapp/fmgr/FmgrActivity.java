@@ -14,7 +14,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import pd.droidapp.fmgr.fragment.FirstFragment;
 import pd.droidapp.fmgr.fragment.ProfileFragment;
 
-public class MainActivity extends AppCompatActivity {
+public class FmgrActivity extends AppCompatActivity {
 
     private ViewPager2 viewPager;
     private BottomNavigationView bottomNavigation;
@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
         // keep the app light regardless of system dark mode
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.main_activity);
+        setContentView(R.layout.fmgr_activity);
 
         viewPager = findViewById(R.id.view_pager);
         bottomNavigation = findViewById(R.id.bottom_navigation);

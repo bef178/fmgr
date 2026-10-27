@@ -13,7 +13,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.Lifecycle;
 
-import pd.droidapp.fmgr.MainActivity;
+import pd.droidapp.fmgr.FmgrActivity;
 import pd.droidapp.fmgr.R;
 
 public class FirstFragment extends Fragment {
@@ -21,8 +21,8 @@ public class FirstFragment extends Fragment {
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
-        MainActivity mainActivity = (MainActivity) requireActivity();
-        mainActivity.setFirstFragment(this);
+        FmgrActivity fmgrActivity = (FmgrActivity) requireActivity();
+        fmgrActivity.setFirstFragment(this);
     }
 
     @Nullable
