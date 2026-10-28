@@ -224,8 +224,10 @@ public class BrowseFragment extends Fragment {
             propertiesLoader.add(new LinkedList<>(items));
             currentScrollState = navigator.getCurrentScrollState();
             if (currentScrollState.scrollPosition >= 0 && currentScrollState.scrollPosition < items.size()) {
-                ((LinearLayoutManager) itemsView.getLayoutManager())
-                        .scrollToPositionWithOffset(currentScrollState.scrollPosition, currentScrollState.scrollOffset);
+                LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
+                if (layoutManager != null) {
+                    layoutManager.scrollToPositionWithOffset(currentScrollState.scrollPosition, currentScrollState.scrollOffset);
+                }
             }
             if (onComplete != null) {
                 onComplete.run();
@@ -237,6 +239,9 @@ public class BrowseFragment extends Fragment {
 
     private void saveScrollState(DirectoryScrollState directoryScrollState) {
         LinearLayoutManager layoutManager = (LinearLayoutManager) itemsView.getLayoutManager();
+        if (layoutManager == null) {
+            return;
+        }
         View child = layoutManager.getChildAt(0);
         if (child == null) {
             return;

@@ -131,7 +131,6 @@ public class PickDirectoryPopup extends ProcessingPopup {
                 return;
             }
             renderStatusBar(StatusBar.IconStatus.IDLE);
-            listed.sort((p1, p2) -> PathOps.singleton.compare(p1.path, p2.path));
             itemAdapter.render(buildStates(listed), true);
             restoreScrollState(directory);
             if (onCompleted != null) {

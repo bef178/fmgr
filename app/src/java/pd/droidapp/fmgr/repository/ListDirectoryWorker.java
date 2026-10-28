@@ -5,6 +5,7 @@ import java.util.List;
 
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
+import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
@@ -19,7 +20,7 @@ public class ListDirectoryWorker extends ProcessingWorker {
     }
 
     public boolean start(String directory) {
-        return start(() -> FileOps.singleton.listDirectory(directory, 1, false, true, cancelRequested,
+        return start(() -> FileOps.singleton.listDirectory(directory, 1, false, PathOps.singleton::compare, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         FileProperties item = toFileProperties(src);

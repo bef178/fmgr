@@ -11,6 +11,7 @@ import java.util.List;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
 import pd.util.FileStat;
+import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 
@@ -26,7 +27,7 @@ public class FindEmptyWorker extends ProcessingWorker {
     }
 
     public boolean start(String startDirectory) {
-        return start(() -> FileOps.singleton.listDirectory(startDirectory, 32, false, true, cancelRequested,
+        return start(() -> FileOps.singleton.listDirectory(startDirectory, 32, false, PathOps.singleton::compare, cancelRequested,
                 (action, src, dst, succeeded) -> {
                     if (action == FileOps.Action.MEET) {
                         boolean hit = isEmptyDirectoryOrZeroLengthFileOrDanglingSymlink(src);
