@@ -3,7 +3,6 @@ package pd.droidapp.fmgr.fileheader.zip;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
@@ -141,8 +140,8 @@ public final class ZipReader {
             return "application/zip";
         }
         String mimetype = readEntryContentString("mimetype", MAX_MIMETYPE_ENTRY_SIZE);
-        if (Objects.equals(mimetype, "application/epub+zip")) {
-            return mimetype;
+        if (mimetype != null && "application/epub+zip".equals(mimetype.trim())) {
+            return "application/epub+zip";
         }
         if (hasEntry("AndroidManifest.xml")) {
             return hasEntry("classes.jar")
