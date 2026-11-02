@@ -103,7 +103,7 @@ public class FileItemBar {
     private void loadThumbnail(State state) {
         String mime = getMimeByDrawableId(selfView.getContext(), state.drawableId);
         int sizePx = Math.max(1, iconImageView.getLayoutParams().width);
-        ThumbnailManager.singleton.load(state.itemId, mime, sizePx, bitmap -> iconImageView.post(() -> {
+        ThumbnailManager.singleton.load(state.itemId, mime, sizePx, sizePx, bitmap -> iconImageView.post(() -> {
             if (!state.itemId.equals(this.state.itemId) || bitmap == null) {
                 return;
             }
