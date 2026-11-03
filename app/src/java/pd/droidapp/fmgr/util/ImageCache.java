@@ -16,30 +16,42 @@ public class ImageCache {
         };
     }
 
-    public Bitmap get(String path, long mtime) {
-        Entry cached = cache.get(path);
-        if (cached != null && cached.mtime == mtime) {
-            return cached.bitmap;
-        }
-        return null;
+    public String key(String path, int width, int height) {
+        return path + '@' + width + 'x' + height;
     }
 
-    public void put(String path, long mtime, Bitmap bitmap) {
-        cache.put(path, new Entry(mtime, bitmap));
+    public Entry get(String key) {
+        return cache.get(key);
     }
 
-    public void remove(String path) {
-        cache.remove(path);
+    public void put(String key, Entry entry) {
+        cache.put(key, entry);
     }
 
-    private static final class Entry {
+    public void remove(String key) {
+        cache.remove(key);
+    }
 
-        final long mtime;
-        final Bitmap bitmap;
+    public void clear() {
+        cache.evictAll();
+    }
 
-        Entry(long mtime, Bitmap bitmap) {
+    public static final class Entry {
+
+        public final long mtime;
+        public final int sourceWidth;
+        public final int sourceHeight;
+        public final Bitmap bitmap;
+
+        public Entry(long mtime, int sourceWidth, int sourceHeight, Bitmap bitmap) {
             this.mtime = mtime;
+            this.sourceWidth = sourceWidth;
+            this.sourceHeight = sourceHeight;
             this.bitmap = bitmap;
+        }
+
+        public Entry(long mtime, Bitmap bitmap) {
+            this(mtime, bitmap.getWidth(), bitmap.getHeight(), bitmap);
         }
     }
 }

@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 import pd.droidapp.fmgr.R;
+import pd.droidapp.fmgr.fileheader.FileMimeUtil;
 import pd.droidapp.fmgr.popup.CreatePopup;
 import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.FindDupPopup;
@@ -58,6 +59,7 @@ import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.FileItemAdapter;
 import pd.droidapp.fmgr.view.FileItemBar;
 import pd.droidapp.fmgr.view.SelectionBar;
+import pd.droidapp.glry.GlryActivity;
 import pd.util.FileOps;
 import pd.util.FileStat;
 import pd.util.PathOps;
@@ -623,6 +625,16 @@ public class BrowseFragment extends Fragment {
     private void openFile(String path) {
         if (!FileOps.singleton.stat(path).exists(true)) {
             Toast.makeText(requireContext(), R.string.error_file_not_exist, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Integer position = itemPositions.get(path);
+        FileProperties item = position != null ? items.get(position) : null;
+        String detectedMime = item != null && item.computed ? item.mimeType : FileMimeUtil.mimeByContent(path);
+        if (GlryActivity.supports(detectedMime)) {
+            Intent intent = new Intent(requireContext(), GlryActivity.class);
+            intent.putExtra(GlryActivity.EXTRA_PATH, path);
+            startActivity(intent);
             return;
         }
 

@@ -24,6 +24,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="pd.droidapp.glry.GlryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Glry" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.file_provider"

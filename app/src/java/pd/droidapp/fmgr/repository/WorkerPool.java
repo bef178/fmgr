@@ -5,7 +5,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-class WorkerPool {
+public class WorkerPool {
 
     private static final ExecutorService executor = createExecutor();
 
@@ -20,7 +20,7 @@ class WorkerPool {
         return executor;
     }
 
-    static void post(Runnable runnable) {
+    public static void post(Runnable runnable) {
         executor.execute(runnable);
     }
 }

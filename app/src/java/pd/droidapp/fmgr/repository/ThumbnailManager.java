@@ -8,6 +8,7 @@ import pd.droidapp.fmgr.util.ImageCache;
 import pd.droidapp.fmgr.util.ImageLoader;
 import pd.util.FileOps;
 
+import static pd.droidapp.fmgr.util.ImageLoader.DrawableEntry;
 import static pd.droidapp.fmgr.util.ImageLoader.FitMode.CENTER_CROP;
 
 public class ThumbnailManager {
@@ -19,7 +20,7 @@ public class ThumbnailManager {
     private final ImageCache cache = new ImageCache(MAX_CACHE_BYTES);
     private final ImageLoader imageLoader = new ImageLoader();
 
-    public void load(String path, String mimeType, int targetWidth, int targetHeight, Consumer<Bitmap> onLoaded) {
+    public void load(String path, String mimeType, int clientWidth, int clientHeight, Consumer<Bitmap> onLoaded) {
         if (!imageLoader.supports(mimeType)) {
             return;
         }
@@ -34,22 +35,22 @@ public class ThumbnailManager {
                 return;
             }
 
-            Bitmap cached = cache.get(path, mtime);
-            if (cached != null) {
+            String key = cache.key(path, clientWidth, clientHeight);
+            ImageCache.Entry cached = cache.get(key);
+            if (cached != null && cached.mtime == mtime) {
                 // cache hit
-                onLoaded.accept(cached);
+                onLoaded.accept(cached.bitmap);
                 return;
             }
 
-            Bitmap bitmap = null;
-            try {
-                bitmap = imageLoader.decodeToBitmap(path, mimeType, targetWidth, targetHeight, CENTER_CROP);
-            } catch (Throwable ignored) {
-            }
+            DrawableEntry drawableEntry = imageLoader.decodeToBitmapDrawable(path, mimeType, clientWidth, clientHeight, CENTER_CROP);
+            Bitmap bitmap = drawableEntry != null
+                    ? drawableEntry.getBitmap()
+                    : null;
             if (bitmap != null) {
-                cache.put(path, mtime, bitmap);
+                cache.put(key, new ImageCache.Entry(mtime, bitmap));
             } else {
-                cache.remove(path);
+                cache.remove(key);
             }
             onLoaded.accept(bitmap);
         });

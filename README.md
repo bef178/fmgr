@@ -1,6 +1,6 @@
 # fmgr
 
-It is a fast, solid, clean, and intuitive file manager for Android.
+A fast, solid, clean, and intuitive file manager for Android.
 
 ## 特色功能
 
@@ -18,3 +18,14 @@ It is a fast, solid, clean, and intuitive file manager for Android.
 # adb install -r app/target/outputs/apk/debug/app-debug.apk
 adb shell am start -n pd.droidapp.fmgr/.FmgrActivity
 ```
+
+# glry
+
+A image viewer.
+
+## feature
+
+- 原图太大则采样
+- 双指缩放旋转
+- 三指翻页
+- 双击在默认比例及 1:1 之间切换
