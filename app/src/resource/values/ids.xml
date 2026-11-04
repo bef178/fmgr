@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <item name="action_start" type="id" />
+    <item name="action_copy" type="id" />
     <item name="action_delete" type="id" />
     <item name="action_delete_up" type="id" />
+    <item name="action_edit" type="id" />
+    <item name="action_move" type="id" />
+    <item name="action_new_file" type="id" />
+    <item name="action_new_directory" type="id" />
+    <item name="action_pick_directory" type="id" />
+    <item name="action_rename" type="id" />
     <item name="action_abort" type="id" />
     <item name="action_close" type="id" />
 </resources>

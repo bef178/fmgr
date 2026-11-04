@@ -46,8 +46,6 @@ public class FindDupPopup extends ProcessingPopup {
 
     // callbacks
     private Consumer<String> onJump;
-    private Consumer<Collection<FileProperties>> onCopy;
-    private Consumer<Collection<FileProperties>> onCut;
     private PopupOnDismissedListener onPopupDismissed;
 
     private FindDupWorker worker;
@@ -98,14 +96,6 @@ public class FindDupPopup extends ProcessingPopup {
                     }
                     selfDialog.dismiss();
                 }
-            } else if (id == R.drawable.ia_copy_24) {
-                if (onCopy != null) {
-                    onCopy.accept(getSelectedItems());
-                }
-            } else if (id == R.drawable.ia_move_24) {
-                if (onCut != null) {
-                    onCut.accept(getSelectedItems());
-                }
             } else if (id == R.drawable.ia_delete_24) {
                 DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems());
                 deletePopup.whenPopupDismissed((added, removed) -> {
@@ -145,8 +135,6 @@ public class FindDupPopup extends ProcessingPopup {
         int numSelected = selectedPaths.size();
         selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.ic_arrow_right_24, numSelected == 1),
-                new ButtonState(R.drawable.ia_copy_24, numSelected > 0),
-                new ButtonState(R.drawable.ia_move_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_delete_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_select_all_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_xmark_24, numSelected > 0)));
@@ -182,14 +170,6 @@ public class FindDupPopup extends ProcessingPopup {
 
     public void whenJumpClicked(Consumer<String> onJump) {
         this.onJump = onJump;
-    }
-
-    public void whenCopyClicked(Consumer<Collection<FileProperties>> onCopy) {
-        this.onCopy = onCopy;
-    }
-
-    public void whenCutClicked(Consumer<Collection<FileProperties>> onCut) {
-        this.onCut = onCut;
     }
 
     public void whenPopupDismissed(PopupOnDismissedListener onPopupDismissed) {
@@ -249,7 +229,7 @@ public class FindDupPopup extends ProcessingPopup {
         boolean isProcessing = worker != null && worker.isWorking();
         bottomBar.render(new PopupBottomBar.State(
                 new ButtonState(R.id.action_abort, R.drawable.ic_blockmark_24, isProcessing, isProcessing && !worker.isCancelled()),
-                new ButtonState(R.id.action_close, R.drawable.ic_xmark_24, worker != null && !worker.isWorking(), true)));
+                new ButtonState(R.id.action_close, R.drawable.ic_checkmark_24, worker != null && !worker.isWorking(), true)));
     }
 
     private void start() {

@@ -395,8 +395,8 @@ public class BrowseFragment extends Fragment {
         int numSelected = selectedPaths.size();
         selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.ia_rename_24, numSelected == 1),
-                new ButtonState(R.drawable.ia_copy_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_move_24, numSelected > 0),
+                new ButtonState(R.drawable.ia_copy_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_delete_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_select_all_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_xmark_24, numSelected > 0)));
@@ -749,8 +749,6 @@ public class BrowseFragment extends Fragment {
     private void showFindDupPopup() {
         FindDupPopup popup = new FindDupPopup(getView(), navigator.getCurrentDirectory());
         popup.whenJumpClicked(this::jumpTo);
-        popup.whenCopyClicked(items -> showPastePopup(items, true));
-        popup.whenCutClicked(items -> showPastePopup(items, false));
         popup.whenPopupDismissed(this::onPopupDismissed);
         popup.show();
     }

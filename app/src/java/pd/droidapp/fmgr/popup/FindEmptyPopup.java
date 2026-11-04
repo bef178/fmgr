@@ -256,7 +256,7 @@ public class FindEmptyPopup extends ProcessingPopup {
         boolean isProcessing = worker != null && worker.isWorking();
         bottomBar.render(new PopupBottomBar.State(
                 new ButtonState(R.id.action_abort, R.drawable.ic_blockmark_24, isProcessing, isProcessing && !worker.isCancelled()),
-                new ButtonState(R.id.action_close, R.drawable.ic_xmark_24, worker != null && !worker.isWorking(), true)));
+                new ButtonState(R.id.action_close, R.drawable.ic_checkmark_24, worker != null && !worker.isWorking(), true)));
     }
 
     private void start() {

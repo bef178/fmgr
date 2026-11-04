@@ -221,8 +221,8 @@ public class SearchPopup extends ProcessingPopup {
         int numSelected = selectedPaths.size();
         selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.ic_arrow_right_24, numSelected == 1),
-                new ButtonState(R.drawable.ia_copy_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_move_24, numSelected > 0),
+                new ButtonState(R.drawable.ia_copy_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_delete_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_select_all_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_xmark_24, numSelected > 0)));
@@ -352,7 +352,7 @@ public class SearchPopup extends ProcessingPopup {
         boolean isProcessing = worker != null && worker.isWorking();
         bottomBar.render(new PopupBottomBar.State(
                 new ButtonState(R.id.action_abort, R.drawable.ic_blockmark_24, worker == null || isProcessing, isProcessing && !worker.isCancelled()),
-                new ButtonState(R.id.action_close, R.drawable.ic_xmark_24, worker != null && !worker.isWorking(), true)));
+                new ButtonState(R.id.action_close, R.drawable.ic_checkmark_24, worker != null && !worker.isWorking(), true)));
     }
 
     private void start() {

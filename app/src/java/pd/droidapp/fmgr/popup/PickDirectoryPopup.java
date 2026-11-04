@@ -1,11 +1,7 @@
 package pd.droidapp.fmgr.popup;
 
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
-import android.widget.LinearLayout;
-import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -58,7 +54,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
 
         // init views
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.id.action_start) {
+            if (id == R.id.action_pick_directory) {
                 if (onDirectorySelected != null) {
                     onDirectorySelected.accept(targetDirectory);
                 }
@@ -71,17 +67,8 @@ public class PickDirectoryPopup extends ProcessingPopup {
 
     @Override
     protected void inflateContentView() {
-        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) contentView.getLayoutParams();
-        params.width = context.getResources().getDimensionPixelSize(R.dimen.processing_popup_width);
-        params.height = context.getResources().getDimensionPixelSize(R.dimen.directory_picker_popup_content_height);
-        contentView.setLayoutParams(params);
-        LayoutInflater.from(context).inflate(R.layout.directory_picker_popup_content, contentView, true);
-    }
-
-    @Override
-    protected void setupDialogWindow(@NonNull Window window) {
-        window.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        window.getAttributes().y = context.getResources().getDimensionPixelSize(R.dimen.directory_picker_popup_top_margin);
+        super.inflateContentView();
+        LayoutInflater.from(context).inflate(R.layout.pick_directory_popup_content, contentView, true);
     }
 
     private void initStatusBar() {
@@ -199,8 +186,8 @@ public class PickDirectoryPopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
-        titleBar.render(new PopupTitleBar.State(context.getString(R.string.select_directory)));
-        bottomBar.render(new PopupBottomBar.State(new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, true, true)));
+        titleBar.render(new PopupTitleBar.State(context.getString(R.string.pick_directory)));
+        bottomBar.render(new PopupBottomBar.State(new ButtonState(R.id.action_pick_directory, R.drawable.ia_pick_directory_24, true, true)));
 
         changeDirectory(targetDirectory, () -> itemAdapter.render(new FileItemAdapter.ScrollToAndHighlightEvent(
                 firstSource, context.getColor(R.color.purple_50))));

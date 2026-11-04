@@ -45,7 +45,7 @@ import static pd.droidapp.fmgr.util.Util.scrollToIndex;
 
 public class PastePopup extends ProcessingPopup {
 
-    private final boolean isCopy;
+    private final Preset preset;
     private final List<FileProperties> srcItems;
     private final String startDirectory;
     private final Map<String, ProcessingStatus> badgeStates = new HashMap<>();
@@ -78,14 +78,12 @@ public class PastePopup extends ProcessingPopup {
 
     public PastePopup(View containerView, boolean isCopy, Collection<FileProperties> srcItems, String dstDirectory) {
         super(containerView);
-        this.isCopy = isCopy;
+        this.preset = isCopy ? Preset.COPY : Preset.MOVE;
         this.dstDirectory = dstDirectory;
         this.srcItems = new LinkedList<>(srcItems);
         this.startDirectory = PathOps.singleton.dirname(this.srcItems.get(0).path);
 
-        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), isCopy
-                ? R.drawable.ia_copy_24
-                : R.drawable.ia_move_24);
+        statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), preset.drawableId);
         targetDirectoryTextView = contentView.findViewById(R.id.target_directory);
         targetDirectoryScrollView = contentView.findViewById(R.id.target_directory_scroll);
         changeDirectoryButton = contentView.findViewById(R.id.change_directory);
@@ -96,7 +94,7 @@ public class PastePopup extends ProcessingPopup {
         itemAdapter = new FileItemAdapter();
 
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.id.action_start) {
+            if (id == preset.actionId) {
                 start();
             } else if (id == R.id.action_abort) {
                 if (worker != null) {
@@ -217,7 +215,7 @@ public class PastePopup extends ProcessingPopup {
 
     @Override
     protected void onShow() {
-        titleBar.render(new PopupTitleBar.State(context.getString(isCopy ? R.string.copy : R.string.move)));
+        titleBar.render(new PopupTitleBar.State(context.getString(preset.titleStringId)));
         renderStatusBar(StatusBar.IconStatus.IDLE);
         renderBottomBar();
 
@@ -256,9 +254,9 @@ public class PastePopup extends ProcessingPopup {
     private void renderBottomBar() {
         boolean isProcessing = worker != null && worker.isWorking();
         bottomBar.render(new PopupBottomBar.State(
-                new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, worker == null, true),
+                new ButtonState(preset.actionId, preset.drawableId, worker == null, true),
                 new ButtonState(R.id.action_abort, R.drawable.ic_blockmark_24, isProcessing, isProcessing && !worker.isCancelled()),
-                new ButtonState(R.id.action_close, R.drawable.ic_xmark_24, worker != null && !worker.isWorking(), true)));
+                new ButtonState(R.id.action_close, R.drawable.ic_checkmark_24, worker != null && !worker.isWorking(), true)));
     }
 
     private void start() {
@@ -350,7 +348,7 @@ public class PastePopup extends ProcessingPopup {
             renderStatusBar(reason == StopReason.COMPLETED ? StatusBar.IconStatus.COMPLETED : StatusBar.IconStatus.STOPPED);
             renderBottomBar();
         }));
-        if (isCopy) {
+        if (preset == Preset.COPY) {
             worker.startCopy(srcItems, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
         } else {
             worker.startCut(srcItems, dstDirectory, resolution, mergeDirectoriesCheckBox.isChecked());
@@ -411,6 +409,22 @@ public class PastePopup extends ProcessingPopup {
         }
         if (followProgress) {
             scrollToIndex(itemsView, current);
+        }
+    }
+
+    private enum Preset {
+
+        COPY(R.id.action_copy, R.drawable.ia_copy_24, R.string.copy),
+        MOVE(R.id.action_move, R.drawable.ia_move_24, R.string.move);
+
+        final int actionId;
+        final int drawableId;
+        final int titleStringId;
+
+        Preset(int actionId, int drawableId, int titleStringId) {
+            this.actionId = actionId;
+            this.drawableId = drawableId;
+            this.titleStringId = titleStringId;
         }
     }
 }

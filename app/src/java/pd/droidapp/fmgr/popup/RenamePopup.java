@@ -48,6 +48,8 @@ import static pd.droidapp.fmgr.view.FileItemBar.ProcessingStatus;
  */
 public class RenamePopup extends ProcessingPopup {
 
+    private static final long COMPLETION_CLOSE_DELAY = 200;
+
     private final String srcItem;
     private final boolean isDirectory;
     private final String mimeType;
@@ -80,14 +82,14 @@ public class RenamePopup extends ProcessingPopup {
         itemAdapter = new FileItemAdapter();
 
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.id.action_start) {
+            if (id == R.id.action_rename) {
                 start();
             } else if (id == R.id.action_close) {
                 selfDialog.dismiss();
             }
         });
 
-        initNameEdit();
+        initTextEdit();
         initItemsView();
     }
 
@@ -117,7 +119,7 @@ public class RenamePopup extends ProcessingPopup {
         }
     }
 
-    private void initNameEdit() {
+    private void initTextEdit() {
         targetNameEditView.setText(suggestNewName(PathOps.singleton.basename(srcItem)));
         targetNameEditView.setHint(PathOps.singleton.basename(srcItem));
         targetNameEditView.addTextChangedListener(new TextWatcher() {
@@ -193,9 +195,9 @@ public class RenamePopup extends ProcessingPopup {
 
     private void renderBottomBar() {
         bottomBar.render(new PopupBottomBar.State(
-                new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, worker == null && netAdded == null, canStart()),
+                new ButtonState(R.id.action_rename, R.drawable.ia_rename_24, worker == null && netAdded == null, canStart()),
                 new ButtonState(R.id.action_abort, R.drawable.ic_blockmark_24, worker != null, false),
-                new ButtonState(R.id.action_close, R.drawable.ic_xmark_24, netAdded != null, true)));
+                new ButtonState(R.id.action_close, R.drawable.ic_checkmark_24, netAdded != null, true)));
     }
 
     private void renderItems() {
@@ -269,6 +271,7 @@ public class RenamePopup extends ProcessingPopup {
                 renderStatusBar(StatusBar.IconStatus.COMPLETED);
                 renderBottomBar();
                 renderItems();
+                containerView.postDelayed(selfDialog::dismiss, COMPLETION_CLOSE_DELAY);
                 return;
             }
             Toast.makeText(context, R.string.error_rename_failed, Toast.LENGTH_SHORT).show();

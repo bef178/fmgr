@@ -36,7 +36,7 @@ public abstract class EditPopup extends ProcessingPopup {
         textEditView.setHint(hintText);
 
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.id.action_start) {
+            if (id == R.id.action_edit) {
                 if (onStart(getInputText())) {
                     selfDialog.dismiss();
                 }
@@ -111,12 +111,11 @@ public abstract class EditPopup extends ProcessingPopup {
         renderBottomBar();
 
         textEditView.requestFocus();
-        textEditView.selectAll();
     }
 
     private void renderBottomBar() {
         bottomBar.render(new PopupBottomBar.State(
-                new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, true, canStart(getInputText()))));
+                new ButtonState(R.id.action_edit, R.drawable.ic_pencil_24, true, canStart(getInputText()))));
     }
 
     protected boolean canStart(String text) {

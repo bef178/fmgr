@@ -37,8 +37,6 @@
             android:layout_height="32dp"
             android:layout_gravity="end|center_vertical"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="6dp"
-            android:scaleType="fitCenter"
             android:src="@drawable/ic_backspace_24"
             tools:ignore="ContentDescription" />
 
