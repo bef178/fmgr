@@ -37,7 +37,6 @@ public class DeletePopup extends ProcessingPopup {
 
     private final String startDirectory;
     private final List<FileProperties> srcItems;
-    private final boolean prune;
     private final Map<String, ProcessingStatus> badgeStates = new HashMap<>();
 
     // views
@@ -56,19 +55,20 @@ public class DeletePopup extends ProcessingPopup {
     private boolean followProgress = true;
     private boolean touching;
 
-    public DeletePopup(View containerView, String startDirectory, Collection<FileProperties> srcItems, boolean prune) {
+    public DeletePopup(View containerView, String startDirectory, Collection<FileProperties> srcItems) {
         super(containerView);
         this.startDirectory = startDirectory;
         this.srcItems = new LinkedList<>(srcItems);
-        this.prune = prune;
 
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ia_delete_24);
         itemsView = contentView.findViewById(R.id.popup_items_list);
         itemAdapter = new FileItemAdapter();
 
         bottomBar.whenButtonClicked(id -> {
-            if (id == R.id.action_start) {
-                start();
+            if (id == R.id.action_delete) {
+                start(false);
+            } else if (id == R.id.action_delete_up) {
+                start(true);
             } else if (id == R.id.action_abort) {
                 if (worker != null) {
                     worker.cancel();
@@ -188,12 +188,13 @@ public class DeletePopup extends ProcessingPopup {
     private void renderBottomBar() {
         boolean isProcessing = worker != null && worker.isWorking();
         bottomBar.render(new PopupBottomBar.State(
-                new ButtonState(R.id.action_start, R.drawable.ic_checkmark_24, worker == null, true),
+                new ButtonState(R.id.action_delete_up, R.drawable.ia_delete_up_24, worker == null, true),
+                new ButtonState(R.id.action_delete, R.drawable.ia_delete_24, worker == null, true),
                 new ButtonState(R.id.action_abort, R.drawable.ic_blockmark_24, isProcessing, isProcessing && !worker.isCancelled()),
-                new ButtonState(R.id.action_close, R.drawable.ic_xmark_24, worker != null && !worker.isWorking(), true)));
+                new ButtonState(R.id.action_close, R.drawable.ic_checkmark_24, worker != null && !worker.isWorking(), true)));
     }
 
-    private void start() {
+    private void start(boolean prune) {
         worker = new DeleteWorker();
         worker.whenStarted(() -> containerView.post(() -> {
             renderStatusBar(StatusBar.IconStatus.RUNNING);

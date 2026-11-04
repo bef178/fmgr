@@ -5,7 +5,6 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Environment;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -40,6 +39,8 @@ import java.util.stream.Collectors;
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.util.PathOps;
+
+import static pd.droidapp.fmgr.util.PathNavigator.CAPPING_DIRECTORY;
 
 public class Util {
 
@@ -135,7 +136,7 @@ public class Util {
      * `/storage/emulated/0/xxx` => `/xxx`
      */
     public static String getDisplayPath(String path) {
-        String rootPath = Environment.getExternalStorageDirectory().getPath();
+        String rootPath = CAPPING_DIRECTORY;
         if (path.equals(rootPath)) {
             return "/";
         }

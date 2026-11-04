@@ -695,7 +695,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void showDeletePopup(Collection<FileProperties> srcItems) {
-        DeletePopup deletePopup = new DeletePopup(getView(), navigator.getCurrentDirectory(), srcItems, false);
+        DeletePopup deletePopup = new DeletePopup(getView(), navigator.getCurrentDirectory(), srcItems);
         deletePopup.whenPopupDismissed((added, removed) -> {
             onPopupDismissed(added, removed);
             if (!added.isEmpty() || !removed.isEmpty()) {

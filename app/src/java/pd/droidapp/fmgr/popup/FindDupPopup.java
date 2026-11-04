@@ -107,7 +107,7 @@ public class FindDupPopup extends ProcessingPopup {
                     onCut.accept(getSelectedItems());
                 }
             } else if (id == R.drawable.ia_delete_24) {
-                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), false);
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems());
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
                     for (FileProperties item : removed) {

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="action_start" type="id" />
+    <item name="action_delete" type="id" />
+    <item name="action_delete_up" type="id" />
     <item name="action_abort" type="id" />
     <item name="action_close" type="id" />
 </resources>

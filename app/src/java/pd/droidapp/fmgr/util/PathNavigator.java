@@ -12,6 +12,8 @@ public class PathNavigator implements Serializable {
 
     private static final long serialVersionUID = -1;
 
+    public static final String CAPPING_DIRECTORY = Environment.getExternalStorageDirectory().getPath();
+
     private DirectoryScrollState current;
     private final Stack<DirectoryScrollState> backStack = new Stack<>();
     private final Stack<DirectoryScrollState> forwardStack = new Stack<>();
@@ -86,22 +88,16 @@ public class PathNavigator implements Serializable {
     }
 
     public boolean canGoUp() {
-        String currentDirectory = getCurrentDirectory();
-        if (currentDirectory == null) {
-            return false;
-        }
-        String parent = PathOps.singleton.dirname(currentDirectory);
-        return !parent.equals(currentDirectory) && isAccessible(parent)
-                && !Environment.getExternalStorageDirectory().getPath().equals(currentDirectory);
+        return getAccessibleUpDirectory(getCurrentDirectory()) != null;
     }
 
     public boolean goUp() {
-        if (!canGoUp()) {
+        String d = getAccessibleUpDirectory(getCurrentDirectory());
+        if (d == null) {
             return false;
         }
-        String parent = PathOps.singleton.dirname(getCurrentDirectory());
-        DirectoryScrollState recent = findRecentMatchedBackScrollState(parent);
-        if (navigateTo(parent)) {
+        DirectoryScrollState recent = findRecentMatchedBackScrollState(d);
+        if (navigateTo(d)) {
             if (recent != null) {
                 current.scrollPosition = recent.scrollPosition;
                 current.scrollOffset = recent.scrollOffset;
@@ -109,6 +105,26 @@ public class PathNavigator implements Serializable {
             return true;
         }
         return false;
+    }
+
+    private String getAccessibleUpDirectory(String directory) {
+        if (directory == null) {
+            return null;
+        }
+        String path = directory;
+        while (true) {
+            if (CAPPING_DIRECTORY.equals(path)) {
+                return null;
+            }
+            String parent = PathOps.singleton.dirname(path);
+            if (parent.equals(path)) {
+                return null;
+            }
+            if (isAccessible(parent)) {
+                return parent;
+            }
+            path = parent;
+        }
     }
 
     private DirectoryScrollState findRecentMatchedBackScrollState(String path) {

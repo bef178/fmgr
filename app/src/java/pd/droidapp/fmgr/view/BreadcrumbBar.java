@@ -1,7 +1,6 @@
 package pd.droidapp.fmgr.view;
 
 import android.content.Context;
-import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageButton;
@@ -16,9 +15,9 @@ import java.util.Objects;
 import pd.droidapp.fmgr.R;
 import pd.util.PathOps;
 
-public class BreadcrumbBar {
+import static pd.droidapp.fmgr.util.PathNavigator.CAPPING_DIRECTORY;
 
-    private static final String CAPPING_DIRECTORY = Environment.getExternalStorageDirectory().getPath();
+public class BreadcrumbBar {
 
     private Consumer<String> onBreadcrumbItemClicked;
     private Runnable onStarIconClicked;

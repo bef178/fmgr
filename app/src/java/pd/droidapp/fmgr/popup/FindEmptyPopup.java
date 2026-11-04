@@ -90,15 +90,7 @@ public class FindEmptyPopup extends ProcessingPopup {
                     selfDialog.dismiss();
                 }
             } else if (id == R.drawable.ia_delete_24) {
-                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), false);
-                deletePopup.whenPopupDismissed((added, removed) -> {
-                    netRemoved.addAll(removed);
-                    removeItems(removed);
-                    deselect(removed);
-                });
-                deletePopup.show();
-            } else if (id == R.drawable.ia_delete_up_24) {
-                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems(), true);
+                DeletePopup deletePopup = new DeletePopup(containerView, startDirectory, getSelectedItems());
                 deletePopup.whenPopupDismissed((added, removed) -> {
                     netRemoved.addAll(removed);
                     removeItems(removed);
@@ -152,7 +144,6 @@ public class FindEmptyPopup extends ProcessingPopup {
         selectionBar.render(new SelectionBar.State(numSelected,
                 new ButtonState(R.drawable.ic_arrow_right_24, numSelected == 1),
                 new ButtonState(R.drawable.ia_delete_24, numSelected > 0),
-                new ButtonState(R.drawable.ia_delete_up_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_select_all_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_xmark_24, numSelected > 0)));
     }

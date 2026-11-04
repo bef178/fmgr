@@ -1,6 +1,5 @@
 package pd.droidapp.fmgr.popup;
 
-import android.os.Environment;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,11 +28,10 @@ import pd.droidapp.fmgr.view.StatusBar;
 import pd.droidapp.fmgr.view.StatusBar.State;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.util.PathNavigator.CAPPING_DIRECTORY;
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 
 public class PickDirectoryPopup extends ProcessingPopup {
-
-    private static final String CAPPING_DIRECTORY = Environment.getExternalStorageDirectory().getPath();
 
     private String targetDirectory;
     private ListDirectoryWorker worker;

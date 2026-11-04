@@ -9,6 +9,7 @@ import java.util.Map;
 
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.util.FileOps;
+import pd.util.PathOps;
 
 import static java.util.AbstractMap.SimpleEntry;
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
@@ -33,6 +34,12 @@ public class DeleteWorker extends ProcessingWorker {
                 break;
             default:
                 break;
+        }
+    };
+
+    private final FileOps.OnActionListener onPruneAction = (action, src, dst, succeeded) -> {
+        if (action == FileOps.Action.REMOVE && succeeded != null && succeeded) {
+            accumulate(DeleteAction.REMOVE, src, true);
         }
     };
 
@@ -67,9 +74,13 @@ public class DeleteWorker extends ProcessingWorker {
                 String src = item.path;
                 boolean succeeded;
                 if (Files.isDirectory(Paths.get(src), LinkOption.NOFOLLOW_LINKS)) {
-                    succeeded = FileOps.singleton.removeDirectory(src, true, prune, cancelRequested, onAction);
+                    succeeded = FileOps.singleton.removeDirectory(src, true, false, cancelRequested, onAction);
                 } else {
                     succeeded = FileOps.singleton.removeFile(src, onAction);
+                }
+                if (succeeded && prune) {
+                    FileOps.singleton.removeDirectory(PathOps.singleton.dirname(src), false, true,
+                            cancelRequested, onPruneAction);
                 }
                 if (!succeeded && isCancelled()) {
                     accumulate(DeleteAction.PROGRESS, src, null);
