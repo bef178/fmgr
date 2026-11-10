@@ -134,6 +134,12 @@ public class ButtonScrollView extends HorizontalScrollView {
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        post(updateVisibilityRunnable);
+    }
+
+    @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         removeCallbacks(updateVisibilityRunnable);
