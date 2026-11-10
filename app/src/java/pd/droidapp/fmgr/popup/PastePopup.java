@@ -221,17 +221,16 @@ public class PastePopup extends ProcessingPopup {
 
         List<FileItemBar.State> states = new ArrayList<>(srcItems.size());
         for (int i = 0; i < srcItems.size(); i++) {
-            states.add(buildState(srcItems.get(i), i + 1));
+            states.add(buildState(srcItems.get(i)));
         }
         itemAdapter.render(states);
     }
 
-    private FileItemBar.State buildState(FileProperties item, int index) {
+    private FileItemBar.State buildState(FileProperties item) {
         return new FileItemBar.State(
                 item.path,
                 PathOps.singleton.relativize(startDirectory, item.path),
                 null,
-                String.valueOf(index),
                 getDrawableId(context, item),
                 true,
                 badgeStates.getOrDefault(item.path, ProcessingStatus.NONE));
@@ -284,7 +283,7 @@ public class PastePopup extends ProcessingPopup {
         worker.whenStarted(() -> containerView.post(() -> {
             renderStatusBar(StatusBar.IconStatus.RUNNING);
             badgeStates.put(srcItems.get(0).path, ProcessingStatus.RUNNING);
-            itemAdapter.update(0, buildState(srcItems.get(0), 1));
+            itemAdapter.update(0, buildState(srcItems.get(0)));
         }));
         worker.whenUpdated((added, removed, moved, failed, progressed) -> containerView.post(() -> {
             for (FileProperties item : added) {
@@ -329,12 +328,12 @@ public class PastePopup extends ProcessingPopup {
                             badgeState = ProcessingStatus.FAILED;
                         }
                         badgeStates.put(path, badgeState);
-                        itemAdapter.update(itemIndex, buildState(srcItems.get(itemIndex), itemIndex + 1));
+                        itemAdapter.update(itemIndex, buildState(srcItems.get(itemIndex)));
                         if (succeeded != null) {
                             totalProcessed++;
                             if (itemIndex + 1 < srcItems.size()) {
                                 badgeStates.put(srcItems.get(itemIndex + 1).path, ProcessingStatus.RUNNING);
-                                itemAdapter.update(itemIndex + 1, buildState(srcItems.get(itemIndex + 1), itemIndex + 2));
+                                itemAdapter.update(itemIndex + 1, buildState(srcItems.get(itemIndex + 1)));
                                 currentProgress = itemIndex + 1;
                             }
                         }

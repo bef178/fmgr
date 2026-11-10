@@ -347,7 +347,6 @@ public class BrowseFragment extends Fragment {
                 item.path,
                 PathOps.singleton.basename(item.path),
                 getItemDetailsString(item),
-                null,
                 getDrawableId(requireContext(), item),
                 selectedPaths.contains(item.path));
     }

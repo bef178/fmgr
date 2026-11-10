@@ -213,7 +213,6 @@ public class RenamePopup extends ProcessingPopup {
                 srcItem,
                 PathOps.singleton.basename(srcItem),
                 null,
-                "1",
                 getDrawableId(context, srcItem, isDirectory, mimeType),
                 true,
                 badgeState)));

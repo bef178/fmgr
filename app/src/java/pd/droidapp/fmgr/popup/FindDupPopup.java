@@ -296,7 +296,6 @@ public class FindDupPopup extends ProcessingPopup {
             itemStates[i] = new FileItemBar.State(item.path,
                     PathOps.singleton.relativize(startDirectory, item.path),
                     null,
-                    null,
                     getDrawableId(context, item),
                     selectedPaths.contains(item.path));
         }

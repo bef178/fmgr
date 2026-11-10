@@ -129,7 +129,7 @@ public class PickDirectoryPopup extends ProcessingPopup {
     private List<FileItemBar.State> buildStates(List<FileProperties> items) {
         List<FileItemBar.State> states = new LinkedList<>();
         for (FileProperties item : items) {
-            states.add(new FileItemBar.State(item.path, PathOps.singleton.basename(item.path), null, null,
+            states.add(new FileItemBar.State(item.path, PathOps.singleton.basename(item.path), null,
                     R.drawable.ic_directory_24, false));
         }
         return states;

@@ -27,7 +27,6 @@ public class FileItemBar {
     private final ButtonScrollView nameScrollView;
     private final TextView nameTextView;
     private final TextView summaryTextView;
-    private final TextView indexTextView;
 
     private State state;
 
@@ -40,7 +39,6 @@ public class FileItemBar {
         nameScrollView = selfView.findViewById(R.id.item_name_scroll);
         nameTextView = selfView.findViewById(R.id.item_name);
         summaryTextView = selfView.findViewById(R.id.item_summary);
-        indexTextView = selfView.findViewById(R.id.item_index);
     }
 
     public void whenClicked(Consumer<State> onClicked) {
@@ -89,10 +87,6 @@ public class FileItemBar {
 
         if (oldState == null || !Objects.equals(oldState.summary, state.summary)) {
             renderText(summaryTextView, state.summary);
-        }
-
-        if (oldState == null || !Objects.equals(oldState.index, state.index)) {
-            renderText(indexTextView, state.index);
         }
 
         if (oldState == null || oldState.highlightColor != state.highlightColor) {
@@ -157,36 +151,34 @@ public class FileItemBar {
         public final String itemId;
         public final String name;
         public final String summary;
-        public final String index;
         public final int drawableId;
         public final boolean selected;
         public final ProcessingStatus processingStatus;
         public final int highlightColor;
 
-        private State(String itemId, String name, String summary, String index, @DrawableRes int drawableId, boolean selected, ProcessingStatus processingStatus, int highlightColor) {
+        private State(String itemId, String name, String summary, @DrawableRes int drawableId, boolean selected, ProcessingStatus processingStatus, int highlightColor) {
             this.itemId = itemId;
             this.name = name;
             this.summary = summary;
-            this.index = index;
             this.drawableId = drawableId;
             this.selected = selected;
             this.processingStatus = processingStatus;
             this.highlightColor = highlightColor;
         }
 
-        public State(String itemId, String name, String summary, String index, @DrawableRes int drawableId, boolean selected) {
-            this(itemId, name, summary, index, drawableId, selected, null, Color.TRANSPARENT);
+        public State(String itemId, String name, String summary, @DrawableRes int drawableId, boolean selected) {
+            this(itemId, name, summary, drawableId, selected, null, Color.TRANSPARENT);
         }
 
-        public State(String itemId, String name, String summary, String index, @DrawableRes int drawableId, boolean selected, ProcessingStatus processingStatus) {
-            this(itemId, name, summary, index, drawableId, selected, processingStatus, Color.TRANSPARENT);
+        public State(String itemId, String name, String summary, @DrawableRes int drawableId, boolean selected, ProcessingStatus processingStatus) {
+            this(itemId, name, summary, drawableId, selected, processingStatus, Color.TRANSPARENT);
         }
 
         public State copyOfHighlightColor(int highlightColor) {
             if (highlightColor == this.highlightColor) {
                 return this;
             }
-            return new State(itemId, name, summary, index, drawableId, selected, processingStatus, highlightColor);
+            return new State(itemId, name, summary, drawableId, selected, processingStatus, highlightColor);
         }
 
         @Override
@@ -202,7 +194,6 @@ public class FileItemBar {
                     && Objects.equals(itemId, another.itemId)
                     && Objects.equals(name, another.name)
                     && Objects.equals(summary, another.summary)
-                    && Objects.equals(index, another.index)
                     && selected == another.selected
                     && processingStatus == another.processingStatus
                     && highlightColor == another.highlightColor;
@@ -210,7 +201,7 @@ public class FileItemBar {
 
         @Override
         public int hashCode() {
-            return Objects.hash(itemId, name, summary, index, drawableId, selected, processingStatus, highlightColor);
+            return Objects.hash(itemId, name, summary, drawableId, selected, processingStatus, highlightColor);
         }
     }
 

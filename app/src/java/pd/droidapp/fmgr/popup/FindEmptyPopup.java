@@ -117,24 +117,22 @@ public class FindEmptyPopup extends ProcessingPopup {
     }
 
     private void renderItems() {
-        itemAdapter.render(buildStates(items, 1));
+        itemAdapter.render(buildStates(items));
     }
 
-    private List<FileItemBar.State> buildStates(Collection<FileProperties> items, int startIndex) {
+    private List<FileItemBar.State> buildStates(Collection<FileProperties> items) {
         List<FileItemBar.State> states = new ArrayList<>(items.size());
-        int index = startIndex;
         for (FileProperties item : items) {
-            states.add(buildState(item, index++));
+            states.add(buildState(item));
         }
         return states;
     }
 
-    private FileItemBar.State buildState(FileProperties item, int index) {
+    private FileItemBar.State buildState(FileProperties item) {
         return new FileItemBar.State(
                 item.path,
                 PathOps.singleton.relativize(startDirectory, item.path),
                 null,
-                String.valueOf(index),
                 getDrawableId(context, item),
                 selectedPaths.contains(item.path));
     }
@@ -161,7 +159,7 @@ public class FindEmptyPopup extends ProcessingPopup {
         for (int i = 0; i < items.size(); i++) {
             FileProperties item = items.get(i);
             if (item.path.equals(path)) {
-                itemAdapter.update(i, buildState(item, i + 1));
+                itemAdapter.update(i, buildState(item));
                 break;
             }
         }
@@ -266,9 +264,8 @@ public class FindEmptyPopup extends ProcessingPopup {
         }));
         worker.whenUpdated((scanned, matched) -> containerView.post(() -> {
             totalScanned += scanned;
-            int startIndex = items.size() + 1;
             items.addAll(matched);
-            itemAdapter.append(buildStates(matched, startIndex));
+            itemAdapter.append(buildStates(matched));
             renderStatusBar(StatusBar.IconStatus.RUNNING);
         }));
         worker.whenStopped(reason -> containerView.post(() -> {
