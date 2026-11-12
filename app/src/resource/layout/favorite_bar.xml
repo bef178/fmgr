@@ -10,11 +10,12 @@
     <LinearLayout
         android:id="@+id/favorites_title_bar"
         android:layout_width="match_parent"
-        android:layout_height="32dp"
+        android:layout_height="36dp"
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="18dp"
+        android:paddingTop="4dp"
         android:paddingEnd="18dp">
 
         <ImageView
