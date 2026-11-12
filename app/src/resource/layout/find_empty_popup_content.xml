@@ -17,6 +17,7 @@
         android:layout_height="0dp"
         android:layout_marginTop="4dp"
         android:layout_weight="1"
+        android:divider="@drawable/item_divider"
         android:scrollbarStyle="insideOverlay"
         android:scrollbars="vertical" />
 

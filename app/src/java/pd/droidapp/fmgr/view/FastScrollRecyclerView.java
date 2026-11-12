@@ -9,10 +9,12 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewConfiguration;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -50,6 +52,15 @@ public class FastScrollRecyclerView extends RecyclerView {
     public FastScrollRecyclerView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         density = getResources().getDisplayMetrics().density;
+
+        TypedArray dividerAttrs = context.obtainStyledAttributes(attrs,
+                new int[] { android.R.attr.divider }, defStyleAttr, 0);
+        Drawable divider = dividerAttrs.getDrawable(0);
+        dividerAttrs.recycle();
+        if (divider != null) {
+            addItemDecoration(new DividerDecoration(divider));
+        }
+
         TypedArray a = context.obtainStyledAttributes(new int[] {
                 android.R.attr.scrollbarThumbVertical,
                 android.R.attr.scrollbarSize,
@@ -269,6 +280,37 @@ public class FastScrollRecyclerView extends RecyclerView {
         int delta = target - computeVerticalScrollOffset();
         if (delta != 0) {
             scrollBy(0, delta);
+        }
+    }
+
+    private static class DividerDecoration extends RecyclerView.ItemDecoration {
+
+        private final Drawable divider;
+        private final int height;
+
+        DividerDecoration(Drawable divider) {
+            this.divider = divider;
+            height = Math.max(0, divider.getIntrinsicHeight());
+        }
+
+        @Override
+        public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+            if (parent.getChildAdapterPosition(view) > 0) {
+                outRect.top = height;
+            }
+        }
+
+        @Override
+        public void onDraw(@NonNull Canvas canvas, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+            int left = parent.getPaddingLeft();
+            int right = parent.getWidth() - parent.getPaddingRight();
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                View child = parent.getChildAt(i);
+                if (parent.getChildAdapterPosition(child) > 0) {
+                    divider.setBounds(left, child.getTop() - height, right, child.getTop());
+                    divider.draw(canvas);
+                }
+            }
         }
     }
 }

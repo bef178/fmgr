@@ -58,7 +58,8 @@
         <pd.droidapp.fmgr.view.FastScrollRecyclerView
             android:id="@+id/items_list"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:divider="@drawable/item_divider" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 

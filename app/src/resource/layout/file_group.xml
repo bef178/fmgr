@@ -39,6 +39,8 @@
         android:id="@+id/group_items"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical" />
+        android:divider="@drawable/item_divider"
+        android:orientation="vertical"
+        android:showDividers="middle" />
 
 </LinearLayout>
