@@ -15,6 +15,8 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="@color/white"
         android:paddingStart="18dp"
         android:paddingEnd="12dp">
 
@@ -46,6 +48,7 @@
         android:id="@+id/popup_items_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="4dp"
         android:layout_weight="1"
         android:scrollbarStyle="insideOverlay"
         android:scrollbars="vertical" />

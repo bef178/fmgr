@@ -7,16 +7,16 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/grey_100"
-        android:orientation="vertical"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp">
+        android:layout_marginTop="4dp"
+        android:background="@color/white"
+        android:orientation="vertical">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="18dp"
+            android:layout_marginStart="22dp"
             android:layout_marginEnd="12dp"
+            android:paddingTop="4dp"
             android:text="@string/target_name"
             android:textColor="@color/grey_700"
             android:textSize="11sp" />
@@ -25,7 +25,7 @@
             android:id="@+id/target_name_scroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="18dp"
+            android:layout_marginStart="22dp"
             android:layout_marginEnd="12dp"
             android:buttonTint="@color/purple_200"
             android:scrollbars="horizontal"
@@ -37,7 +37,6 @@
                 android:layout_height="wrap_content"
                 android:maxLines="1"
                 android:textSize="14sp" />
-
         </pd.droidapp.fmgr.view.ButtonScrollView>
 
         <EditText
@@ -59,6 +58,7 @@
         android:id="@+id/popup_items_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="4dp"
         android:layout_weight="1"
         android:scrollbarStyle="insideOverlay"
         android:scrollbars="vertical" />

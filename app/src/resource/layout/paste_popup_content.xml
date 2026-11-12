@@ -6,11 +6,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/grey_100"
+        android:layout_marginTop="4dp"
+        android:background="@color/white"
         android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp">
+        android:orientation="horizontal">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -23,6 +22,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="18dp"
                 android:layout_marginEnd="12dp"
+                android:paddingTop="4dp"
                 android:text="@string/target_directory"
                 android:textColor="@color/grey_700"
                 android:textSize="11sp" />
@@ -61,16 +61,16 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/grey_200"
-        android:orientation="vertical"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp">
+        android:layout_marginTop="4dp"
+        android:background="@color/white"
+        android:orientation="vertical">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="18dp"
             android:layout_marginEnd="12dp"
+            android:paddingTop="4dp"
             android:text="@string/on_conflict"
             android:textColor="@color/grey_700"
             android:textSize="11sp" />
@@ -149,6 +149,7 @@
         android:id="@+id/popup_items_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="4dp"
         android:layout_weight="1"
         android:scrollbarStyle="insideOverlay"
         android:scrollbars="vertical" />

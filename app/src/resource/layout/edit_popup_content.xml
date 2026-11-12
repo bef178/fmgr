@@ -2,17 +2,25 @@
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <EditText
-        android:id="@+id/popup_edit"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="18dp"
-        android:layout_marginEnd="18dp"
-        android:imeOptions="actionDone"
-        android:inputType="text"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp"
-        android:singleLine="true"
-        tools:ignore="Autofill,LabelFor,TextFields" />
+        android:layout_marginTop="4dp"
+        android:background="@color/white">
+
+        <EditText
+            android:id="@+id/popup_edit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="18dp"
+            android:layout_marginEnd="18dp"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:singleLine="true"
+            tools:ignore="Autofill,LabelFor,TextFields" />
+
+    </FrameLayout>
 
 </merge>

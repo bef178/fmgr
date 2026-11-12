@@ -100,8 +100,6 @@ public abstract class ProcessingPopup {
         });
         Window window = selfDialog.getWindow();
         if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            window.setDimAmount(0.5f);
             setupDialogWindow(window);
         }
     }
