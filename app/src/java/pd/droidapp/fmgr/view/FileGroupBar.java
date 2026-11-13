@@ -15,13 +15,11 @@ import java.util.Objects;
 import pd.droidapp.fmgr.R;
 
 import static pd.droidapp.fmgr.util.Util.animateCollapsed;
-import static pd.droidapp.fmgr.util.Util.renderText;
 
 public class FileGroupBar {
 
     private final ImageView triangleImageView;
     private final TextView titleTextView;
-    private final TextView indexTextView;
     private final LinearLayout itemContainerView;
     private final List<FileItemBar> itemBars = new ArrayList<>();
 
@@ -36,7 +34,6 @@ public class FileGroupBar {
     public FileGroupBar(View selfView) {
         triangleImageView = selfView.findViewById(R.id.group_triangle);
         titleTextView = selfView.findViewById(R.id.group_title);
-        indexTextView = selfView.findViewById(R.id.group_index);
         itemContainerView = selfView.findViewById(R.id.group_items);
 
         selfView.findViewById(R.id.group_title_bar).setOnClickListener(v -> {
@@ -78,10 +75,6 @@ public class FileGroupBar {
 
         if (oldState == null || !Objects.equals(oldState.title, state.title)) {
             titleTextView.setText(state.title);
-        }
-
-        if (oldState == null || !Objects.equals(oldState.index, state.index)) {
-            renderText(indexTextView, state.index);
         }
 
         triangleImageView.setRotation(state.collapsed ? -90f : 0f);
@@ -136,14 +129,12 @@ public class FileGroupBar {
 
         public final String groupId;
         public final String title;
-        public final String index;
         public final boolean collapsed;
         public final List<FileItemBar.State> itemStates;
 
-        public State(String groupId, String title, String index, boolean collapsed, List<FileItemBar.State> itemStates) {
+        public State(String groupId, String title, boolean collapsed, List<FileItemBar.State> itemStates) {
             this.groupId = groupId;
             this.title = title;
-            this.index = index;
             this.collapsed = collapsed;
             this.itemStates = itemStates;
         }

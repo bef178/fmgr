@@ -125,7 +125,7 @@ public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.View
     @Override
     public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
         State state = states.get(position);
-        viewHolder.groupBar.render(new FileGroupBar.State(state.id, state.title, String.valueOf(position + 1),
+        viewHolder.groupBar.render(new FileGroupBar.State(state.id, state.title,
                 collapsedGroups.contains(state.id), state.itemStates));
     }
 
