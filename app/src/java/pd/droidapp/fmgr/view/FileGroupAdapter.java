@@ -10,9 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import pd.droidapp.fmgr.R;
@@ -21,7 +19,6 @@ public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.View
 
     private Consumer<String> onItemClicked;
     private Consumer<String> onItemLongClicked;
-    private final Set<String> collapsedGroups = new HashSet<>();
 
     private List<State> states = new ArrayList<>();
 
@@ -100,15 +97,6 @@ public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.View
         View groupView = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.file_group, parent, false);
         ViewHolder viewHolder = new ViewHolder(groupView);
-        viewHolder.groupBar.whenTitleClicked(state -> {
-            boolean futureCollapsed = !collapsedGroups.contains(state.groupId);
-            if (futureCollapsed) {
-                collapsedGroups.add(state.groupId);
-            } else {
-                collapsedGroups.remove(state.groupId);
-            }
-            viewHolder.groupBar.render(new FileGroupBar.CollapseEvent(futureCollapsed));
-        });
         viewHolder.groupBar.whenItemClicked(itemState -> {
             if (onItemClicked != null) {
                 onItemClicked.accept(itemState.itemId);
@@ -125,8 +113,7 @@ public class FileGroupAdapter extends RecyclerView.Adapter<FileGroupAdapter.View
     @Override
     public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
         State state = states.get(position);
-        viewHolder.groupBar.render(new FileGroupBar.State(state.id, state.title,
-                collapsedGroups.contains(state.id), state.itemStates));
+        viewHolder.groupBar.render(new FileGroupBar.State(state.title, state.itemStates));
     }
 
     @Override

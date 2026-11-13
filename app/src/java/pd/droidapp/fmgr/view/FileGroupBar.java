@@ -1,9 +1,7 @@
 package pd.droidapp.fmgr.view;
 
-import android.animation.ValueAnimator;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.core.util.Consumer;
@@ -14,40 +12,20 @@ import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
 
-import static pd.droidapp.fmgr.util.Util.animateCollapsed;
-
 public class FileGroupBar {
 
-    private final ImageView triangleImageView;
     private final TextView titleTextView;
     private final LinearLayout itemContainerView;
     private final List<FileItemBar> itemBars = new ArrayList<>();
 
-    private Consumer<State> onTitleClicked;
     private Consumer<FileItemBar.State> onItemClicked;
     private Consumer<FileItemBar.State> onItemLongClicked;
-
-    private ValueAnimator collapseAnimator;
 
     private State state;
 
     public FileGroupBar(View selfView) {
-        triangleImageView = selfView.findViewById(R.id.group_triangle);
         titleTextView = selfView.findViewById(R.id.group_title);
         itemContainerView = selfView.findViewById(R.id.group_items);
-
-        selfView.findViewById(R.id.group_title_bar).setOnClickListener(v -> {
-            if (collapseAnimator != null && collapseAnimator.isRunning()) {
-                return;
-            }
-            if (onTitleClicked != null) {
-                onTitleClicked.accept(state);
-            }
-        });
-    }
-
-    public void whenTitleClicked(Consumer<State> onTitleClicked) {
-        this.onTitleClicked = onTitleClicked;
     }
 
     public void whenItemClicked(Consumer<FileItemBar.State> onItemClicked) {
@@ -69,16 +47,9 @@ public class FileGroupBar {
         State oldState = this.state;
         this.state = state;
 
-        if (collapseAnimator != null && collapseAnimator.isRunning()) {
-            collapseAnimator.cancel();
-        }
-
         if (oldState == null || !Objects.equals(oldState.title, state.title)) {
             titleTextView.setText(state.title);
         }
-
-        triangleImageView.setRotation(state.collapsed ? -90f : 0f);
-        itemContainerView.setVisibility(state.collapsed ? View.GONE : View.VISIBLE);
 
         renderItems(state.itemStates);
     }
@@ -117,35 +88,14 @@ public class FileGroupBar {
         }
     }
 
-    public void render(CollapseEvent event) {
-        if (event == null) {
-            return;
-        }
-        collapseAnimator = animateCollapsed(triangleImageView, event.futureCollapsed,
-                () -> itemContainerView.setVisibility(event.futureCollapsed ? View.GONE : View.VISIBLE));
-    }
-
     public static class State {
 
-        public final String groupId;
         public final String title;
-        public final boolean collapsed;
         public final List<FileItemBar.State> itemStates;
 
-        public State(String groupId, String title, boolean collapsed, List<FileItemBar.State> itemStates) {
-            this.groupId = groupId;
+        public State(String title, List<FileItemBar.State> itemStates) {
             this.title = title;
-            this.collapsed = collapsed;
             this.itemStates = itemStates;
-        }
-    }
-
-    public static class CollapseEvent {
-
-        public final boolean futureCollapsed;
-
-        public CollapseEvent(boolean futureCollapsed) {
-            this.futureCollapsed = futureCollapsed;
         }
     }
 }
