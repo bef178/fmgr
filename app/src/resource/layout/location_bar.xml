@@ -10,11 +10,11 @@
     <LinearLayout
         android:id="@+id/locations_title_bar"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
+        android:layout_height="32dp"
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="18dp"
+        android:paddingStart="30dp"
         android:paddingTop="4dp"
         android:paddingEnd="18dp">
 
@@ -45,7 +45,7 @@
         <LinearLayout
             android:id="@+id/location_local_files"
             android:layout_width="match_parent"
-            android:layout_height="36dp"
+            android:layout_height="48dp"
             android:background="@drawable/item_background"
             android:gravity="center_vertical"
             android:orientation="horizontal">
@@ -53,7 +53,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="42dp"
+                android:layout_marginStart="54dp"
                 android:text="@string/local_files"
                 android:textSize="16sp"
                 android:textStyle="bold" />
