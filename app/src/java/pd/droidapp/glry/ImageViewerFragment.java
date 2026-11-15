@@ -19,6 +19,7 @@ import pd.droidapp.fmgr.fileheader.FileMimeUtil;
 import pd.droidapp.fmgr.popup.InfoPopup;
 import pd.droidapp.fmgr.repository.ListDirectoryWorker;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.view.ButtonScrollView;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.util.PathOps;
 
@@ -27,7 +28,7 @@ import static pd.droidapp.glry.ImagePagerAdapter.ResetPageEvent;
 import static pd.droidapp.glry.ImagePagerAdapter.ShowActualSizeEvent;
 import static pd.droidapp.glry.ImagePagerAdapter.State;
 
-public class ImageFragment extends Fragment {
+public class ImageViewerFragment extends Fragment {
 
     private static final String STATE_POSITION = "position";
 
@@ -36,6 +37,7 @@ public class ImageFragment extends Fragment {
     }
 
     private TextView titleView;
+    private ButtonScrollView titleScrollView;
     private TextView indexView;
     private TextView indexPlaceholderView;
     private ViewPager2 pagerView;
@@ -67,6 +69,7 @@ public class ImageFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         titleView = view.findViewById(R.id.image_viewer_title);
+        titleScrollView = view.findViewById(R.id.image_viewer_title_scroll);
         indexView = view.findViewById(R.id.image_viewer_index);
         indexPlaceholderView = view.findViewById(R.id.image_viewer_index_placeholder);
         pagerView = view.findViewById(R.id.image_viewer_pager);
@@ -180,6 +183,7 @@ public class ImageFragment extends Fragment {
 
     private void renderTitle(List<State> states, int position) {
         titleView.setText(PathOps.singleton.basename(states.get(position).path));
+        titleScrollView.scrollTo(0, 0);
         int total = states.size();
         indexView.setText(getString(R.string.x_of_y, position + 1, total));
 
@@ -238,6 +242,7 @@ public class ImageFragment extends Fragment {
         progressView = null;
         actionButtons = null;
         titleView = null;
+        titleScrollView = null;
         indexView = null;
         indexPlaceholderView = null;
     }

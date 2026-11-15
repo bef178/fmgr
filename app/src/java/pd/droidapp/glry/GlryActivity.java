@@ -16,7 +16,7 @@ public class GlryActivity extends AppCompatActivity {
     public static final String EXTRA_MIME = "mime";
 
     public static boolean supports(String mime) {
-        return ImageFragment.mimeSupports(mime);
+        return ImageViewerFragment.mimeSupports(mime);
     }
 
     @Override
@@ -32,7 +32,7 @@ public class GlryActivity extends AppCompatActivity {
             return;
         }
         String mimeType = FileMimeUtil.mimeByContent(path);
-        if (!ImageFragment.mimeSupports(mimeType)) {
+        if (!ImageViewerFragment.mimeSupports(mimeType)) {
             Toast.makeText(this, R.string.error_failed_to_load_image, Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -48,10 +48,10 @@ public class GlryActivity extends AppCompatActivity {
     }
 
     private Fragment createFragment(String path, String mimeType) {
-        if (!ImageFragment.mimeSupports(mimeType)) {
+        if (!ImageViewerFragment.mimeSupports(mimeType)) {
             return null;
         }
-        Fragment fragment = new ImageFragment();
+        Fragment fragment = new ImageViewerFragment();
         Bundle arguments = new Bundle();
         arguments.putString(EXTRA_PATH, path);
         arguments.putString(EXTRA_MIME, mimeType);
