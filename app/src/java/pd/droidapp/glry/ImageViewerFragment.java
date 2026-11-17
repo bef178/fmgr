@@ -12,18 +12,22 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.fileheader.FileMimeUtil;
+import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.InfoPopup;
 import pd.droidapp.fmgr.repository.ListDirectoryWorker;
 import pd.droidapp.fmgr.util.FileProperties;
+import pd.droidapp.fmgr.view.ActionBar;
 import pd.droidapp.fmgr.view.ButtonScrollView;
 import pd.droidapp.fmgr.view.ButtonState;
+import pd.util.FileOps;
 import pd.util.PathOps;
 
-import static pd.droidapp.fmgr.util.Util.renderButtonStates;
+import static pd.droidapp.fmgr.util.Util.toFileProperties;
 import static pd.droidapp.glry.ImagePagerAdapter.ResetPageEvent;
 import static pd.droidapp.glry.ImagePagerAdapter.ShowActualSizeEvent;
 import static pd.droidapp.glry.ImagePagerAdapter.State;
@@ -42,7 +46,7 @@ public class ImageViewerFragment extends Fragment {
     private TextView indexPlaceholderView;
     private ViewPager2 pagerView;
     private View progressView;
-    private ViewGroup actionButtons;
+    private ActionBar actionBar;
     private ImagePagerAdapter adapter;
     private List<State> states;
     private boolean[] actualSizeAvailable;
@@ -74,7 +78,19 @@ public class ImageViewerFragment extends Fragment {
         indexPlaceholderView = view.findViewById(R.id.image_viewer_index_placeholder);
         pagerView = view.findViewById(R.id.image_viewer_pager);
         progressView = view.findViewById(R.id.image_viewer_progress);
-        actionButtons = view.findViewById(R.id.action_buttons);
+        actionBar = new ActionBar(view.findViewById(R.id.action_bar));
+        actionBar.whenButtonClicked(id -> {
+            if (!isPagerIdle()) {
+                return;
+            }
+            if (id == R.drawable.ic_zoom0_24) {
+                showActualSize();
+            } else if (id == R.drawable.ic_info_24) {
+                new InfoPopup(pagerView, states.get(pagerView.getCurrentItem()).path).show();
+            } else if (id == R.drawable.ia_delete_24) {
+                showDeletePopup();
+            }
+        });
         view.findViewById(R.id.action_back).setOnClickListener(v -> requireActivity().finish());
 
         String path = getArguments() != null ? getArguments().getString(GlryActivity.EXTRA_PATH) : null;
@@ -115,7 +131,7 @@ public class ImageViewerFragment extends Fragment {
 
     private void showImages(List<State> states, String currentPath) {
         int position = indexOf(states, currentPath);
-        if (position < 0) {
+        if (position < 0 && FileOps.singleton.stat(currentPath).exists(true)) {
             String mimeType = getArguments() != null
                     ? getArguments().getString(GlryActivity.EXTRA_MIME)
                     : null;
@@ -123,14 +139,21 @@ public class ImageViewerFragment extends Fragment {
             states.sort((a, b) -> PathOps.singleton.compare(a.path, b.path));
             position = indexOf(states, currentPath);
         }
+        this.states = states;
+        actualSizeAvailable = new boolean[states.size()];
+        if (states.isEmpty()) {
+            showEmptyImages();
+            return;
+        }
+        if (position < 0) {
+            position = 0;
+        }
         if (restoredPosition >= 0 && restoredPosition < states.size()) {
             position = restoredPosition;
         }
 
         progressView.setVisibility(View.GONE);
         pagerView.setOffscreenPageLimit(1);
-        this.states = states;
-        actualSizeAvailable = new boolean[states.size()];
         adapter = new ImagePagerAdapter();
         adapter.whenPageLoaded(this::onPageLoaded);
         adapter.render(states);
@@ -138,7 +161,11 @@ public class ImageViewerFragment extends Fragment {
         pagerView.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int pagePosition) {
-                renderTitle(states, pagePosition);
+                List<State> currentStates = ImageViewerFragment.this.states;
+                if (currentStates == null || pagePosition < 0 || pagePosition >= currentStates.size()) {
+                    return;
+                }
+                renderTitle(currentStates, pagePosition);
                 renderActionButtons(pagePosition);
             }
 
@@ -160,6 +187,19 @@ public class ImageViewerFragment extends Fragment {
         pagerView.setCurrentItem(position, false);
         renderTitle(states, position);
         renderActionButtons(position);
+    }
+
+    private void showEmptyImages() {
+        progressView.setVisibility(View.GONE);
+        adapter = new ImagePagerAdapter();
+        pagerView.setAdapter(adapter);
+        settledPosition = 0;
+        titleView.setText(R.string.no_images);
+        titleScrollView.scrollTo(0, 0);
+        String emptyIndex = getString(R.string.x_of_y, 0, 0);
+        indexView.setText(emptyIndex);
+        indexPlaceholderView.setText(emptyIndex);
+        actionBar.render(new ActionBar.State(new ButtonState[0]));
     }
 
     private static int indexOf(List<State> states, String path) {
@@ -203,19 +243,60 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void renderActionButtons(int position) {
-        List<ButtonState> buttonStates = new ArrayList<>();
-        buttonStates.add(new ButtonState(R.drawable.ic_zoom0_24, actualSizeAvailable[position]));
-        buttonStates.add(new ButtonState(R.drawable.ic_info_24));
-        renderButtonStates(buttonStates, actionButtons, R.layout.action_button, id -> {
-            if (!isPagerIdle()) {
+        actionBar.render(new ActionBar.State(
+                new ButtonState[]{
+                        new ButtonState(R.drawable.ic_zoom0_24, actualSizeAvailable[position]),
+                        new ButtonState(R.drawable.ic_info_24)
+                },
+                new ButtonState(R.drawable.ia_delete_24)));
+    }
+
+    private void showDeletePopup() {
+        View view = getView();
+        if (view == null) {
+            return;
+        }
+        String path = states.get(pagerView.getCurrentItem()).path;
+        DeletePopup deletePopup = new DeletePopup(view, PathOps.singleton.dirname(path),
+                Collections.singletonList(toFileProperties(path)), false);
+        deletePopup.whenPopupDismissed((added, removed) -> {
+            if (!isAdded() || adapter == null || pagerView == null) {
                 return;
             }
-            if (id == R.drawable.ic_zoom0_24) {
-                showActualSize();
-            } else if (id == R.drawable.ic_info_24) {
-                new InfoPopup(pagerView, states.get(pagerView.getCurrentItem()).path).show();
+            if (removed.isEmpty()) {
+                return;
             }
+            onFileDeleted(path);
         });
+        deletePopup.show();
+    }
+
+    private void onFileDeleted(String path) {
+        int index = indexOf(states, path);
+        if (index < 0) {
+            return;
+        }
+
+        states.remove(index);
+
+        int size = states.size();
+        boolean[] newActualSizeAvailable = new boolean[size];
+        System.arraycopy(actualSizeAvailable, 0, newActualSizeAvailable, 0, index);
+        System.arraycopy(actualSizeAvailable, index + 1, newActualSizeAvailable, index,
+                size - index);
+        actualSizeAvailable = newActualSizeAvailable;
+
+        if (states.isEmpty()) {
+            showEmptyImages();
+            return;
+        }
+
+        int newCurrent = Math.min(index, size - 1);
+        adapter.render(states);
+        pagerView.setCurrentItem(newCurrent, false);
+        settledPosition = newCurrent;
+        renderTitle(states, newCurrent);
+        renderActionButtons(newCurrent);
     }
 
     private boolean isPagerIdle() {
@@ -240,7 +321,7 @@ public class ImageViewerFragment extends Fragment {
         adapter = null;
         pagerView = null;
         progressView = null;
-        actionButtons = null;
+        actionBar = null;
         titleView = null;
         titleScrollView = null;
         indexView = null;

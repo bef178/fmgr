@@ -37,6 +37,7 @@ public class DeletePopup extends ProcessingPopup {
 
     private final String startDirectory;
     private final List<FileProperties> srcItems;
+    private final boolean enablePrune;
     private final Map<String, ProcessingStatus> badgeStates = new HashMap<>();
 
     // views
@@ -56,9 +57,14 @@ public class DeletePopup extends ProcessingPopup {
     private boolean touching;
 
     public DeletePopup(View containerView, String startDirectory, Collection<FileProperties> srcItems) {
+        this(containerView, startDirectory, srcItems, true);
+    }
+
+    public DeletePopup(View containerView, String startDirectory, Collection<FileProperties> srcItems, boolean enablePrune) {
         super(containerView);
         this.startDirectory = startDirectory;
         this.srcItems = new LinkedList<>(srcItems);
+        this.enablePrune = enablePrune;
 
         statusBar = new StatusBar(contentView.findViewById(R.id.status_bar), R.drawable.ia_delete_24);
         itemsView = contentView.findViewById(R.id.popup_items_list);
@@ -187,7 +193,7 @@ public class DeletePopup extends ProcessingPopup {
     private void renderBottomBar() {
         boolean isProcessing = worker != null && worker.isWorking();
         bottomBar.render(new PopupBottomBar.State(
-                new ButtonState(R.id.action_delete_up, R.drawable.ia_delete_up_24, worker == null, true),
+                new ButtonState(R.id.action_delete_up, R.drawable.ia_delete_up_24, enablePrune && worker == null, true),
                 new ButtonState(R.id.action_delete, R.drawable.ia_delete_24, worker == null, true),
                 new ButtonState(R.id.action_abort, R.drawable.ic_blockmark_24, isProcessing, isProcessing && !worker.isCancelled()),
                 new ButtonState(R.id.action_close, R.drawable.ic_checkmark_24, worker != null && !worker.isWorking(), true)));

@@ -86,6 +86,7 @@
     <string name="delete_progress_summary">(%d/%d) %d deleted, %d failed</string>
 
     <!-- image preview -->
+    <string name="no_images">No images</string>
     <string name="info">Info</string>
     <string name="info_path">Path</string>
     <string name="info_size">Size</string>
