@@ -43,6 +43,7 @@ import pd.droidapp.fmgr.view.ButtonState;
 import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.PathNavigator.CAPPING_DIRECTORY;
+import static pd.util.AsciiExtension.isDigit;
 
 public class Util {
 
@@ -185,6 +186,62 @@ public class Util {
         }
 
         return null;
+    }
+
+    /**
+     * natural soring: 1 < 2 < 10
+     */
+    public static int compareNatural(String a, String b) {
+        int i = 0;
+        int j = 0;
+        while (i < a.length() && j < b.length()) {
+            char ca = a.charAt(i);
+            char cb = b.charAt(j);
+            if (isDigit(ca) && isDigit(cb)) {
+                int aStart = i;
+                int bStart = j;
+                while (i < a.length() && isDigit(a.charAt(i))) {
+                    i++;
+                }
+                while (j < b.length() && isDigit(b.charAt(j))) {
+                    j++;
+                }
+                int cmp = compareDigitRuns(a, aStart, i, b, bStart, j);
+                if (cmp != 0) {
+                    return cmp;
+                }
+            } else {
+                if (ca != cb) {
+                    return ca - cb;
+                }
+                i++;
+                j++;
+            }
+        }
+        return Integer.compare(a.length() - i, b.length() - j);
+    }
+
+    private static int compareDigitRuns(String a, int aStart, int aEnd,
+            String b, int bStart, int bEnd) {
+        while (aStart < aEnd - 1 && a.charAt(aStart) == '0') {
+            aStart++;
+        }
+        while (bStart < bEnd - 1 && b.charAt(bStart) == '0') {
+            bStart++;
+        }
+        int aLength = aEnd - aStart;
+        int bLength = bEnd - bStart;
+        if (aLength != bLength) {
+            return Integer.compare(aLength, bLength);
+        }
+        for (int i = 0; i < aLength; i++) {
+            char ca = a.charAt(aStart + i);
+            char cb = b.charAt(bStart + i);
+            if (ca != cb) {
+                return ca - cb;
+            }
+        }
+        return 0;
     }
 
     public static int bitCeil(int n) {

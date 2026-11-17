@@ -13,6 +13,7 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import pd.droidapp.fmgr.R;
@@ -27,6 +28,7 @@ import pd.droidapp.fmgr.view.ButtonState;
 import pd.util.FileOps;
 import pd.util.PathOps;
 
+import static pd.droidapp.fmgr.util.Util.compareNatural;
 import static pd.droidapp.fmgr.util.Util.toFileProperties;
 import static pd.droidapp.glry.ImagePagerAdapter.ResetPageEvent;
 import static pd.droidapp.glry.ImagePagerAdapter.ShowActualSizeEvent;
@@ -35,6 +37,8 @@ import static pd.droidapp.glry.ImagePagerAdapter.State;
 public class ImageViewerFragment extends Fragment {
 
     private static final String STATE_POSITION = "position";
+    private static final Comparator<State> STATE_ORDER =
+            (a, b) -> compareNatural(a.path, b.path);
 
     public static boolean mimeSupports(String mime) {
         return ImageManager.singleton.supports(mime);
@@ -130,21 +134,21 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void showImages(List<State> states, String currentPath) {
-        int position = indexOf(states, currentPath);
-        if (position < 0 && FileOps.singleton.stat(currentPath).exists(true)) {
+        if (indexOf(states, currentPath) < 0 && FileOps.singleton.stat(currentPath).exists(true)) {
             String mimeType = getArguments() != null
                     ? getArguments().getString(GlryActivity.EXTRA_MIME)
                     : null;
             states.add(new State(currentPath, mimeType));
-            states.sort((a, b) -> PathOps.singleton.compare(a.path, b.path));
-            position = indexOf(states, currentPath);
         }
+        states.sort(STATE_ORDER);
+
         this.states = states;
         actualSizeAvailable = new boolean[states.size()];
         if (states.isEmpty()) {
             showEmptyImages();
             return;
         }
+        int position = indexOf(states, currentPath);
         if (position < 0) {
             position = 0;
         }
