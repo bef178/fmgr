@@ -67,7 +67,7 @@ import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
 import static pd.droidapp.fmgr.util.Util.getSizeString;
-import static pd.droidapp.fmgr.util.Util.themeColor;
+import static pd.droidapp.fmgr.util.Util.getThemedColor;
 
 public class BrowseFragment extends Fragment {
 
@@ -300,7 +300,7 @@ public class BrowseFragment extends Fragment {
     }
 
     private void scrollToAndHighlight(String path) {
-        scrollToAndHighlight(path, themeColor(requireContext(), com.google.android.material.R.attr.colorSecondary));
+        scrollToAndHighlight(path, getThemedColor(requireContext(), com.google.android.material.R.attr.colorSecondary));
     }
 
     private void scrollToAndHighlight(String path, @ColorInt int peakColor) {

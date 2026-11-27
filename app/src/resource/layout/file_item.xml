@@ -61,7 +61,7 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <pd.droidapp.fmgr.view.ButtonScrollView
+            <pd.droidapp.fmgr.widget.ButtonScrollView
                 android:id="@+id/item_name_scroll"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -78,7 +78,7 @@
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="16sp" />
 
-            </pd.droidapp.fmgr.view.ButtonScrollView>
+            </pd.droidapp.fmgr.widget.ButtonScrollView>
 
             <TextView
                 android:id="@+id/item_summary"

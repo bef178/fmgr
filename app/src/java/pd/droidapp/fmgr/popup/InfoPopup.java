@@ -22,17 +22,17 @@ import pd.droidapp.fmgr.fileheader.FileMimeUtil;
 import pd.droidapp.fmgr.repository.ThumbnailManager;
 import pd.droidapp.fmgr.repository.WorkerPool;
 import pd.droidapp.fmgr.util.ImageLoader;
-import pd.droidapp.fmgr.view.ButtonScrollView;
 import pd.droidapp.fmgr.view.ButtonState;
 import pd.droidapp.fmgr.view.PopupBottomBar;
 import pd.droidapp.fmgr.view.PopupTitleBar;
+import pd.droidapp.fmgr.widget.ButtonScrollView;
 import pd.util.FileOps;
 import pd.util.FileStat;
 
 import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
+import static pd.droidapp.fmgr.util.Util.getThemedColor;
 import static pd.droidapp.fmgr.util.Util.scrollToEndAndBack;
-import static pd.droidapp.fmgr.util.Util.themeColor;
 
 public class InfoPopup extends ProcessingPopup {
 
@@ -62,7 +62,7 @@ public class InfoPopup extends ProcessingPopup {
         progressDrawable = new CircularProgressDrawable(context);
         progressDrawable.setStyle(CircularProgressDrawable.DEFAULT);
         progressDrawable.setColorSchemeColors(
-                themeColor(context, com.google.android.material.R.attr.colorPrimary));
+                getThemedColor(context, com.google.android.material.R.attr.colorPrimary));
         progressImageView.setImageDrawable(progressDrawable);
 
         bottomBar.whenButtonClicked(id -> {

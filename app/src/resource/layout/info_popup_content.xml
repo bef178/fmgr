@@ -43,7 +43,7 @@
 
             </FrameLayout>
 
-            <pd.droidapp.fmgr.view.ButtonScrollView
+            <pd.droidapp.fmgr.widget.ButtonScrollView
                 android:id="@+id/info_popup_path_scroll"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -58,7 +58,7 @@
                     android:singleLine="true"
                     android:textSize="16sp" />
 
-            </pd.droidapp.fmgr.view.ButtonScrollView>
+            </pd.droidapp.fmgr.widget.ButtonScrollView>
 
         </LinearLayout>
 

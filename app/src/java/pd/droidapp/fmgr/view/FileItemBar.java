@@ -12,6 +12,7 @@ import java.util.Objects;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.repository.ThumbnailManager;
+import pd.droidapp.fmgr.widget.ButtonScrollView;
 
 import static pd.droidapp.fmgr.util.FileIconUtil.getMimeByDrawableId;
 import static pd.droidapp.fmgr.util.Util.forwardViewActionsTo;

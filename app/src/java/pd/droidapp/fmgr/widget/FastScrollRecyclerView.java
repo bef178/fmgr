@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.view;
+package pd.droidapp.fmgr.widget;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -31,7 +31,7 @@ public class FastScrollRecyclerView extends RecyclerView {
     private final int thumbWidth;
     private final Paint fallbackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF thumbRect = new RectF();
-    private final boolean alwaysVisible;
+    private final boolean alwaysVisible = false;
 
     private final Runnable hideRunnable = this::fadeOut;
     private ValueAnimator fadeAnimator;
@@ -55,8 +55,12 @@ public class FastScrollRecyclerView extends RecyclerView {
 
         TypedArray dividerAttrs = context.obtainStyledAttributes(attrs,
                 new int[] { android.R.attr.divider }, defStyleAttr, 0);
-        Drawable divider = dividerAttrs.getDrawable(0);
-        dividerAttrs.recycle();
+        Drawable divider;
+        try {
+            divider = dividerAttrs.getDrawable(0);
+        } finally {
+            dividerAttrs.recycle();
+        }
         if (divider != null) {
             addItemDecoration(new DividerDecoration(divider));
         }
@@ -65,20 +69,20 @@ public class FastScrollRecyclerView extends RecyclerView {
                 android.R.attr.scrollbarThumbVertical,
                 android.R.attr.scrollbarSize,
         });
-        Drawable thumb = a.getDrawable(0);
-        int size = a.getDimensionPixelSize(1, Math.round(4 * density));
-        a.recycle();
+        Drawable thumb;
+        int size;
+        try {
+            thumb = a.getDrawable(0);
+            size = a.getDimensionPixelSize(1, Math.round(4 * density));
+        } finally {
+            a.recycle();
+        }
         if (thumb != null && thumb.getIntrinsicWidth() > 0) {
             size = thumb.getIntrinsicWidth();
         }
         thumbDrawable = thumb;
         thumbWidth = Math.max(1, size);
         fallbackPaint.setColor(Color.BLACK);
-
-        TypedArray custom = context.obtainStyledAttributes(attrs,
-                new int[] { android.R.attr.fastScrollAlwaysVisible }, defStyleAttr, 0);
-        alwaysVisible = custom.getBoolean(0, false);
-        custom.recycle();
 
         barAlpha = alwaysVisible ? 1f : 0f;
         setVerticalScrollBarEnabled(false);

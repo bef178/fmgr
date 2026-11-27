@@ -31,7 +31,7 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <pd.droidapp.fmgr.view.ButtonScrollView
+            <pd.droidapp.fmgr.widget.ButtonScrollView
                 android:id="@+id/image_viewer_title_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -46,7 +46,7 @@
                     android:maxLines="1"
                     android:textSize="16sp" />
 
-            </pd.droidapp.fmgr.view.ButtonScrollView>
+            </pd.droidapp.fmgr.widget.ButtonScrollView>
 
             <FrameLayout
                 android:layout_width="wrap_content"

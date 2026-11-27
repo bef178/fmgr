@@ -1,4 +1,4 @@
-package pd.droidapp.fmgr.view;
+package pd.droidapp.fmgr.widget;
 
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -45,9 +45,12 @@ public class ButtonScrollView extends HorizontalScrollView {
     public ButtonScrollView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         ColorStateList buttonTint;
-        try (TypedArray a = context.obtainStyledAttributes(attrs,
-                new int[] { android.R.attr.buttonTint }, defStyleAttr, 0)) {
+        TypedArray a = context.obtainStyledAttributes(attrs,
+                new int[] { android.R.attr.buttonTint }, defStyleAttr, 0);
+        try {
             buttonTint = a.getColorStateList(0);
+        } finally {
+            a.recycle();
         }
         leftButton = createButton(R.drawable.ic_rt_triangle_left_24, -1, buttonTint);
         rightButton = createButton(R.drawable.ic_rt_triangle_right_24, 1, buttonTint);
@@ -204,7 +207,7 @@ public class ButtonScrollView extends HorizontalScrollView {
         return AppCompatResources.getDrawable(context, value.resourceId);
     }
 
-    private class ScrollButton extends ImageButton {
+    private class ScrollButton extends androidx.appcompat.widget.AppCompatImageButton {
 
         private final int direction;
 

@@ -21,7 +21,7 @@
             android:textColor="@color/grey_700"
             android:textSize="11sp" />
 
-        <pd.droidapp.fmgr.view.ButtonScrollView
+        <pd.droidapp.fmgr.widget.ButtonScrollView
             android:id="@+id/target_name_scroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -37,7 +37,7 @@
                 android:layout_height="wrap_content"
                 android:maxLines="1"
                 android:textSize="14sp" />
-        </pd.droidapp.fmgr.view.ButtonScrollView>
+        </pd.droidapp.fmgr.widget.ButtonScrollView>
 
         <EditText
             android:id="@+id/target_name_edit"
@@ -54,7 +54,7 @@
 
     </LinearLayout>
 
-    <pd.droidapp.fmgr.view.FastScrollRecyclerView
+    <pd.droidapp.fmgr.widget.FastScrollRecyclerView
         android:id="@+id/popup_items_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"

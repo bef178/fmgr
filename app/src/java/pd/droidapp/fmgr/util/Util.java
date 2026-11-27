@@ -3,7 +3,6 @@ package pd.droidapp.fmgr.util;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -62,14 +61,12 @@ public class Util {
         return String.format(Locale.getDefault(), "%.1f %sB", size / Math.pow(1024, exp), unit);
     }
 
-    public static int themeColor(Context context, @AttrRes int attrRes) {
+    public static int getThemedColor(Context context, @AttrRes int attrRes) {
         TypedValue typedValue = new TypedValue();
         context.getTheme().resolveAttribute(attrRes, typedValue, true);
         return typedValue.data;
     }
 
-    // ClickableViewAccessibility: the listener never consumes events (returns false);
-    @SuppressLint("ClickableViewAccessibility")
     public static void forwardViewActionsTo(View view, View itemView) {
         view.setHapticFeedbackEnabled(false);
         view.setSoundEffectsEnabled(false);

@@ -19,7 +19,7 @@
         android:src="@android:color/transparent"
         app:tint="#666" />
 
-    <pd.droidapp.fmgr.view.ButtonScrollView
+    <pd.droidapp.fmgr.widget.ButtonScrollView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
@@ -36,7 +36,7 @@
             android:textColor="#666"
             android:textSize="13sp" />
 
-    </pd.droidapp.fmgr.view.ButtonScrollView>
+    </pd.droidapp.fmgr.widget.ButtonScrollView>
 
     <LinearLayout
         android:id="@+id/status_buttons"
