@@ -44,6 +44,7 @@ import pd.droidapp.fmgr.popup.CreatePopup;
 import pd.droidapp.fmgr.popup.DeletePopup;
 import pd.droidapp.fmgr.popup.FindDupPopup;
 import pd.droidapp.fmgr.popup.FindEmptyPopup;
+import pd.droidapp.fmgr.popup.InfoPopup;
 import pd.droidapp.fmgr.popup.PastePopup;
 import pd.droidapp.fmgr.popup.RenamePopup;
 import pd.droidapp.fmgr.popup.SearchPopup;
@@ -382,6 +383,10 @@ public class BrowseFragment extends Fragment {
                 showPastePopup(getSelectedItems(), false);
             } else if (id == R.drawable.ia_delete_24) {
                 showDeletePopup(getSelectedItems());
+            } else if (id == R.drawable.ic_info_24) {
+                if (selectedPaths.size() == 1) {
+                    showInfoPopup(getSelectedItems().get(0).path);
+                }
             } else if (id == R.drawable.ia_select_all_24) {
                 selectAll();
             } else if (id == R.drawable.ic_xmark_24) {
@@ -397,6 +402,7 @@ public class BrowseFragment extends Fragment {
                 new ButtonState(R.drawable.ia_move_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_copy_24, numSelected > 0),
                 new ButtonState(R.drawable.ia_delete_24, numSelected > 0),
+                new ButtonState(R.drawable.ic_info_24, numSelected == 1),
                 new ButtonState(R.drawable.ia_select_all_24, numSelected > 0),
                 new ButtonState(R.drawable.ic_xmark_24, numSelected > 0)));
     }
@@ -716,6 +722,14 @@ public class BrowseFragment extends Fragment {
             }
         });
         renamePopup.show();
+    }
+
+    private void showInfoPopup(String path) {
+        View view = getView();
+        if (view == null) {
+            return;
+        }
+        new InfoPopup(view, path).show();
     }
 
     private void showCreatePopup(boolean isDirectory) {

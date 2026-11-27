@@ -11,27 +11,17 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 import pd.droidapp.fmgr.R;
 import pd.droidapp.fmgr.fileheader.FileMimeUtil;
+import pd.droidapp.fmgr.popup.InfoPopup;
 import pd.droidapp.fmgr.repository.ListDirectoryWorker;
-import pd.droidapp.fmgr.repository.WorkerPool;
 import pd.droidapp.fmgr.util.FileProperties;
 import pd.droidapp.fmgr.view.ButtonState;
-import pd.util.FileOps;
-import pd.util.FileStat;
 import pd.util.PathOps;
 
-import static java.util.AbstractMap.SimpleEntry;
-import static pd.droidapp.fmgr.util.Util.getDisplayPath;
-import static pd.droidapp.fmgr.util.Util.getSizeString;
 import static pd.droidapp.fmgr.util.Util.renderButtonStates;
 import static pd.droidapp.glry.ImagePagerAdapter.ResetPageEvent;
 import static pd.droidapp.glry.ImagePagerAdapter.ShowActualSizeEvent;
@@ -40,8 +30,6 @@ import static pd.droidapp.glry.ImagePagerAdapter.State;
 public class ImageFragment extends Fragment {
 
     private static final String STATE_POSITION = "position";
-    private static final DateTimeFormatter INFO_DATE_FORMAT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT).withZone(ZoneOffset.UTC);
 
     public static boolean mimeSupports(String mime) {
         return ImageManager.singleton.supports(mime);
@@ -221,51 +209,13 @@ public class ImageFragment extends Fragment {
             if (id == R.drawable.ic_zoom0_24) {
                 showActualSize();
             } else if (id == R.drawable.ic_info_24) {
-                showInfo(pagerView.getCurrentItem());
+                new InfoPopup(pagerView, states.get(pagerView.getCurrentItem()).path).show();
             }
         });
     }
 
     private boolean isPagerIdle() {
         return adapter != null && pagerView.getScrollState() == ViewPager2.SCROLL_STATE_IDLE;
-    }
-
-    private void showInfo(int position) {
-        State state = states.get(position);
-        String path = state.path;
-        String mimeType = state.mimeType;
-        View pager = pagerView;
-        WorkerPool.post(() -> {
-            FileStat stat = FileOps.singleton.stat(path);
-            Long size = stat.size;
-            Long mtime = stat.mtime;
-            int[] sourceResolution = ImageManager.singleton.readImageResolution(path, mimeType);
-            pager.post(() -> {
-                if (!isAdded() || getView() == null) {
-                    return;
-                }
-                showInfoPopup(path, size, mtime, mimeType, sourceResolution);
-            });
-        });
-    }
-
-    private void showInfoPopup(String path, Long size, Long mtime, String mimeType, int[] sourceResolution) {
-        List<Map.Entry<String, String>> rows = new ArrayList<>();
-        rows.add(new SimpleEntry<>(getString(R.string.info_path), getDisplayPath(path)));
-        rows.add(new SimpleEntry<>(getString(R.string.info_size),
-                size != null ? getSizeString(size) : getString(R.string.error)));
-        if (sourceResolution != null) {
-            rows.add(new SimpleEntry<>(getString(R.string.info_resolution),
-                    sourceResolution[0] + " x " + sourceResolution[1]));
-        }
-        if (mtime != null) {
-            rows.add(new SimpleEntry<>(getString(R.string.info_modified),
-                    INFO_DATE_FORMAT.format(Instant.ofEpochMilli(mtime))));
-        }
-        if (mimeType != null) {
-            rows.add(new SimpleEntry<>(getString(R.string.info_type), mimeType));
-        }
-        new InfoPopup(pagerView, rows).show();
     }
 
     @Override

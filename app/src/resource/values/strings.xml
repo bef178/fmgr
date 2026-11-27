@@ -21,6 +21,7 @@
     <string name="error_no_app_to_open">No app found to open this file</string>
 
     <string name="new_directory">New Directory</string>
+    <string name="mime_directory">directory</string>
     <string name="directory_name">Directory name</string>
     <string name="directory_created">Directory created</string>
 

@@ -9,19 +9,20 @@
 
     <TextView
         android:id="@+id/info_popup_key"
-        android:layout_width="wrap_content"
+        android:layout_width="@dimen/info_popup_key_width"
         android:layout_height="wrap_content"
         android:layout_marginEnd="12dp"
         android:gravity="end"
         android:textSize="16sp"
         android:textStyle="bold" />
 
-    <HorizontalScrollView
+    <pd.droidapp.fmgr.view.ButtonScrollView
+        android:id="@+id/info_popup_value_scroll"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:fadingEdgeLength="16dp"
-        android:requiresFadingEdge="horizontal">
+        android:buttonTint="@color/purple_200"
+        android:scrollbars="horizontal">
 
         <TextView
             android:id="@+id/info_popup_value"
@@ -30,6 +31,6 @@
             android:singleLine="true"
             android:textSize="16sp" />
 
-    </HorizontalScrollView>
+    </pd.droidapp.fmgr.view.ButtonScrollView>
 
 </LinearLayout>

@@ -5,7 +5,6 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.CheckBox;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
@@ -41,6 +40,7 @@ import pd.util.PathOps;
 import static pd.droidapp.fmgr.view.FileItemBar.ProcessingStatus;
 import static pd.droidapp.fmgr.util.Util.getDisplayPath;
 import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
+import static pd.droidapp.fmgr.util.Util.scrollToEndAndBack;
 import static pd.droidapp.fmgr.util.Util.scrollToIndex;
 
 public class PastePopup extends ProcessingPopup {
@@ -126,25 +126,6 @@ public class PastePopup extends ProcessingPopup {
         popup.whenDirectorySelected(d -> {
             dstDirectory = d;
             invalidatePasteOptions();
-            targetDirectoryScrollView.getViewTreeObserver().addOnGlobalLayoutListener(
-                    new ViewTreeObserver.OnGlobalLayoutListener() {
-                        @Override
-                        public void onGlobalLayout() {
-                            targetDirectoryScrollView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                            // the furthest HorizontalScrollView will scroll to, same figure it clamps by
-                            int end = targetDirectoryScrollView.getChildAt(0).getWidth()
-                                    - targetDirectoryScrollView.getWidth()
-                                    + targetDirectoryScrollView.getPaddingLeft()
-                                    + targetDirectoryScrollView.getPaddingRight();
-                            if (end <= 0) {
-                                return;
-                            }
-                            targetDirectoryScrollView.smoothScrollTo(end, 0);
-                            targetDirectoryScrollView.postDelayed(
-                                    () -> targetDirectoryScrollView.smoothScrollTo(0, 0),
-                                    600);
-                        }
-                    });
         });
         popup.show();
     }
@@ -154,6 +135,7 @@ public class PastePopup extends ProcessingPopup {
         boolean inPlace = srcItems.stream()
                 .allMatch(item -> dstDirectory.equals(PathOps.singleton.dirname(item.path)));
         mergeDirectoriesCheckBox.setChecked(!inPlace);
+        scrollToEndAndBack(targetDirectoryScrollView);
     }
 
     private void initItemsView() {

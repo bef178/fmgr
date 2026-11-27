@@ -6,7 +6,7 @@
     android:viewportHeight="24">
 
     <path
-        android:pathData="M 5,12 a 7,7 0 1,1 14,0 a 7,7 0 1,1 -14,0"
+        android:pathData="M 4,12 a 8,8 0 1,1 16,0 a 8,8 0 1,1 -16,0"
         android:strokeWidth="2">
         <aapt:attr name="android:strokeColor">
             <selector>
@@ -16,7 +16,7 @@
         </aapt:attr>
     </path>
 
-    <path android:pathData="M11,8h2v2h-2zM11,11h2v5h-2z">
+    <path android:pathData="M 11.042,7 h 1.917 v 1.774 h -1.917 z M 11.042,9.756 h 1.917 v 7.244 h -1.917 z">
         <aapt:attr name="android:fillColor">
             <selector>
                 <item android:color="#999" android:state_enabled="false" />

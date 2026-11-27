@@ -10,7 +10,9 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.animation.LinearInterpolator;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -246,6 +248,28 @@ public class Util {
         } else {
             itemsView.smoothScrollBy(0, dy, new LinearInterpolator(), SCROLL_ANIMATION_MILLISECONDS);
         }
+    }
+
+    public static void scrollToEndAndBack(HorizontalScrollView scrollView) {
+        scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                scrollView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                // the furthest HorizontalScrollView will scroll to, same figure it clamps by
+                int end = scrollView.getChildAt(0).getWidth()
+                        - scrollView.getWidth()
+                        + scrollView.getPaddingLeft()
+                        + scrollView.getPaddingRight();
+                if (end <= 0) {
+                    return;
+                }
+                final int SCROLL_DELAY_MILLISECONDS = 600;
+                scrollView.postDelayed(() -> {
+                    scrollView.smoothScrollTo(end, 0);
+                    scrollView.postDelayed(() -> scrollView.smoothScrollTo(0, 0), SCROLL_DELAY_MILLISECONDS);
+                }, SCROLL_DELAY_MILLISECONDS);
+            }
+        });
     }
 
     public static boolean isSameAsOrDescendantOfAny(String path, Collection<FileProperties> items) {

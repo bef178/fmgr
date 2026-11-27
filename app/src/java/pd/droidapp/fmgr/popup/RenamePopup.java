@@ -39,6 +39,7 @@ import pd.util.PathOps;
 
 import static pd.droidapp.fmgr.util.Util.checkBasename;
 import static pd.droidapp.fmgr.util.FileIconUtil.getDrawableId;
+import static pd.droidapp.fmgr.util.Util.scrollToEndAndBack;
 import static pd.droidapp.fmgr.view.FileItemBar.ProcessingStatus;
 
 /**
@@ -294,6 +295,7 @@ public class RenamePopup extends ProcessingPopup {
                 if (transitionType == LayoutTransition.DISAPPEARING && view == targetNameEditView) {
                     targetNameTextView.setText(targetName);
                     targetNameScrollView.setVisibility(View.VISIBLE);
+                    scrollToEndAndBack(targetNameScrollView);
                 }
             }
 

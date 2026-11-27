@@ -7,4 +7,5 @@
     <dimen name="edit_popup_content_height">50dp</dimen>
     <dimen name="rename_popup_top_margin">120dp</dimen>
     <dimen name="rename_popup_content_height">160dp</dimen>
+    <dimen name="info_popup_key_width">88dp</dimen>
 </resources>

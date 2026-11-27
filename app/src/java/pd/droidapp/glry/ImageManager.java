@@ -30,10 +30,6 @@ public class ImageManager {
         cache.clear();
     }
 
-    public int[] readImageResolution(String path, String mimeType) {
-        return imageLoader.readImageSourceResolution(path, mimeType);
-    }
-
     public void load(String path, String mimeType, int clientWidth, int clientHeight, Consumer<DrawableEntry> onLoaded) {
         WorkerPool.post(() -> {
             if (!supports(mimeType)) {
